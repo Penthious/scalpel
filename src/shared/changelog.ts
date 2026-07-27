@@ -1,5 +1,18 @@
 export const CHANGELOG: { version: string; notes: string[] }[] = [
   {
+    version: '1.0.1',
+    notes: [
+      'Added more price-check support for Charts.',
+      'Added a refresh button next to the League setting to re-pull the league list from the trade site.',
+      'Refreshed the divination card drop and price data for the new league.',
+      "Updated the regex tool's vendor map mod and item mod data.",
+      'Fixed rare and magic items whose randomly generated name collides with a real currency or unique (e.g. a jewel rolling "Ancient Orb" WHY GREG).',
+      'Fixed long mods that wrap onto a second line leaving a junk half-line row in price-check.',
+      'Fixed the preview buttons not playing built-in alert sounds in the filter editor.',
+      'Fixed the regex preset color menu not being clickable where it hung past the bottom of the panel.',
+    ],
+  },
+  {
     version: '1.0.0',
     notes: [
       'Updated PoE1 data for the 3.27 league: new base types, renames, and support for the new "Vestigial" filter condition.',
