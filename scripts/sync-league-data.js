@@ -1,8 +1,8 @@
 const fs = require('node:fs')
 const path = require('node:path')
 
-const BASE_URL = 'https://raw.githubusercontent.com/deathbeam/maps-of-exile/master/site/src/data/'
-const OUT_DIR = path.join(__dirname, '..', 'src', 'renderer', 'src', 'data')
+const BASE_URL = 'https://raw.githubusercontent.com/deathbeam/maps-of-exile/main/site/src/data/'
+const OUT_DIR = path.join(__dirname, '..', 'src', 'shared', 'data', 'economy')
 
 const FILES = [
   { remote: 'cards.json', local: 'div-cards.json' },
