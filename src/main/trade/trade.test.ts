@@ -338,6 +338,32 @@ describe('parseFetchedListings', () => {
     const out = parseFetchedListings([null as unknown as FetchEntry, entry].filter(Boolean) as FetchEntry[])
     expect(out).toHaveLength(1)
   })
+
+  it('extracts a chart zone from its unnamed type-105 property without disturbing named lookups', () => {
+    // Charts carry their zone as an UNNAMED property (name: '') tagged with GGG's
+    // type code 105 -- there's no name to match on. Area Level sits alongside it
+    // as a normal named property, so this also proves the unnamed lookup doesn't
+    // clobber the named one.
+    const entry: FetchEntry = {
+      id: 'd5',
+      listing: baseListing,
+      item: {
+        name: '',
+        baseType: 'Coral Forest Chart',
+        typeLine: 'Freezing Coral Forest Chart of Impedance',
+        frameType: 1,
+        properties: [
+          { name: '', values: [['Sea Pillars', 30]], type: 105 },
+          { name: 'Area Level', values: [['53', 0]] },
+        ],
+      },
+    }
+
+    const [listing] = parseFetchedListings([entry])
+    const data = listing.itemData!
+    expect(data.chartZone).toBe('Sea Pillars')
+    expect(data.areaLevel).toBe(53)
+  })
 })
 
 // The "load more" pagination path (fetchMoreListings -> fetchAndMapListings) is a
@@ -2213,5 +2239,92 @@ describe('searchTrade rune-base handling', () => {
     const body = parseCapturedBody(capturedRequests.find((r) => r.url.includes('/search/')))
     expect(body.query.type).toBeUndefined()
     expect(body.query.filters.type_filters.filters.category).toBeDefined()
+  })
+})
+
+describe('searchTrade chart handling', () => {
+  beforeEach(() => {
+    capturedRequests.length = 0
+    _resetRateLimitsForTests()
+    setPoeVersion(1)
+  })
+
+  const chartItem = {
+    name: 'Fecund Coral Forest Chart',
+    baseType: 'Coral Forest Chart',
+    itemClass: 'Chart',
+    rarity: 'Magic',
+  }
+
+  const zoneChip: StatFilter = {
+    id: 'misc.chart_zone',
+    text: 'Sea Pillars',
+    value: null,
+    min: null,
+    max: null,
+    enabled: true,
+    type: 'misc',
+  }
+
+  const baseChip: StatFilter = {
+    id: 'misc.basetype',
+    text: 'Coral Forest Chart',
+    value: null,
+    min: null,
+    max: null,
+    enabled: true,
+    type: 'misc',
+  }
+
+  async function chartSearchBody(filters: StatFilter[]) {
+    await searchTrade('Allflame', chartItem, filters, { tradeStatus: 'any' })
+    return parseCapturedBody(capturedRequests.find((r) => r.url.includes('/search/')))
+  }
+
+  it('sends the zone discriminator when the zone chip is enabled', async () => {
+    const body = await chartSearchBody([zoneChip, baseChip])
+
+    expect(body.query.type).toEqual({ option: 'SeaPillars', discriminator: 'chart_coral_forest' })
+  })
+
+  it('falls back to the plain base type when only the base chip is enabled', async () => {
+    const body = await chartSearchBody([{ ...zoneChip, enabled: false }, baseChip])
+
+    expect(body.query.type).toBe('Coral Forest Chart')
+  })
+
+  it('searches the chart category when both chips are disabled', async () => {
+    const body = await chartSearchBody([
+      { ...zoneChip, enabled: false },
+      { ...baseChip, enabled: false },
+    ])
+
+    expect(body.query.type).toBeUndefined()
+    expect(body.query.filters.type_filters.filters.category).toEqual({ option: 'chart' })
+  })
+
+  it('ignores a zone chip whose text is not a known zone', async () => {
+    const body = await chartSearchBody([{ ...zoneChip, text: 'Atlantis' }, baseChip])
+
+    expect(body.query.type).toBe('Coral Forest Chart')
+  })
+
+  it('sends chart_shape as an option inside map_filters, not as a stat', async () => {
+    const shapeChip: StatFilter = {
+      id: 'map.chart_shape',
+      text: 'Shape: Straight',
+      value: null,
+      min: null,
+      max: null,
+      enabled: true,
+      type: 'map',
+      option: '3',
+    }
+
+    const body = await chartSearchBody([zoneChip, shapeChip])
+
+    expect(body.query.filters.map_filters?.filters.chart_shape).toEqual({ option: '3' })
+    const andIds = (body.query.stats[0]?.filters ?? []).map((f) => f.id)
+    expect(andIds).not.toContain('map.chart_shape')
   })
 })

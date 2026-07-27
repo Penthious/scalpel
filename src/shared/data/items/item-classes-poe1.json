@@ -2193,6 +2193,20 @@
       4
     ]
   },
+  "Chart": {
+    "bases": [
+      {
+        "name": "Coral Forest Chart"
+      },
+      {
+        "name": "Coral Reef Chart"
+      },
+      {
+        "name": "Sandy Seabed Chart"
+      }
+    ],
+    "size": [1, 1]
+  },
   "Claws": {
     "bases": [
       {

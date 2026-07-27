@@ -23,6 +23,7 @@ export interface Listing {
     gemLevel?: number
     quality?: number
     areaLevel?: number
+    chartZone?: string
     heistJob?: { skill: string; level: number }
     corrupted?: boolean
     mirrored?: boolean

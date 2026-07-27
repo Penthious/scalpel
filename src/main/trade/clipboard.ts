@@ -321,6 +321,26 @@ export function parseItemText(text: string): PoeItem | null {
   const mapMoreMaps = extractNum(allLines, 'More Maps:')
   const mapMoreDivCards = extractNum(allLines, 'More Divination Cards:')
 
+  // Charts print the zone name as the first line of the property section, above
+  // "Area Level:". It is the only line in that section without a "Key: value"
+  // shape, which is what makes it identifiable -- Expedition Logbooks put their
+  // "Area Level:" line first in the same position, so the colon check is what
+  // keeps them apart (the itemClass gate already does, belt and braces).
+  const chartZone = (() => {
+    if (itemClass !== 'Chart') return undefined
+    for (const section of sections.slice(1)) {
+      const sectionLines = section
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean)
+      if (!sectionLines.some((l) => l.startsWith('Area Level:'))) continue
+      const first = sectionLines[0]
+      return first && !first.includes(':') ? first : undefined
+    }
+    return undefined
+  })()
+  const chartShape = itemClass === 'Chart' ? extractStr(allLines, 'Chart Shape:') : undefined
+
   const memoryStrands = extractNum(allLines, 'Memory Strands:')
 
   // Heist blueprints: "Wings Revealed: 3/4"
@@ -696,6 +716,8 @@ export function parseItemText(text: string): PoeItem | null {
     ...(mapGold != null ? { mapGold } : {}),
     ...(mapMagicMonsters != null ? { mapMagicMonsters } : {}),
     ...(mapRareMonsters != null ? { mapRareMonsters } : {}),
+    ...(chartZone != null ? { chartZone } : {}),
+    ...(chartShape != null ? { chartShape } : {}),
     ...(physDamageMin != null ? { physDamageMin, physDamageMax } : {}),
     ...(eleDamageAvg != null ? { eleDamageAvg } : {}),
     ...(chaosDamageAvg != null ? { chaosDamageAvg } : {}),
@@ -729,6 +751,15 @@ function extractNum(lines: string[], prefix: string): number | null {
   if (!line) return null
   const match = line.replace(prefix, '').match(/\d+/)
   return match ? parseInt(match[0], 10) : null
+}
+
+/** Like `extractNum` but returns the trimmed remainder of the line -- for label
+ *  lines whose value is text ("Chart Shape: Straight"). */
+function extractStr(lines: string[], prefix: string): string | undefined {
+  const line = lines.find((l) => l.startsWith(prefix))
+  if (!line) return undefined
+  const value = line.slice(prefix.length).trim()
+  return value || undefined
 }
 
 /** Like `extractNum` but keeps decimal precision -- for lines like "Attacks per

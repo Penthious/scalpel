@@ -54,6 +54,11 @@ export const ITEM_CLASS_TO_CATEGORY: Record<string, string> = {
   // PoE2 waystones (the maps of PoE2). Property block (tier/rarity/packsize/...)
   // searches via map_filters; monster affixes via the normal explicit matcher.
   Waystones: 'map.waystone',
+  // PoE1 charts (Allflame league). Routing through the category leaves
+  // query.type unset so the zone chip can pin it to the discriminator form;
+  // without this entry the generic branch would hard-set query.type to the
+  // base type and the zone could not override it cleanly.
+  Chart: 'chart',
 }
 
 const ARMOUR_CLASSES = new Set([

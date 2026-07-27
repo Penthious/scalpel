@@ -58,6 +58,8 @@ export interface ItemInfo {
   ultimatumRequired?: string
   isSynthetic?: boolean
   unidentifiedTier?: number
+  chartZone?: string
+  chartShape?: string
 }
 
 export interface DefenseValues {

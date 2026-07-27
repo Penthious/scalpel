@@ -3465,6 +3465,57 @@ describe('chance-to binary stat folding', () => {
   })
 })
 
+// ─── "Monsters have #% chance to X" 100%-roll qualifier drop (PoE1 Charts) ──
+
+describe('Monsters have #% chance to X qualifier drop', () => {
+  it('matches a 100%-rolled chance mod printed without the qualifier', () => {
+    // Chart suffix "of Impedance": the game prints "Monsters Hinder on Hit with
+    // Spells" (no "#% chance to") because the mod rolled 100%.
+    _setStatEntriesForTests([
+      {
+        id: 'explicit.stat_962720646',
+        text: 'Monsters have #% chance to Hinder on Hit with Spells',
+        type: 'explicit',
+      },
+    ])
+    const result = matchModToStat('Monsters Hinder on Hit with Spells')
+    expect(result?.statId).toBe('explicit.stat_962720646')
+    expect(result?.value).toBe(100)
+  })
+
+  it('still matches an exact valueless "Monsters X" stat over the chance variant (no false fold)', () => {
+    _setStatEntriesForTests([
+      { id: 'explicit.stat_aaa', text: 'Monsters Poison on Hit', type: 'explicit' },
+      { id: 'explicit.stat_bbb', text: 'Monsters have #% chance to Poison on Hit', type: 'explicit' },
+    ])
+    const result = matchModToStat('Monsters Poison on Hit')
+    expect(result?.statId).toBe('explicit.stat_aaa')
+  })
+
+  it('emits both chips for a Chart with a 100%-chance suffix and a value suffix', () => {
+    _setStatEntriesForTests([
+      {
+        id: 'explicit.stat_962720646',
+        text: 'Monsters have #% chance to Hinder on Hit with Spells',
+        type: 'explicit',
+      },
+      {
+        id: 'explicit.stat_1605192338',
+        text: "#% increased Dead Man's Sulphur found in this Area",
+        type: 'explicit',
+      },
+    ])
+    const filters = matchItemMods(
+      ['Monsters Hinder on Hit with Spells', "30% increased Dead Man's Sulphur found in this Area"],
+      [],
+      undefined,
+      makeItemInfo({ rarity: 'Magic', itemClass: 'Chart' }),
+    )
+    expect(filters.find((f) => f.id === 'explicit.stat_962720646')).toBeDefined()
+    expect(filters.find((f) => f.id === 'explicit.stat_1605192338')).toBeDefined()
+  })
+})
+
 // ─── matchModToStat: requires stat entries (network-dependent) ───────────────
 
 describe('matchModToStat (requires stat entries)', () => {

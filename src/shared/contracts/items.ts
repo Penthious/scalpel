@@ -149,6 +149,12 @@ export interface PoeItem {
   ultimatumChallenge?: string
   ultimatumRewardText?: string
   ultimatumRequired?: string
+  /** Chart zone name as printed on the clipboard, e.g. "Sea Pillars". PoE1
+   *  `Chart` item class only. Part of the chart's trade identity: the trade API
+   *  indexes each zone as its own type + discriminator. */
+  chartZone?: string
+  /** Chart shape, e.g. "Straight". PoE1 `Chart` item class only. */
+  chartShape?: string
 }
 
 export interface Zone {

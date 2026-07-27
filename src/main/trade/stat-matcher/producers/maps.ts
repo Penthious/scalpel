@@ -2,9 +2,10 @@ import { isEndgameFilterIndexed } from '../../endgame-filter-support'
 import type { AdvancedMod } from '@shared/types'
 import type { StatFilter } from '../../trade'
 
-/** "Fuzz floor" applied to a map/waystone property when searching: accept
- *  listings down to 90% of the item's value so near-identical rolls match. */
-const MAP_MIN = (v: number): number => Math.floor(v * 0.9)
+/** "Fuzz floor" applied to a map/waystone/chart property when searching: accept
+ *  listings down to 90% of the item's value so near-identical rolls match.
+ *  Exported for the chart producer, which applies the same floor to map_iiq. */
+export const MAP_MIN = (v: number): number => Math.floor(v * 0.9)
 
 type MapItemInfo = {
   itemClass?: string

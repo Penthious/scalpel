@@ -102,6 +102,19 @@ function generateTextVariants(text: string): string[] {
     [/have /gi, 'has '],
     [/the matching modifier/g, 'matching modifier'],
   ]
+  // A "#% chance to X" mod that rolled 100% is printed by the game without the
+  // qualifier: the trade stat "Monsters have #% chance to Hinder on Hit with
+  // Spells" arrives from the clipboard as "Monsters Hinder on Hit with Spells".
+  // Chart suffixes are the first content to roll these at 100%. Re-inserting the
+  // qualifier WITH the implied value lets the normal numeric capture read the 100
+  // back out, so no special-casing is needed downstream. Pushed last because 26
+  // explicit stats genuinely read "Monsters ..." with no chance component (e.g.
+  // "Monsters Poison on Hit") -- the matcher returns on the first variant that
+  // matches, so those still resolve to their own stat on the unmodified text.
+  if (/^Monsters (?!have )/i.test(text)) {
+    variants.push(text.replace(/^Monsters /i, 'Monsters have 100% chance to '))
+  }
+
   // Apply replacements to ALL existing variants (not just original text)
   // so that multiple transforms can stack (e.g. "N additional" + "effects"->"effect")
   const baseVariants = [...variants]

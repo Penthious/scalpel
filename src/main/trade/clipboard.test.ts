@@ -993,6 +993,98 @@ describe('parseItemText', () => {
   })
 
   // ---------------------------------------------------------------------------
+  // Charts (PoE1 Allflame league)
+  // ---------------------------------------------------------------------------
+
+  describe('charts', () => {
+    const chartText = (withAdvancedMods: boolean) =>
+      [
+        'Item Class: Chart',
+        'Rarity: Magic',
+        'Fecund Coral Forest Chart',
+        '--------',
+        'Sea Pillars',
+        'Area Level: 57',
+        'Item Quantity: +20% (augmented)',
+        '--------',
+        'Item Level: 57',
+        '--------',
+        ...(withAdvancedMods ? ['{ Implicit Modifier }'] : []),
+        'Voyage Modifier will be revealed once Charted',
+        '--------',
+        'Chart Shape: Straight',
+        '--------',
+        ...(withAdvancedMods
+          ? ['{ Prefix Modifier "Fecund" (Tier: 4) - Life }', '15(10-19)% more Monster Life']
+          : ['15% more Monster Life']),
+        '--------',
+        'Take this item to Valerie aboard the Sovereign to Chart this area.',
+      ].join('\n')
+
+    it('parses the zone name, shape and quantity from an advanced copy', () => {
+      const item = parseItemText(chartText(true))!
+
+      expect(item.itemClass).toBe('Chart')
+      expect(item.chartZone).toBe('Sea Pillars')
+      expect(item.chartShape).toBe('Straight')
+      expect(item.monsterLevel).toBe(57)
+      expect(item.mapQuantity).toBe(20)
+      expect(item.baseType).toBe('Coral Forest Chart')
+    })
+
+    it('parses the zone name and shape from a basic copy', () => {
+      const item = parseItemText(chartText(false))!
+
+      expect(item.chartZone).toBe('Sea Pillars')
+      expect(item.chartShape).toBe('Straight')
+    })
+
+    it('leaves chartZone undefined when the zone line is missing', () => {
+      const text = [
+        'Item Class: Chart',
+        'Rarity: Normal',
+        'Coral Forest Chart',
+        '--------',
+        'Area Level: 57',
+        '--------',
+        'Item Level: 57',
+      ].join('\n')
+
+      const item = parseItemText(text)!
+
+      expect(item.chartZone).toBeUndefined()
+      expect(item.monsterLevel).toBe(57)
+    })
+
+    it('does not read a zone off a non-chart item with an area level', () => {
+      const text = [
+        'Item Class: Expedition Logbooks',
+        'Rarity: Normal',
+        'Expedition Logbook',
+        '--------',
+        'Area Level: 81',
+        '--------',
+        'Item Level: 81',
+        '--------',
+        'Knights of the Sun',
+      ].join('\n')
+
+      const item = parseItemText(text)!
+
+      expect(item.chartZone).toBeUndefined()
+      expect(item.chartShape).toBeUndefined()
+    })
+
+    it('strips the magic prefix on a basic copy using the static base list', () => {
+      const item = parseItemText(chartText(false))!
+
+      expect(item.baseType).toBe('Coral Forest Chart')
+      expect(item.width).toBe(1)
+      expect(item.height).toBe(1)
+    })
+  })
+
+  // ---------------------------------------------------------------------------
   // Flags
   // ---------------------------------------------------------------------------
 

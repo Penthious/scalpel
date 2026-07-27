@@ -1,4 +1,5 @@
 import { app, net } from 'electron'
+import { CHART_ZONES } from '@shared/data/trade/charts'
 import tabletModMap from '@shared/data/trade/tablet-mods.json'
 import { TRANSFIGURED_GEM_DISC } from '@shared/data/trade/transfigured-gems'
 import { getTradeUrls } from '@shared/endpoints'
@@ -159,10 +160,12 @@ interface TradeListing {
     baseType?: string
     explicitMods?: string[]
     implicitMods?: string[]
+    enchantMods?: string[]
     runeMods?: string[]
     fracturedMods?: string[]
     foulbornMods?: string[]
     craftedMods?: string[]
+    desecratedMods?: string[]
     ilvl?: number
     sockets?: Array<{ group: number; sColour: string }>
     gemLevel?: number
@@ -176,6 +179,9 @@ interface TradeListing {
     modTiers?: Record<string, { tier: string; name: string; ranges: string }>
     rarity?: string
     mapProperties?: Array<{ name: string; value: string }>
+    areaLevel?: number
+    heistJob?: { skill: string; level: number }
+    chartZone?: string
   }
 }
 
@@ -887,6 +893,17 @@ export async function searchTrade(
     }
   }
 
+  // Charts: a zone is its own trade type, expressed as a discriminator pair
+  // ({option: "SeaPillars", discriminator: "chart_coral_forest"}). This has to
+  // run AFTER the base-type block -- that block sets query.type to the plain
+  // "Coral Forest Chart" string, which would drop the zone. Same shape as the
+  // map and rune-base discriminator handling above.
+  const chartZoneFilter = statFilters.find((f) => f.id === 'misc.chart_zone' && f.enabled)
+  const chartZoneEntry = chartZoneFilter ? CHART_ZONES[chartZoneFilter.text] : undefined
+  if (chartZoneEntry) {
+    query.type = { option: chartZoneEntry.option, discriminator: chartZoneEntry.discriminator }
+  }
+
   // Add misc filters (quality, ilvl, corrupted, mirrored)
   const miscFiltersAll = statFilters.filter(
     (f) =>
@@ -942,6 +959,8 @@ export async function searchTrade(
     'map_iir',
     'map_packsize',
     'map_completion_reward',
+    // PoE1 chart property filters
+    'chart_shape',
     // PoE2 waystone property filters
     'map_tier',
     'map_revives',
@@ -957,7 +976,7 @@ export async function searchTrade(
     const mapQuery: Record<string, unknown> = {}
     for (const f of mapPropFilters) {
       const key = f.id.replace('map.', '')
-      if (key === 'map_completion_reward' && f.option) {
+      if ((key === 'map_completion_reward' || key === 'chart_shape') && f.option) {
         mapQuery[key] = { option: f.option }
       } else {
         mapQuery[key] = minMaxValue(f)
@@ -1393,6 +1412,10 @@ export function parseFetchedListings(fetchedEntries: FetchEntry[]): TradeListing
             areaLevel: r.item.properties?.find((p) => p.name === 'Area Level')?.values?.[0]?.[0]
               ? parseInt(r.item.properties.find((p) => p.name === 'Area Level')!.values[0][0], 10)
               : undefined,
+            // Charts carry the zone name as an UNNAMED property (name: "") tagged
+            // with GGG's chart-zone type code 105, so the type is the only thing to
+            // match on -- the same trick the quality lookup above uses with type 6.
+            chartZone: r.item.properties?.find((p) => p.type === 105)?.values?.[0]?.[0],
             heistJob: (() => {
               const prop = r.item?.properties?.find((p) => p.type === 46)
               if (!prop?.values?.[0]?.[0] && !prop?.values?.[1]?.[0]) return undefined

@@ -6,6 +6,7 @@ import { ITEM_CLASS_TO_CATEGORY } from './item-classes'
 import { buildAtzoatlFilters } from './producers/atzoatl'
 import { buildBasePercentileFilter } from './producers/base-percentile'
 import { buildBaseTypeFilter } from './producers/base-type'
+import { buildChartFilters } from './producers/charts'
 import { buildRuneBaseFilter } from './producers/rune-base'
 import { buildDefenseFilters } from './producers/defenses'
 import { buildEnchantFilters } from './producers/enchants'
@@ -121,6 +122,9 @@ export function matchItemMods(
   // Map property chips (Item Quantity, Rarity, Pack Size, More X, 8-mod corrupted)
   const mapFilters = buildMapFilters(itemInfo, advancedMods)
 
+  // Chart zone, quantity and shape chips
+  const chartFilters = buildChartFilters(itemInfo)
+
   // Timeless jewel handling: two toggleable chips - "Any Leader" and specific leader
   const timelessFilters = buildTimelessFilters(itemInfo, advancedMods, explicits)
 
@@ -142,6 +146,7 @@ export function matchItemMods(
     ...enchantFilters,
     ...runeFilters,
     ...mapFilters,
+    ...chartFilters,
     ...socketFilters,
     // Rune chip sits before the base-name chip so they read left-to-right as
     // "Runeforged" + "<base>" (the composed type the search sends).
