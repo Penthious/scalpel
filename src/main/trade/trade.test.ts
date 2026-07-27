@@ -107,6 +107,7 @@ import {
   buildGemTypeField,
   buildRegexStatGroups,
   fetchMoreListings,
+  getBulkExchangeId,
   isBulkExchangeItem,
   modEntryText,
   parseFetchedListings,
@@ -1653,6 +1654,16 @@ describe('isBulkExchangeItem (PoE2 slug-gated routing)', () => {
     setPoeVersion(1)
     // Farmable white maps have no slug, so the fallback returns null -> regular.
     expect(isBulkExchangeItem('Maps', 'Cemetery Map', 'Cemetery Map', 'Normal')).toBe(false)
+  })
+
+  it('does NOT route a Rare item whose generated title collides with a currency name (#501)', () => {
+    setPoeVersion(1)
+    // A Rare Hypnotic Eye Jewel whose randomly generated title happens to be
+    // "Ancient Orb" must not be treated as the currency of the same name.
+    expect(isBulkExchangeItem('Abyss Jewels', 'Ancient Orb', 'Hypnotic Eye Jewel', 'Rare')).toBe(false)
+    expect(getBulkExchangeId('Ancient Orb', 'Hypnotic Eye Jewel', 'Rare')).toBeNull()
+    // The real currency still resolves.
+    expect(getBulkExchangeId('Ancient Orb', 'Ancient Orb')).toBe('ancient-orb')
   })
 })
 

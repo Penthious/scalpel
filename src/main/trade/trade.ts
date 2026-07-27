@@ -2,7 +2,7 @@ import { app, net } from 'electron'
 import tabletModMap from '@shared/data/trade/tablet-mods.json'
 import { TRANSFIGURED_GEM_DISC } from '@shared/data/trade/transfigured-gems'
 import { getTradeUrls } from '@shared/endpoints'
-import { isClusterJewel, isSkillGem, splitRuneTier } from '@shared/poe-item'
+import { hasGeneratedName, isClusterJewel, isSkillGem, splitRuneTier } from '@shared/poe-item'
 import { recordMainBreadcrumb } from '../diagnostics'
 import { getPoeVersion } from '../game-state'
 import { getOverlayWindow } from '../overlay'
@@ -1539,12 +1539,15 @@ export function buildGemTypeField(
 }
 
 /** Look up the bulk exchange ID for an item by its name or base type */
-export function getBulkExchangeId(name: string, baseType: string): string | null {
+export function getBulkExchangeId(name: string, baseType: string, rarity?: string): string | null {
   // Try exact name first (e.g. "Divine Orb", "Uncut Skill Gem (Level 20)"),
   // then base type. Map is picked per game: PoE1 uses the hand-maintained
   // legacy list, PoE2 uses EE2-sourced IDs.
   const bulkIdMap = getBulkExchangeIdMap(getPoeVersion())
-  let id = bulkIdMap[name] ?? bulkIdMap[baseType] ?? null
+  // Magic/Rare items show a randomly generated title that can collide with a
+  // real currency name (e.g. a Hypnotic Eye Jewel rolling "Ancient Orb", #501),
+  // so skip the name key for them -- only the base type can match.
+  let id = (hasGeneratedName(rarity) ? null : bulkIdMap[name]) ?? bulkIdMap[baseType] ?? null
   if (!id || id === 'sep') return null
   // Fix legacy zana- prefixed map IDs to current format
   if (id.startsWith('zana-map-tier-')) {
@@ -1583,7 +1586,7 @@ export function isBulkExchangeItem(itemClass: string, name: string, baseType: st
   // as a price reference -- the AngeBanner still surfaces independently (it
   // keys off isVendorExchangeItem), so they're still told to check Ange.
   if (getPoeVersion() === 2 && isVendorExchangeItem(2, itemClass, baseType, _rarity)) {
-    return getBulkExchangeId(name, baseType) != null
+    return getBulkExchangeId(name, baseType, _rarity) != null
   }
 
   const bulkClasses = new Set([
@@ -1598,7 +1601,7 @@ export function isBulkExchangeItem(itemClass: string, name: string, baseType: st
   ])
   if (bulkClasses.has(itemClass)) return true
   // Also check if we have a bulk ID for it (catches essences, fossils, boss frags, etc.)
-  return getBulkExchangeId(name, baseType) != null
+  return getBulkExchangeId(name, baseType, _rarity) != null
 }
 
 export async function searchBulkExchange(

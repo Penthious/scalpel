@@ -6,6 +6,7 @@ import uniqueInfoPoe2 from '@shared/data/items/unique-info-poe2.json'
 import { POE_NINJA_API } from '@shared/endpoints'
 import type { NinjaItemRef } from '@shared/external-link'
 import { deriveItemVariant } from '@shared/external-link'
+import { hasGeneratedName } from '@shared/poe-item'
 import type { PriceEntry, PriceInfo } from '@shared/types'
 import { getPoeVersion } from '../game-state'
 import { getManifest } from '../manifest'
@@ -423,6 +424,11 @@ export function lookupUniquePriceForBase(name: string, baseType: string): PriceI
  *  price lookup always agree -- when we link a user to /skill-gems/hatred-21-20c,
  *  the price chip we show is the price ninja actually has for that page. */
 export function lookupPriceForItem(item: NinjaItemRef): PriceInfo | undefined {
+  // Magic/Rare items show a randomly generated title that can collide with a
+  // real currency/unique name (e.g. a Hypnotic Eye Jewel rolling "Ancient
+  // Orb", #501), so price them by base type only -- the name carries no
+  // pricing identity for these rarities.
+  if (hasGeneratedName(item.rarity)) return lookupPrice(item.baseType, item.baseType)
   const variant = deriveItemVariant(item)
   if (variant != null) {
     const exact = pricesByVariant.get(`${item.name.toLowerCase()}|${variant}`)
