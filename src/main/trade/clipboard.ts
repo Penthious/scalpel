@@ -884,14 +884,22 @@ function parseModSections(sections: string[], explicits: string[], implicits: st
         (isCharm && /\d/.test(l)),
     )
     if (hasRealMods || !isFlavourOrMeta(modSections[i])) {
-      lines
+      const modLines = lines
         // Socketed-rune lines (" (rune)") are captured separately into runes[] and
         // matched against rune.*, so drop them here the same way implicits are.
         .filter((l) => !l.endsWith('(implicit)') && !RUNE_SUFFIX.test(l))
-        .forEach((l) => {
-          // Strip advanced roll range notation: "41(39-42)%" -> "41%"
-          explicits.push(l.replace(/(\d+(?:\.\d+)?)\(\d+(?:\.\d+)?-\d+(?:\.\d+)?\)/g, '$1'))
-        })
+        // Strip advanced roll range notation: "41(39-42)%" -> "41%"
+        .map((l) => l.replace(/(\d+(?:\.\d+)?)\(\d+(?:\.\d+)?-\d+(?:\.\d+)?\)/g, '$1'))
+      for (let li = 0; li < modLines.length; li++) {
+        explicits.push(modLines[li])
+        // A mod too long for the item panel wraps onto the next line. A basic
+        // (Ctrl+C) copy has no advanced-mod headers to group the halves, so offer
+        // the pair joined as well. Every real mod line starts with a capital, a
+        // digit or a sign, so a lowercase start is always the previous line
+        // spilling over. The leftover half-line row is dropped downstream by
+        // dropFragmentDuplicates.
+        if (li > 0 && /^[a-z]/.test(modLines[li])) explicits.push(`${modLines[li - 1]}\n${modLines[li]}`)
+      }
       break
     }
   }

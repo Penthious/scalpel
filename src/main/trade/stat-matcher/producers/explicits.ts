@@ -136,11 +136,32 @@ function mergeDuplicateStats(rows: StatFilter[], pct: number): StatFilter[] {
  *  substring fallback in mod-matcher resolves them to the SAME stat id as the
  *  joined row but with a null value. The joined row carries the real value, so a
  *  same-id sibling with a null value (and no option) is always that artifact --
- *  drop it. Genuine hybrid mods are unaffected: their lines match DIFFERENT stat
- *  ids, so no value-bearing sibling shares the fragment's id. */
+ *  drop it. A fragment can also match a DIFFERENT (longer) stat id than the
+ *  joined row via the same substring fallback (e.g. Watcher's Eye's "affected by
+ *  Purity of Lightning" half-line lands on an unrelated, longer stat text), so the
+ *  same-id check above misses it -- but its text is always verbatim one of the
+ *  joined row's lines, so a second rule drops any valueless row whose text is
+ *  exactly one of another row's "\n"-separated segments. Genuine hybrid mods are
+ *  unaffected: their lines only get dropped when the joined text itself matched a
+ *  real stat, in which case the joined row is the correct single stat. */
 export function dropFragmentDuplicates(rows: StatFilter[]): StatFilter[] {
   const idsWithValue = new Set(rows.filter((r) => r.value != null).map((r) => r.id))
-  return rows.filter((r) => r.value != null || r.option != null || !idsWithValue.has(r.id))
+  // Physical lines of any row that survived as a "\n"-joined multi-line mod. A
+  // fragment can match a DIFFERENT (longer) stat id than the joined row via the
+  // substring fallback, so the same-id check above misses it -- but its text is
+  // always verbatim one of the joined row's lines.
+  const joinedSegments = new Set<string>()
+  for (const r of rows) {
+    if (!r.text?.includes('\n')) continue
+    for (const seg of r.text.split('\n')) {
+      const trimmed = seg.trim()
+      if (trimmed) joinedSegments.add(trimmed)
+    }
+  }
+  return rows.filter(
+    (r) =>
+      r.value != null || r.option != null || (!idsWithValue.has(r.id) && !joinedSegments.has(r.text?.trim() ?? '')),
+  )
 }
 
 export function processExplicits(ctx: MatchContext): StatFilter[] {

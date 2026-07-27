@@ -766,6 +766,39 @@ describe('parseItemText', () => {
       expect(item.explicits).toContain('19% reduced Charges per use')
     })
 
+    it('offers a "\\n"-joined candidate for a basic-copy mod that wraps across two lines', () => {
+      // A basic (Ctrl+C) copy has no advanced-mod headers to group a mod's wrapped
+      // lines, so the joined candidate must be synthesized here instead -- otherwise
+      // only the two junk half-lines reach the matcher and the real stat never matches.
+      const text = [
+        'Item Class: Jewels',
+        'Rarity: Unique',
+        "Watcher's Eye",
+        'Prismatic Jewel',
+        '--------',
+        'Limited to: 1',
+        '--------',
+        'Item Level: 85',
+        '--------',
+        '4% increased maximum Life',
+        '6% increased maximum Energy Shield',
+        '4% increased maximum Mana',
+        '19% of Damage taken while affected by Clarity Recouped as Mana',
+        '15% of Fire and Cold Damage taken as Lightning Damage while',
+        'affected by Purity of Lightning',
+      ].join('\n')
+
+      const item = parseItemText(text)!
+      expect(item.explicits).toContain(
+        '15% of Fire and Cold Damage taken as Lightning Damage while\naffected by Purity of Lightning',
+      )
+      expect(item.explicits).toContain('4% increased maximum Life')
+      expect(item.explicits).toContain('6% increased maximum Energy Shield')
+      expect(item.explicits).toContain('4% increased maximum Mana')
+      expect(item.explicits).toContain('19% of Damage taken while affected by Clarity Recouped as Mana')
+      expect(item.explicits).not.toContain('4% increased maximum Life\n6% increased maximum Energy Shield')
+    })
+
     it('parses a PoE2 Waystone property block and monster affixes', () => {
       const text = [
         'Item Class: Waystones',

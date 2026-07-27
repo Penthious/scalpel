@@ -3635,6 +3635,39 @@ describe('matchModToStat (PoE2 stat text without leading sign)', () => {
       expect(filters.find((f) => f.id === 'explicit.stat_area')?.value).toBe(25)
       expect(filters.find((f) => f.id === 'explicit.stat_fireres')?.value).toBe(44)
     })
+
+    it('drops a wrap fragment that matches a DIFFERENT (longer) stat id than the joined row', () => {
+      // Watcher's Eye "of Purity of Lightning" wraps across two clipboard lines. The
+      // trailing fragment "affected by Purity of Lightning" matches, via the
+      // substring fallback, the unrelated (longer) stat_254131992 text -- not the
+      // same id as the joined row -- so the same-id rule alone misses it.
+      _setStatEntriesForTests([
+        {
+          id: 'explicit.stat_3953667743',
+          text: '#% of Fire and Cold Damage taken as Lightning Damage while\naffected by Purity of Lightning',
+          type: 'explicit',
+        },
+        {
+          id: 'explicit.stat_254131992',
+          text: '#% of Physical Damage from Hits taken as Lightning Damage while affected by Purity of Lightning',
+          type: 'explicit',
+        },
+      ])
+      const filters = matchItemMods(
+        [
+          '15% of Fire and Cold Damage taken as Lightning Damage while',
+          'affected by Purity of Lightning',
+          '15% of Fire and Cold Damage taken as Lightning Damage while\naffected by Purity of Lightning',
+        ],
+        [],
+        undefined,
+        makeItemInfo({ rarity: 'Unique', itemClass: 'Jewels' }),
+      )
+      expect(filters.find((f) => f.id === 'explicit.stat_254131992')).toBeUndefined()
+      const rows = filters.filter((f) => f.id === 'explicit.stat_3953667743')
+      expect(rows).toHaveLength(1)
+      expect(rows[0].value).toBe(15)
+    })
   })
 })
 
