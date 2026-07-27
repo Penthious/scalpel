@@ -28,6 +28,7 @@
   "settings_general_heading": "Allgemein",
   "settings_start_in_tray": "Im Tray starten",
   "settings_league_label": "Liga",
+  "settings_league_refresh_title": "Ligaliste von der Handelsseite aktualisieren",
   "settings_private_league": "Private Liga",
   "settings_private_league_placeholder": "Private Liga eingeben – vollständiger Name inkl. (PL#####)",
   "settings_update_channel": "Update-Kanal",

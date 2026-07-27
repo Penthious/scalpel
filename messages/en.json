@@ -28,6 +28,7 @@
   "settings_general_heading": "General",
   "settings_start_in_tray": "Start in tray",
   "settings_league_label": "League",
+  "settings_league_refresh_title": "Refresh the league list from the trade site",
   "settings_private_league": "Private League",
   "settings_private_league_placeholder": "Enter Private League - Full name including (PL#####)",
   "settings_update_channel": "Update channel",

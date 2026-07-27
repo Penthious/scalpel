@@ -28,6 +28,7 @@
   "settings_general_heading": "General",
   "settings_start_in_tray": "Iniciar en la bandeja",
   "settings_league_label": "Liga",
+  "settings_league_refresh_title": "Actualizar la lista de ligas desde el sitio de comercio",
   "settings_private_league": "Liga privada",
   "settings_private_league_placeholder": "Introduce la liga privada: nombre completo incluyendo (PL#####)",
   "settings_update_channel": "Canal de actualización",

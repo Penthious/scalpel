@@ -113,9 +113,11 @@ export function register(store: Store<AppSettings>): void {
     return getGameSwitchCoordinator(store).applyProfileSwitch(store, id, restartIfNeeded, event.sender)
   })
 
-  ipcMain.handle('refresh-leagues', async (event) => {
+  // `force` skips the hourly cooldown - the settings Refresh button is a
+  // deliberate user action, so it must always hit the network.
+  ipcMain.handle('refresh-leagues', async (event, force = false) => {
     const previous = getEffectiveSettings(store)
-    const changed = await refreshLeagues(store)
+    const changed = await refreshLeagues(store, undefined, { force })
     const settings = getEffectiveSettings(store)
     const changes: ProfileChangedSetting[] = changed.map((key) => {
       if (key === 'activeProfile') return { key, value: settings.activeProfile, reason: 'migration' }

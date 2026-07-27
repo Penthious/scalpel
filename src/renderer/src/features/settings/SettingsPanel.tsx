@@ -177,6 +177,7 @@ export function SettingsPanel({
           settings={settings}
           update={update}
           updateProfile={updateProfile}
+          onSettingsChange={onSettingsChange}
           onShowOnboarding={onShowOnboarding}
         />
       )}

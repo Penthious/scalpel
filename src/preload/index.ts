@@ -57,10 +57,12 @@ export const api = {
     | { ok: false; requiresRestart: true; targetGame: GameVariant }
     | { ok: false; error: string }
   > => ipcRenderer.invoke('set-active-profile', id, restartIfNeeded),
-  refreshLeagues: (): Promise<{
+  refreshLeagues: (
+    force = false,
+  ): Promise<{
     leaguesPoe1: string[]
     leaguesPoe2: string[]
-  }> => ipcRenderer.invoke('refresh-leagues'),
+  }> => ipcRenderer.invoke('refresh-leagues', force),
   pickFilterFile: (): Promise<string | null> => ipcRenderer.invoke('pick-filter-file'),
   pickFilterDir: (): Promise<string | null> => ipcRenderer.invoke('pick-filter-dir'),
   scanFilterDir: (dir: string): Promise<FilterListEntry[]> => ipcRenderer.invoke('scan-filter-dir', dir),
