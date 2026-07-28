@@ -11,6 +11,8 @@ export const CHANGELOG: { version: string; notes: string[] }[] = [
       'Fixed long mods that wrap onto a second line leaving a junk half-line row in price-check.',
       'Fixed the preview buttons not playing built-in alert sounds in the filter editor.',
       'Fixed the regex preset color menu not being clickable where it hung past the bottom of the panel.',
+      'Fixed mods with a folded chance clause (like "Melee Hits have 11% chance to Fortify") not matching in price-check.',
+      'Fixed implicits on charms, flasks, jewels, and shields picking the wrong shared trade stat; a corrupted shield\'s "+#% Chance to Block" was dropped entirely.',
     ],
   },
   {
