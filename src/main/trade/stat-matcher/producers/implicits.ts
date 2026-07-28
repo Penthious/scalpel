@@ -1,6 +1,7 @@
 import type { StatFilter } from '../../trade'
 import { findAdvMod } from '../adv-mods'
 import type { MatchContext } from '../context'
+import { QUALIFIER_BY_ITEM_CLASS } from '../item-classes'
 import { matchModToStat } from '../mod-matcher'
 import { accumulatePseudo, PSEUDO_CONTRIBUTIONS } from '../pseudo'
 import { dropFragmentDuplicates, GEM_LEVEL_MOD } from './explicits'
@@ -9,13 +10,20 @@ export function processImplicits(ctx: MatchContext): StatFilter[] {
   const { implicits, itemInfo, advancedMods, isWeapon, isTablet, pseudoAccumulator } = ctx
   const out: StatFilter[] = []
 
+  // Trade stats that share display text across item categories carry a trailing
+  // qualifier; pass the item's category so the matcher can pick that variant
+  // (see the explicit producer, which does the same).
+  const preferQualifier = QUALIFIER_BY_ITEM_CLASS[itemInfo?.itemClass ?? ''] ?? null
+
   for (const mod of implicits) {
     let cleaned = mod.replace(/\s*\(implicit\)\s*$/i, '').trim()
     // Try implicit stats first, then fall back to explicit (non-local, then local) and remap the ID
     const matched =
-      matchModToStat(cleaned, false, 'implicit') ??
+      matchModToStat(cleaned, false, 'implicit', false, preferQualifier) ??
       (() => {
-        const fallback = matchModToStat(cleaned, false, 'explicit') ?? matchModToStat(cleaned, true, 'explicit')
+        const fallback =
+          matchModToStat(cleaned, false, 'explicit', false, preferQualifier) ??
+          matchModToStat(cleaned, true, 'explicit', false, preferQualifier)
         if (!fallback) return null
         return { ...fallback, statId: `implicit.${fallback.statId.split('.')[1]}` }
       })()

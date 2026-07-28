@@ -1,3 +1,27 @@
+/** A chance clause the trade API folds out of the stat text it publishes:
+ *  "Melee Hits have 11% chance to Fortify" is indexed as the clause-less
+ *  "Melee Hits Fortify" (stat_1166417447), with the chance still filterable as
+ *  that stat's value. Covers "have #%" and "has a #%" ("Your Mark has a 10%
+ *  chance to Transfer to ..."). Deliberately not anchored at `^` -- a leading
+ *  "#% chance to " is a different fold, handled as an ordinary text variant. */
+const FOLDED_CHANCE_RE = /\b(?:have|has) (?:an? )?(\d+(?:\.\d+)?)% chance to /i
+
+/** Candidate clause-less texts for a mod of the shape above, plus the chance
+ *  itself, or null when the mod isn't that shape. Two candidates because the
+ *  trade text sometimes re-conjugates the verb the clause governed ("... chance
+ *  to Transfer to another Enemy" -> "Transfers to another Enemy") and sometimes
+ *  leaves it alone ("... chance to Fortify" -> "Fortify"). */
+function foldedChanceForms(text: string): { texts: string[]; value: number } | null {
+  const m = FOLDED_CHANCE_RE.exec(text)
+  if (!m) return null
+  const head = text.slice(0, m.index)
+  const tail = text.slice(m.index + m[0].length)
+  const texts = [head + tail]
+  const conjugated = tail.replace(/^[A-Za-z]+/, '$&s')
+  if (conjugated !== tail) texts.push(head + conjugated)
+  return { texts, value: parseFloat(m[1]) }
+}
+
 /**
  * Generate singular/alternate text variants for plural PoE mod text.
  * The trade API uses singular stat text but the clipboard may have plural forms.
@@ -129,4 +153,4 @@ function generateTextVariants(text: string): string[] {
   return variants
 }
 
-export { generateTextVariants }
+export { foldedChanceForms, generateTextVariants }

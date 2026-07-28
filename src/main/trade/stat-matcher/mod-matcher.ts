@@ -2,7 +2,7 @@ import { STAT_ID_REMAPS } from '../stat-exceptions'
 import { NUMERIC_CAPTURE, statTextToPattern, statTextToRelaxedPattern } from './pattern'
 import type { StatEntry } from './stats-cache'
 import { getStatEntries } from './stats-cache'
-import { generateTextVariants } from './text-variants'
+import { foldedChanceForms, generateTextVariants } from './text-variants'
 
 /** Direct text-to-stat mappings for mods where clipboard text is completely different
  *  from the trade API stat text (e.g. corruption implicits with different wording) */
@@ -190,6 +190,31 @@ function _matchModToStat(
       result = qualifiedMatch
     }
     if (result) return result
+  }
+
+  // Fallback: a mod whose "#% chance to" clause the trade API folded out of the
+  // stat text it publishes -- "Melee Hits have 11% chance to Fortify" is indexed
+  // as "Melee Hits Fortify" (stat_1166417447). The chance is still the filter's
+  // value (probe: min 101 returns nothing, min 1 returns the 10-15% rolls), but
+  // the stat text has no "#" for the pattern to capture it from, so restore it
+  // here. Only "#"-less stats are candidates: a lookalike with its own roll
+  // ("Bow Attacks fire # additional Arrows") would swallow the chance and search
+  // the wrong number. Runs after the exact pass so a mod whose chance clause the
+  // API *did* publish ("Melee Hits which Stun have #% chance to Fortify") always
+  // matches its own stat first.
+  const folded = foldedChanceForms(modText)
+  if (folded) {
+    for (const text of folded.texts) {
+      const normalized = text.replace(/\s+/g, ' ')
+      for (const entry of statEntries) {
+        if (!entry.id.startsWith(typePrefix)) continue
+        if (BLOCKED_STAT_IDS.has(entry.id)) continue
+        if (preferIndexableSupport ? !INDEXABLE_SUPPORT_RE.test(entry.id) : INDEXABLE_SUPPORT_RE.test(entry.id))
+          continue
+        if (entry.text.includes('#') || entry.text.includes('(Local)')) continue
+        if (statTextToPattern(entry.text).test(normalized)) return { statId: entry.id, value: folded.value }
+      }
+    }
   }
 
   // Fallback: try relaxed patterns where hardcoded numbers in stat text become wildcards.

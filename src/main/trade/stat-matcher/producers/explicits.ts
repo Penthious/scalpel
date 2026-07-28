@@ -8,6 +8,7 @@ import type { StatFilter } from '../../trade'
 import { findAdvMod } from '../adv-mods'
 import { computeValueBounds } from '../bounds'
 import { isDefenseMod, isLocalMod, isLowPriority } from '../classification'
+import { QUALIFIER_BY_ITEM_CLASS } from '../item-classes'
 import type { MatchContext } from '../context'
 import { matchModToStat } from '../mod-matcher'
 import { accumulatePseudo, PSEUDO_CONTRIBUTIONS, type PseudoContribution } from '../pseudo'
@@ -21,20 +22,6 @@ export const GEM_LEVEL_MOD = /^\+\d+ to Level of /i
 // Tinctures: disambiguate duplicate stat texts (e.g. "#% increased effect" has two stat IDs)
 const TINCTURE_STAT_REMAP: Record<string, string> = {
   'explicit.stat_2448920197': 'explicit.stat_3529940209', // "#% increased effect" -> tincture-specific variant
-}
-
-// Item class -> the trailing trade-stat qualifier its mods should prefer. The trade
-// API tags otherwise-identical display text (e.g. "#% increased Duration") with
-// "(Charm)"/"(Flask)"/"(Jewel)" to disambiguate; the clipboard carries only the bare
-// text, so we tell the matcher which qualified variant to pick (issue #397).
-const QUALIFIER_BY_ITEM_CLASS: Record<string, string> = {
-  Charms: 'Charm',
-  // PoE1 flask copies say "Flasks"; PoE2 splits the class into "Life Flasks" /
-  // "Mana Flasks", so all three must point at the "(Flask)" qualifier (issue #466).
-  Flasks: 'Flask',
-  'Life Flasks': 'Flask',
-  'Mana Flasks': 'Flask',
-  Jewels: 'Jewel',
 }
 
 // Rarity is an important PoE2 mod that should default on, so it overrides the

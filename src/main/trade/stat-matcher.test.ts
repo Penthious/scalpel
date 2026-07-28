@@ -3516,6 +3516,114 @@ describe('Monsters have #% chance to X qualifier drop', () => {
   })
 })
 
+// ─── "<X> have #% chance to <Y>" clause fold (PoE1) ──────────────────────────
+
+describe('chance-clause fold onto a valueless stat', () => {
+  const MELEE_FORTIFY = {
+    id: 'implicit.stat_1166417447',
+    text: 'Melee Hits Fortify',
+    type: 'implicit',
+  }
+
+  it('matches a corruption implicit whose chance clause the trade API folded away', () => {
+    // "Melee Hits have 11% chance to Fortify" is indexed as the clause-less
+    // "Melee Hits Fortify"; the chance is still the filter's value (probe: min
+    // 101 returns nothing, min 1 returns the 10-15% rolls).
+    _setStatEntriesForTests([MELEE_FORTIFY])
+    const result = matchModToStat('Melee Hits have 11% chance to Fortify', false, 'implicit')
+    expect(result?.statId).toBe('implicit.stat_1166417447')
+    expect(result?.value).toBe(11)
+  })
+
+  it('re-conjugates the verb the folded clause governed', () => {
+    _setStatEntriesForTests([
+      {
+        id: 'explicit.stat_1104120660',
+        text: 'Your Mark Transfers to another Enemy when Marked Enemy dies',
+        type: 'explicit',
+      },
+    ])
+    const result = matchModToStat('Your Mark has a 10% chance to Transfer to another Enemy when Marked Enemy dies')
+    expect(result?.statId).toBe('explicit.stat_1104120660')
+    expect(result?.value).toBe(10)
+  })
+
+  it('prefers a real "... have #% chance to ..." stat over the fold', () => {
+    // "Melee Hits which Stun have #% chance to Fortify" is its own trade stat --
+    // folding it onto "Melee Hits Fortify" would search the wrong mod.
+    _setStatEntriesForTests([
+      MELEE_FORTIFY,
+      {
+        id: 'implicit.stat_3206381437',
+        text: 'Melee Hits which Stun have #% chance to Fortify',
+        type: 'implicit',
+      },
+    ])
+    const result = matchModToStat('Melee Hits which Stun have 10% chance to Fortify', false, 'implicit')
+    expect(result?.statId).toBe('implicit.stat_3206381437')
+    expect(result?.value).toBe(10)
+  })
+
+  it('never folds onto a stat that has its own "#" to roll', () => {
+    // Only a valueless stat can be the folded twin. A "#"-bearing lookalike
+    // would swallow the chance and search on the wrong number.
+    _setStatEntriesForTests([
+      { id: 'explicit.stat_bow', text: 'Bow Attacks fire # additional Arrows', type: 'explicit' },
+    ])
+    expect(matchModToStat('Bow Attacks have 20% chance to fire 2 additional Arrows')).toBeNull()
+  })
+
+  it('emits an enabled implicit chip with the chance as the search min', () => {
+    _setStatEntriesForTests([MELEE_FORTIFY])
+    const filters = matchItemMods(
+      [],
+      ['Melee Hits have 11% chance to Fortify'],
+      undefined,
+      makeItemInfo({ rarity: 'Unique', itemClass: 'One Hand Swords', corrupted: true }),
+    )
+    const row = filters.find((f) => f.id === 'implicit.stat_1166417447')
+    expect(row?.text).toBe('Melee Hits have 11% chance to Fortify')
+    expect(row?.min).toBe(11)
+    expect(row?.enabled).toBe(true)
+  })
+})
+
+// ─── category-qualified implicit stats ──────────────────────────────────────
+
+describe('category-qualified implicit stats', () => {
+  it('matches a corrupted shield block implicit against the "(Shields)" stat', () => {
+    // Corrupted shields print "+5% Chance to Block". The trade stat carries a
+    // "(Shields)" qualifier and has no unqualified twin for the explicit-stat
+    // fallback to land on, so without the item's category the row is dropped.
+    _setStatEntriesForTests([
+      { id: 'implicit.stat_4253454700', text: '+#% Chance to Block (Shields)', type: 'implicit' },
+      { id: 'implicit.stat_1702195217', text: '+#% Chance to Block Attack Damage', type: 'implicit' },
+    ])
+    const filters = matchItemMods(
+      [],
+      ['+5% Chance to Block'],
+      undefined,
+      makeItemInfo({ itemClass: 'Shields', corrupted: true }),
+    )
+    const row = filters.find((f) => f.id === 'implicit.stat_4253454700')
+    expect(row?.min).toBe(5)
+    expect(row?.enabled).toBe(true)
+  })
+
+  it('ignores a qualified implicit stat on an item of another category', () => {
+    _setStatEntriesForTests([
+      { id: 'implicit.stat_4253454700', text: '+#% Chance to Block (Shields)', type: 'implicit' },
+    ])
+    const filters = matchItemMods(
+      [],
+      ['+5% Chance to Block'],
+      undefined,
+      makeItemInfo({ itemClass: 'Gloves', corrupted: true }),
+    )
+    expect(filters.find((f) => f.id === 'implicit.stat_4253454700')).toBeUndefined()
+  })
+})
+
 // ─── matchModToStat: requires stat entries (network-dependent) ───────────────
 
 describe('matchModToStat (requires stat entries)', () => {
