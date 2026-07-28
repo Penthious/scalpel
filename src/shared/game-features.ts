@@ -37,9 +37,7 @@ const FEATURES_BY_VERSION: Record<GameVariant, GameFeatures> = {
   1: {
     dustExplorer: true,
     divCards: true,
-    // Temporarily off: the league's new chromatic weighting formula makes the
-    // calculator's math wrong until recalibrated.
-    socketRecolor: false,
+    socketRecolor: true,
     regexTool: true,
     bulkBaselineCurrency: 'chaos',
     bulkExchangeBanner: 'faustus',

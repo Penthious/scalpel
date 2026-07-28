@@ -2,6 +2,7 @@ export const CHANGELOG: { version: string; notes: string[] }[] = [
   {
     version: '1.0.1',
     notes: [
+      'Brought back the socket color calculator, rebuilt on the new chromatic orb math for white sockets, the non-white bench recipes, and Omen of Trichromatism.',
       'Added more price-check support for Charts.',
       'Added a refresh button next to the League setting to re-pull the league list from the trade site.',
       'Refreshed the divination card drop and price data for the new league.',

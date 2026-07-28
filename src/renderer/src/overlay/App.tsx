@@ -14,7 +14,7 @@ import { useReportInputFocus } from '../shared/use-report-input-focus'
 import { useCurrentZone } from '../shared/use-current-zone'
 import { FilterPanel } from '../features/filter/FilterPanel'
 import { SettingsPanel } from '../features/settings/SettingsPanel'
-import { SocketRecolor } from '../components/SocketRecolor'
+import { SocketRecolor } from '../features/socket-recolor'
 import { DustExplorer } from '../features/dust-explorer'
 import { DivCardExplorer } from '../features/div-card-explorer'
 import { RegexTool } from '../features/regex'
@@ -1008,6 +1008,7 @@ export default function App(): JSX.Element {
                 )}
                 {view === 'tools' && overlayData && features.socketRecolor && (
                   <SocketRecolor
+                    key={`${overlayData.item.name}|${overlayData.item.baseType}|${overlayData.item.sockets}|${overlayData.item.itemLevel}|${overlayData.item.quality}`}
                     item={overlayData.item}
                     priceInfo={overlayData.priceInfo}
                     chaosPerDivine={overlayData.chaosPerDivine}
