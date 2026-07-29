@@ -11,8 +11,10 @@ import { findMatchingBlocks } from '../filter/matcher'
 import { getCurrentFilter, onFilterLoaded } from '../filter-state'
 import { getPoeVersion } from '../game-state'
 import { getProfileBackedSetting } from '../profiles/profile-settings'
+import { getBeastPrices } from '../trade/beast-prices'
 import { loadIconCache } from '../trade/icon-cache'
 import {
+  fetchJson,
   getGemNames,
   getUniquesByBase,
   lookupBestUniquePrice,
@@ -486,6 +488,14 @@ export function register(store: Store<AppSettings>): void {
       }
       return result
     },
+  )
+
+  // Bestiary regex tab. Lazy: only fires when that tab mounts or the user hits
+  // Refresh, so sessions that never open it never pay the request. League is
+  // read from the store here rather than passed by the renderer, matching
+  // buildSearchableItems.
+  ipcMain.handle('get-beast-prices', (_event, force?: boolean) =>
+    getBeastPrices(getProfileBackedSetting(store, 'league'), fetchJson, force === true),
   )
 
   ipcMain.handle('get-searchable-items', async (): Promise<SearchableItem[]> => {

@@ -123,6 +123,19 @@ export const api = {
     league: string,
   ): Promise<Record<string, { chaosValue: number; divineValue?: number } | null>> =>
     ipcRenderer.invoke('batch-lookup-ref-prices', refs, league),
+  getBeastPrices: (
+    force?: boolean,
+  ): Promise<{
+    lines: Array<{
+      name: string
+      chaosValue: number
+      divineValue?: number
+      listingCount: number
+      graph?: (number | null)[]
+    }>
+    updatedAt: number | null
+    error?: string
+  }> => ipcRenderer.invoke('get-beast-prices', force),
   sisterOpenPriceCheck: (ref: {
     name: string
     baseType?: string
