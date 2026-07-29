@@ -93,7 +93,7 @@ export const tabletRegex: TabletRegex[] = [
   {
     "id": -1948610158,
     "name": "##% increased chance for Abyssal monsters in Map to have Abyssal Modifiers",
-    "regex": "r ab",
+    "regex": "ap t",
     "values": [],
     "ranges": [
       [
@@ -109,7 +109,7 @@ export const tabletRegex: TabletRegex[] = [
   {
     "id": -155578423,
     "name": "##% increased chance for Desecrated Currency from Abysses in Map",
-    "regex": "des",
+    "regex": "ese",
     "values": [],
     "ranges": [
       [
@@ -125,7 +125,7 @@ export const tabletRegex: TabletRegex[] = [
   {
     "id": 349687363,
     "name": "##% increased chance Vaal Beacon Chests are Rare in Map",
-    "regex": "n c",
+    "regex": "ts a",
     "values": [],
     "ranges": [
       [
@@ -237,7 +237,7 @@ export const tabletRegex: TabletRegex[] = [
   {
     "id": -1651586367,
     "name": "##% increased Gold found in Map",
-    "regex": "go",
+    "regex": "gol",
     "values": [],
     "ranges": [
       [
@@ -490,7 +490,7 @@ export const tabletRegex: TabletRegex[] = [
   {
     "id": -347580005,
     "name": "Abysses in Map have ##% increased chance to lead to an Abyssal Depths",
-    "regex": "lea",
+    "regex": "ead",
     "values": [],
     "ranges": [
       [
@@ -839,7 +839,7 @@ export const tabletRegex: TabletRegex[] = [
   {
     "id": -1831730187,
     "name": "Map contains an additional Abyss",
-    "regex": "l abyss$",
+    "regex": "tional abyss$",
     "values": [],
     "ranges": [],
     "prefix": false,
@@ -872,7 +872,7 @@ export const tabletRegex: TabletRegex[] = [
   {
     "id": 1553812225,
     "name": "Map contains an additional Strongbox",
-    "regex": "x$",
+    "regex": "ox$",
     "values": [],
     "ranges": [],
     "prefix": false,
@@ -883,7 +883,7 @@ export const tabletRegex: TabletRegex[] = [
   {
     "id": 2085013298,
     "name": "Map contains an additional Summoning Circle",
-    "regex": "l su",
+    "regex": "tional su",
     "values": [],
     "ranges": [],
     "prefix": true,
