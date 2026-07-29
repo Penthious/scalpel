@@ -364,6 +364,101 @@ describe('parseFetchedListings', () => {
     expect(data.chartZone).toBe('Sea Pillars')
     expect(data.areaLevel).toBe(53)
   })
+
+  // GGG changed the trade fetch response again (2026-07): the dedicated
+  // fracturedMods/craftedMods/desecratedMods/mutatedMods arrays are gone and every
+  // entry is folded into explicitMods, tagged via flags/domain. #512.
+  it("splits GGG's folded explicitMods into fractured/crafted buckets (#512)", () => {
+    const entry: FetchEntry = {
+      id: 'e6',
+      listing: baseListing,
+      item: {
+        name: 'Fated End',
+        baseType: 'Leather Belt',
+        typeLine: 'Leather Belt',
+        frameType: 2,
+        explicitMods: [
+          {
+            description: '+50 to maximum Life',
+            domain: 'explicit',
+            mods: [{ name: 'Foo', tier: 'P1', magnitudes: [{ min: '45', max: '55' }] }],
+          },
+          {
+            description: '+20 to maximum Mana',
+            domain: 'explicit',
+            mods: [{ name: 'Bar', tier: 'S1', magnitudes: [{ min: '15', max: '25' }] }],
+          },
+          {
+            description: '+28 to Intelligence',
+            flags: { crafted: true },
+            domain: 'crafted',
+            mods: [{ name: 'of Craft', tier: 'R3', level: 40, magnitudes: [{ min: '26', max: '30' }] }],
+          },
+          {
+            description: '+26% to Chaos Resistance',
+            flags: { fractured: true },
+            domain: 'fractured',
+            mods: [{ name: 'of Exile', tier: 'S2', level: 65, magnitudes: [{ min: '26', max: '30' }] }],
+          },
+        ],
+      },
+    }
+
+    const [listing] = parseFetchedListings([entry])
+    const data = listing.itemData!
+    expect(data.fracturedMods).toEqual(['+26% to Chaos Resistance'])
+    expect(data.craftedMods).toEqual(['+28 to Intelligence'])
+    expect(data.explicitMods).toEqual([
+      '+26% to Chaos Resistance',
+      '+50 to maximum Life',
+      '+20 to maximum Mana',
+      '+28 to Intelligence',
+    ])
+    expect(data.modTiers?.['+26% to Chaos Resistance']).toEqual({ tier: 'S2', name: 'of Exile', ranges: '26-30' })
+  })
+
+  it('classifies foulborn by flags.mutated even though its domain stays explicit (#512)', () => {
+    const entry: FetchEntry = {
+      id: 'e7',
+      listing: baseListing,
+      item: {
+        name: 'Mutated Wraps',
+        baseType: 'Wool Gloves',
+        typeLine: 'Wool Gloves',
+        frameType: 2,
+        explicitMods: [
+          { description: '+10 to Strength', domain: 'explicit' },
+          { description: '+127 to maximum Mana', domain: 'explicit', flags: { mutated: true } },
+        ],
+      },
+    }
+
+    const [listing] = parseFetchedListings([entry])
+    const data = listing.itemData!
+    expect(data.foulbornMods).toEqual(['+127 to maximum Mana'])
+    expect(data.foulbornMods).not.toContain('+10 to Strength')
+  })
+
+  it('still reads the legacy dedicated fracturedMods array', () => {
+    const entry: FetchEntry = {
+      id: 'e8',
+      listing: baseListing,
+      item: {
+        name: 'Old Buckler',
+        baseType: 'Pine Buckler',
+        typeLine: 'Pine Buckler',
+        frameType: 2,
+        explicitMods: ['+50 to maximum Life'],
+        fracturedMods: ['+26% to Chaos Resistance'],
+      },
+    }
+
+    const [listing] = parseFetchedListings([entry])
+    const data = listing.itemData!
+    expect(data.fracturedMods).toEqual(['+26% to Chaos Resistance'])
+    expect(data.explicitMods).toContain('+26% to Chaos Resistance')
+    expect(data.explicitMods).toContain('+50 to maximum Life')
+  })
 })
 
 // The "load more" pagination path (fetchMoreListings -> fetchAndMapListings) is a
@@ -375,6 +470,9 @@ describe('fetchMoreListings (pagination mapper)', () => {
   beforeEach(() => {
     capturedRequests.length = 0
     mockFetchBody = null
+    // The proactive rate limiter's seed buckets live across the test module, so a
+    // test that fires a request leaves a used slot behind for the next one.
+    _resetRateLimitsForTests()
   })
 
   it('maps PoE2 object-shaped mods without throwing', async () => {
@@ -401,6 +499,32 @@ describe('fetchMoreListings (pagination mapper)', () => {
     expect(listings).toHaveLength(1)
     expect(listings[0].itemData?.explicitMods).toEqual(['+34 to maximum Life'])
     expect(listings[0].itemData?.implicitMods).toEqual(['Has 1 Charm Slot'])
+  })
+
+  it('splits folded mod categories on the pagination path too (#512)', async () => {
+    mockFetchBody = JSON.stringify({
+      result: [
+        {
+          id: 'p2',
+          listing: { account: { name: 'A' }, price: { amount: 1, currency: 'exalted' } },
+          item: {
+            name: '',
+            typeLine: 'Fractured Wide Belt',
+            baseType: 'Wide Belt',
+            frameType: 1,
+            explicitMods: [
+              { description: '+34 to maximum Life', domain: 'explicit' },
+              { description: '+26% to Chaos Resistance', domain: 'fractured', flags: { fractured: true } },
+            ],
+          },
+        },
+      ],
+    })
+
+    const { listings } = await fetchMoreListings('query-id', ['p2'])
+    expect(listings).toHaveLength(1)
+    expect(listings[0].itemData?.fracturedMods).toEqual(['+26% to Chaos Resistance'])
+    expect(listings[0].itemData?.explicitMods).toEqual(['+34 to maximum Life', '+26% to Chaos Resistance'])
   })
 })
 

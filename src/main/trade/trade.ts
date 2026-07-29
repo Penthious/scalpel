@@ -79,6 +79,10 @@ export function stripTradeTokens(s: string): string {
   return s.replace(/\[([^\]|]+)\|?([^\]]*)\]/g, (_, a: string, b: string) => b || a)
 }
 
+/** Special categories GGG tags onto a folded `explicitMods` entry. */
+const MOD_CATEGORY_FLAGS = ['fractured', 'crafted', 'desecrated', 'mutated'] as const
+export type ModCategory = (typeof MOD_CATEGORY_FLAGS)[number]
+
 /** A single entry in a trade-fetch item's `*Mods` array.
  *
  *  PoE1 (and, as of 2026-06, PoE2 *implicit* mods) send a plain string. PoE2's
@@ -87,12 +91,20 @@ export function stripTradeTokens(s: string): string {
  *  the per-mod tier/magnitude data that used to live only in `extended.mods`
  *  (now absent for explicits) is inlined under `mods`. Consumers must read the
  *  text via `modEntryText` rather than assuming a string -- treating the object
- *  as a string threw `t.replace is not a function` for every PoE2 search. */
+ *  as a string threw `t.replace is not a function` for every PoE2 search.
+ *
+ *  As of 2026-07, GGG additionally folds the whole explicit family into a
+ *  single `explicitMods` array on both /api/trade and /api/trade2: the
+ *  dedicated `fracturedMods`/`craftedMods`/`desecratedMods`/`mutatedMods`
+ *  arrays are gone, and each entry instead tags its own category via
+ *  `domain`/`flags`. See `modEntryCategory`. */
 export type FetchItemMod =
   | string
   | {
       description: string
       hash?: string
+      domain?: string
+      flags?: Partial<Record<ModCategory, boolean>>
       mods?: Array<{
         // name/tier are omitted for fixed unique rolls (only magnitudes present).
         name?: string
@@ -105,6 +117,22 @@ export type FetchItemMod =
 /** Display text of a `*Mods` entry regardless of which shape GGG sent. */
 export function modEntryText(e: FetchItemMod | undefined): string {
   return typeof e === 'string' ? e : (e?.description ?? '')
+}
+
+/** Which special category a folded `explicitMods` entry belongs to, or null for a
+ *  plain explicit. `domain` mirrors the flag for fractured/crafted/desecrated but
+ *  stays 'explicit' for foulborn (mutated), so `flags` is the authoritative signal. */
+export function modEntryCategory(e: FetchItemMod | undefined): ModCategory | null {
+  if (!e || typeof e === 'string') return null
+  for (const c of MOD_CATEGORY_FLAGS) if (e.flags?.[c]) return c
+  const d = e.domain as ModCategory | undefined
+  return d && (MOD_CATEGORY_FLAGS as readonly string[]).includes(d) ? d : null
+}
+
+/** Stripped text of every folded `explicitMods` entry in `cat`, or undefined if none. */
+export function pickCategory(mods: FetchItemMod[] | undefined, cat: ModCategory): string[] | undefined {
+  const out = (mods ?? []).filter((e) => modEntryCategory(e) === cat).map((e) => stripTradeTokens(modEntryText(e)))
+  return out.length > 0 ? out : undefined
 }
 
 // Calculated pseudos that PoE2's /api/trade2 rejects as native `pseudo.*` stat
@@ -1381,14 +1409,26 @@ export function parseFetchedListings(fetchedEntries: FetchEntry[]): TradeListing
           // object form is what threw `t.replace is not a function` (#PoE2 fetch).
           const clean = (arr?: FetchItemMod[]): string[] | undefined =>
             arr?.map((e) => stripTradeTokens(modEntryText(e)))
-          const explicit = clean(r.item.explicitMods)
+          // GGG folded the whole explicit family into one `explicitMods` array (2026-07):
+          // the dedicated fracturedMods/craftedMods/desecratedMods/mutatedMods arrays are
+          // gone and each entry now carries its category on `flags`/`domain`. Split them
+          // back out or the listing preview colours a fractured mod as a plain explicit
+          // (#512). Legacy arrays are still merged in so a GGG rollback stays handled.
+          const folded = r.item.explicitMods ?? []
+          const inCategory = (cat: ModCategory | null): FetchItemMod[] =>
+            folded.filter((e) => modEntryCategory(e) === cat)
+          const merge = (legacy: FetchItemMod[] | undefined, cat: ModCategory): string[] | undefined => {
+            const out = clean([...(legacy ?? []), ...inCategory(cat)]) ?? []
+            return out.length > 0 ? out : undefined
+          }
+          const explicit = clean(inCategory(null))
           const implicit = clean(r.item.implicitMods)
           const enchant = clean(r.item.enchantMods)
           const rune = clean(r.item.runeMods)
-          const fractured = clean(r.item.fracturedMods)
-          const crafted = clean(r.item.craftedMods)
-          const foulborn = clean(r.item.mutatedMods)
-          const desecrated = clean(r.item.desecratedMods)
+          const fractured = merge(r.item.fracturedMods, 'fractured')
+          const crafted = merge(r.item.craftedMods, 'crafted')
+          const foulborn = merge(r.item.mutatedMods, 'mutated')
+          const desecrated = merge(r.item.desecratedMods, 'desecrated')
           return {
             // Magic items (frameType 1) carry an empty `name`; their affixed
             // display name lives in `typeLine` (e.g. "Glaciated Prismatic Ring"),
@@ -1786,6 +1826,12 @@ async function fetchAndMapListings(ids: string[], queryId: string): Promise<Trad
           // receive the raw entry. Mirrors parseFetchedListings (#PoE2 fetch).
           explicitMods: (r.item.explicitMods ?? []).map((e) => stripTradeTokens(modEntryText(e))),
           implicitMods: r.item.implicitMods?.map((e) => stripTradeTokens(modEntryText(e))),
+          // The preview colours mods by these buckets; GGG folds them all into
+          // explicitMods now, so split them back out here too (#512).
+          fracturedMods: pickCategory(r.item.explicitMods, 'fractured'),
+          craftedMods: pickCategory(r.item.explicitMods, 'crafted'),
+          foulbornMods: pickCategory(r.item.explicitMods, 'mutated'),
+          desecratedMods: pickCategory(r.item.explicitMods, 'desecrated'),
           ilvl: r.item.ilvl,
           // ExpandedListing surfaces these flags as status chips (Corrupted, Mirrored,
           // Unidentified); the regular trade path includes them, so map-regex listings
