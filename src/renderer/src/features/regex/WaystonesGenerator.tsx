@@ -29,7 +29,6 @@ import { generateWaystonePresetTags } from './waystone-preset-tags'
 import { useRegexTrade } from './useRegexTrade'
 import { WaystoneTierPicker } from './WaystoneTierPicker'
 import { TradeResults } from './TradeResults'
-import { useAuth } from '../../shared/use-auth'
 import type { RegexPreset } from '@shared/types'
 import type { GeneratorHandle, GeneratorProps } from './generator-types'
 
@@ -117,8 +116,6 @@ export const WaystonesGenerator = forwardRef<GeneratorHandle, GeneratorProps>(fu
   // ---- Trade state ----------------------------------------------------------
   const trade = useRegexTrade()
   const [expandedListing, setExpandedListing] = useState<string | null>(null)
-  const [actionStatus, setActionStatus] = useState<Record<string, 'pending' | 'success' | 'failed'>>({})
-  const { loggedIn } = useAuth()
   const [tradePanel, setTradePanel] = useState<TradePanel>(null)
 
   const priceChipMinWidth = useMemo(() => {
@@ -512,9 +509,6 @@ export const WaystonesGenerator = forwardRef<GeneratorHandle, GeneratorProps>(fu
           expandedListing={expandedListing}
           setExpandedListing={setExpandedListing}
           priceChipMinWidth={priceChipMinWidth}
-          loggedIn={loggedIn}
-          actionStatus={actionStatus}
-          setActionStatus={setActionStatus}
           rateLimitTiers={trade.rateLimitTiers}
           itemClass="Waystones"
         />

@@ -21,7 +21,6 @@ import { buildTabletRegex } from './tablet-engine'
 import { generateTabletPresetTags, TYPE_LABELS, type TabletTagState } from './tablet-preset-tags'
 import { useRegexTrade } from './useRegexTrade'
 import { TradeResults } from './TradeResults'
-import { useAuth } from '../../shared/use-auth'
 import type { RegexPreset } from '@shared/types'
 import type { GeneratorHandle, GeneratorProps } from './generator-types'
 
@@ -83,8 +82,6 @@ export const TabletGenerator = forwardRef<GeneratorHandle, GeneratorProps>(funct
   // ---- Trade state -----------------------------------------------------------
   const trade = useRegexTrade()
   const [expandedListing, setExpandedListing] = useState<string | null>(null)
-  const [actionStatus, setActionStatus] = useState<Record<string, 'pending' | 'success' | 'failed'>>({})
-  const { loggedIn } = useAuth()
 
   const priceChipMinWidth = useMemo(() => {
     const maxDigits = trade.listings.reduce((max, l) => Math.max(max, l.price ? String(l.price.amount).length : 0), 0)
@@ -292,7 +289,6 @@ export const TabletGenerator = forwardRef<GeneratorHandle, GeneratorProps>(funct
               setSearch('')
               const wantTexts = TABLET_MODS.filter((m) => want.has(m.id)).map((m) => m.text)
               setExpandedListing(null)
-              setActionStatus({})
               await trade.runSearch(() =>
                 window.api.tabletRegexTrade({
                   wantTexts,
@@ -347,9 +343,6 @@ export const TabletGenerator = forwardRef<GeneratorHandle, GeneratorProps>(funct
           expandedListing={expandedListing}
           setExpandedListing={setExpandedListing}
           priceChipMinWidth={priceChipMinWidth}
-          loggedIn={loggedIn}
-          actionStatus={actionStatus}
-          setActionStatus={setActionStatus}
           rateLimitTiers={trade.rateLimitTiers}
           itemClass="Tablet"
         />
