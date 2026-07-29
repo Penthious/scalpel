@@ -52,6 +52,13 @@ export const POE_NINJA_POE2_EXCHANGE = 'https://poe.ninja/poe2/api/economy/excha
  *  best-effort path with the direct-ninja path retained as fallback. */
 export const POE2_NINJA_PROXY = 'https://api.exiledexchange2.dev/proxy'
 
+/** poe.ninja PoE1 stash overview. The only current endpoint that returns
+ *  `listingCount`, which the Beasts regex tab needs to drop price-fixed
+ *  listings: the dense feed's top beast entries are routinely 100k+ chaos on
+ *  fewer than 5 listings, and one of those would eat the entire 100-character
+ *  menagerie budget. Append `?league=<league>&type=Beast`. */
+export const POE_NINJA_STASH_OVERVIEW = 'https://poe.ninja/poe1/api/economy/stash/current/item/overview'
+
 /** Scalpel's GitHub repo home. Base for the release/issue URLs below and the
  *  Support Development link in Settings. */
 export const GITHUB_REPO_URL = 'https://github.com/scalpelpoe/scalpel'

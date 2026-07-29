@@ -131,7 +131,10 @@ interface DenseResponse {
   itemOverviews: DenseOverview[]
 }
 
-function fetchJson(url: string): Promise<unknown> {
+/** Bare JSON GET over Electron's net stack. Exported so sibling ninja fetchers
+ *  (beast-prices) can be handed a real fetcher without importing electron
+ *  themselves, which keeps them unit-testable. */
+export function fetchJson(url: string): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const request = net.request(url)
     request.setHeader('User-Agent', 'Scalpel-Prices')
