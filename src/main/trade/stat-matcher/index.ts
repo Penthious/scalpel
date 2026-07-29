@@ -24,6 +24,7 @@ import { buildMiscFilters } from './producers/misc'
 import { emitPseudoFilters } from './producers/pseudo-emit'
 import { buildRelicFilters } from './producers/relics'
 import { buildRuneFilters } from './producers/rune-mods'
+import { buildScryingOrbFilters } from './producers/scrying-orb'
 import { buildSocketFilters } from './producers/sockets'
 import { buildStoredExperienceFilters } from './producers/stored-experience'
 import { buildTabletFilters } from './producers/tablets'
@@ -125,6 +126,9 @@ export function matchItemMods(
   // Chart zone, quantity and shape chips
   const chartFilters = buildChartFilters(itemInfo)
 
+  // Scrying Orb map-area chip
+  const scryingOrbFilters = buildScryingOrbFilters(itemInfo)
+
   // Timeless jewel handling: two toggleable chips - "Any Leader" and specific leader
   const timelessFilters = buildTimelessFilters(itemInfo, advancedMods, explicits)
 
@@ -147,6 +151,7 @@ export function matchItemMods(
     ...runeFilters,
     ...mapFilters,
     ...chartFilters,
+    ...scryingOrbFilters,
     ...socketFilters,
     // Rune chip sits before the base-name chip so they read left-to-right as
     // "Runeforged" + "<base>" (the composed type the search sends).

@@ -1682,6 +1682,11 @@ describe('isBulkExchangeItem (PoE2 slug-gated routing)', () => {
     expect(isBulkExchangeItem('Maps', 'Cemetery Map', 'Cemetery Map', 'Normal')).toBe(false)
   })
 
+  it('does NOT route a Scrying Orb to bulk -- its bound map area carries the value (#513)', () => {
+    setPoeVersion(1)
+    expect(isBulkExchangeItem('Stackable Currency', 'Scrying Orb', 'Scrying Orb', 'Currency')).toBe(false)
+  })
+
   it('does NOT route a Rare item whose generated title collides with a currency name (#501)', () => {
     setPoeVersion(1)
     // A Rare Hypnotic Eye Jewel whose randomly generated title happens to be
@@ -2326,5 +2331,75 @@ describe('searchTrade chart handling', () => {
     expect(body.query.filters.map_filters?.filters.chart_shape).toEqual({ option: '3' })
     const andIds = (body.query.stats[0]?.filters ?? []).map((f) => f.id)
     expect(andIds).not.toContain('map.chart_shape')
+  })
+})
+
+describe('searchTrade scrying orb handling (#513)', () => {
+  beforeEach(() => {
+    capturedRequests.length = 0
+    _resetRateLimitsForTests()
+    setPoeVersion(1)
+  })
+
+  const scryingOrb = {
+    name: 'Scrying Orb',
+    baseType: 'Scrying Orb',
+    itemClass: 'Stackable Currency',
+    rarity: 'Currency',
+  }
+
+  const areaChip: StatFilter = {
+    id: 'misc.scrying_area',
+    text: 'Dunes',
+    value: null,
+    min: null,
+    max: null,
+    enabled: true,
+    type: 'misc',
+  }
+
+  async function scryingSearchBody(filters: StatFilter[]) {
+    await searchTrade('Allflame', scryingOrb, filters, { tradeStatus: 'any' })
+    return parseCapturedBody(capturedRequests.find((r) => r.url.includes('/search/')))
+  }
+
+  it('sends the map-area discriminator when the area chip is enabled', async () => {
+    const body = await scryingSearchBody([areaChip])
+
+    expect(body.query.type).toEqual({ option: '53116', discriminator: 'scrying_orb' })
+  })
+
+  it('falls back to the all-areas base type when the chip is disabled', async () => {
+    const body = await scryingSearchBody([{ ...areaChip, enabled: false }])
+
+    expect(body.query.type).toBe('Scrying Orb')
+  })
+
+  it('ignores an area chip whose text is not a scryable area', async () => {
+    const body = await scryingSearchBody([{ ...areaChip, text: 'Wharf' }])
+
+    expect(body.query.type).toBe('Scrying Orb')
+  })
+
+  it('does not constrain a currency-frame item to nonunique rarity', async () => {
+    const body = await scryingSearchBody([areaChip])
+
+    expect(body.query.filters?.type_filters?.filters?.rarity).toBeUndefined()
+  })
+
+  it('lets the area chip win over an enabled base-type chip', async () => {
+    const baseChip: StatFilter = {
+      id: 'misc.basetype',
+      text: 'Scrying Orb',
+      value: null,
+      min: null,
+      max: null,
+      enabled: true,
+      type: 'misc',
+    }
+
+    const body = await scryingSearchBody([areaChip, baseChip])
+
+    expect(body.query.type).toEqual({ option: '53116', discriminator: 'scrying_orb' })
   })
 })

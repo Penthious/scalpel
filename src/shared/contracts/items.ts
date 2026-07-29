@@ -155,6 +155,10 @@ export interface PoeItem {
   chartZone?: string
   /** Chart shape, e.g. "Straight". PoE1 `Chart` item class only. */
   chartShape?: string
+  /** Map area a Scrying Orb is bound to, e.g. "Dunes", from its "Map Area:"
+   *  line. Part of the orb's trade identity: the trade API indexes each area as
+   *  its own type + discriminator (see shared/data/trade/scrying-orbs.ts). */
+  scryingArea?: string
 }
 
 export interface Zone {

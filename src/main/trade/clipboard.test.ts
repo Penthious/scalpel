@@ -1085,6 +1085,57 @@ describe('parseItemText', () => {
   })
 
   // ---------------------------------------------------------------------------
+  // Scrying Orbs (PoE1)
+  // ---------------------------------------------------------------------------
+
+  describe('scrying orbs', () => {
+    const scryingOrbText = (area: string) =>
+      [
+        'Item Class: Stackable Currency',
+        'Rarity: Currency',
+        'Scrying Orb',
+        '--------',
+        `Map Area: ${area}`,
+        '--------',
+        'Scries a Map on your Atlas',
+        '--------',
+        'Right click on this item then left click a Map on your Atlas.',
+      ].join('\n')
+
+    it('parses the bound map area', () => {
+      const item = parseItemText(scryingOrbText('Dunes'))!
+
+      expect(item.itemClass).toBe('Stackable Currency')
+      expect(item.baseType).toBe('Scrying Orb')
+      expect(item.scryingArea).toBe('Dunes')
+    })
+
+    it('keeps a multi-word area intact', () => {
+      expect(parseItemText(scryingOrbText('Sunken City'))!.scryingArea).toBe('Sunken City')
+    })
+
+    it('leaves the area line out of the mod list', () => {
+      const item = parseItemText(scryingOrbText('Dunes'))!
+
+      expect(item.explicits ?? []).not.toContain('Map Area: Dunes')
+    })
+
+    it('leaves scryingArea undefined on another currency', () => {
+      const text = [
+        'Item Class: Stackable Currency',
+        'Rarity: Currency',
+        'Chaos Orb',
+        '--------',
+        'Stack Size: 12/20',
+        '--------',
+        'Reforges a rare item with new random modifiers',
+      ].join('\n')
+
+      expect(parseItemText(text)!.scryingArea).toBeUndefined()
+    })
+  })
+
+  // ---------------------------------------------------------------------------
   // Flags
   // ---------------------------------------------------------------------------
 

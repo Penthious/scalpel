@@ -313,6 +313,7 @@ export async function preloadPriceCheck(item: PoeItem, store: Store<AppSettings>
       unidentifiedTier: item.unidentifiedItemTier,
       chartZone: item.chartZone,
       chartShape: item.chartShape,
+      scryingArea: item.scryingArea,
     },
     item.advancedMods,
     store.get('priceCheckDefaultPercent') ?? 90,

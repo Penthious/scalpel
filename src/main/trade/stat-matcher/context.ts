@@ -60,6 +60,7 @@ export interface ItemInfo {
   unidentifiedTier?: number
   chartZone?: string
   chartShape?: string
+  scryingArea?: string
 }
 
 export interface DefenseValues {

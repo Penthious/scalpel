@@ -1,5 +1,6 @@
 import { app, net } from 'electron'
 import { CHART_ZONES } from '@shared/data/trade/charts'
+import { SCRYING_ORB_AREAS, SCRYING_ORB_DISCRIMINATOR } from '@shared/data/trade/scrying-orbs'
 import tabletModMap from '@shared/data/trade/tablet-mods.json'
 import { TRANSFIGURED_GEM_DISC } from '@shared/data/trade/transfigured-gems'
 import { getTradeUrls } from '@shared/endpoints'
@@ -747,6 +748,13 @@ export async function searchTrade(
       ...(isValdoMap ? {} : { type_filters: { filters: { rarity: { option: 'nonunique' } } } }),
       map_filters: { filters: mapFilterObj },
     }
+  } else if (item.baseType === 'Scrying Orb') {
+    // Scrying Orbs are Stackable Currency but each is bound to a map area, so
+    // they price per area, not as a fungible stack (#513). The bare type covers
+    // every area; the map-area chip below narrows it to the discriminator form.
+    // Skipping the generic branch also keeps its `rarity: nonunique` type filter
+    // off a currency-frame item.
+    query.type = item.baseType
   } else if (item.itemClass === 'Divination Cards') {
     query.type = item.baseType
   } else if (isSkillGem(item)) {
@@ -902,6 +910,16 @@ export async function searchTrade(
   const chartZoneEntry = chartZoneFilter ? CHART_ZONES[chartZoneFilter.text] : undefined
   if (chartZoneEntry) {
     query.type = { option: chartZoneEntry.option, discriminator: chartZoneEntry.discriminator }
+  }
+
+  // Scrying Orbs: same deal, one trade type per bound map area. The API rejects
+  // the displayed "Scrying Orb (Dunes)" text as a base type -- only the opaque
+  // option id paired with the scrying_orb discriminator works. Runs after the
+  // base-type block for the same reason the chart one does.
+  const scryingAreaFilter = statFilters.find((f) => f.id === 'misc.scrying_area' && f.enabled)
+  const scryingAreaOption = scryingAreaFilter ? SCRYING_ORB_AREAS[scryingAreaFilter.text] : undefined
+  if (scryingAreaOption) {
+    query.type = { option: scryingAreaOption, discriminator: SCRYING_ORB_DISCRIMINATOR }
   }
 
   // Add misc filters (quality, ilvl, corrupted, mirrored)
@@ -1592,6 +1610,9 @@ export function isBulkExchangeItem(itemClass: string, name: string, baseType: st
   if (regularTradeClasses.has(itemClass)) return false
   // Specific items with variable properties that need regular trade
   if (baseType === "Facetor's Lens") return false
+  // A Scrying Orb is Stackable Currency but carries a bound map area, so it is
+  // priced per area on regular search and has no exchange listing at all (#513).
+  if (baseType === 'Scrying Orb') return false
   // Beasts are "Stackable Currency" but have rarity Rare/Unique and need regular trade
   if (itemClass === 'Stackable Currency' && (_rarity === 'Rare' || _rarity === 'Unique')) return false
   // Modified map-class items (Magic/Rare/Unique) aren't stackable, so they can't be on

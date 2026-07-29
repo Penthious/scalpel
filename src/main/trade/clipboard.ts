@@ -341,6 +341,12 @@ export function parseItemText(text: string): PoeItem | null {
   })()
   const chartShape = itemClass === 'Chart' ? extractStr(allLines, 'Chart Shape:') : undefined
 
+  // A Scrying Orb is bound to one map area ("Map Area: Dunes"), which is its
+  // whole trade identity -- the API indexes each area as a separate type. Gated
+  // on the base so an unrelated future item printing the same line can't emit a
+  // chip that resolves to nothing.
+  const scryingArea = baseType === 'Scrying Orb' ? extractStr(allLines, 'Map Area:') : undefined
+
   const memoryStrands = extractNum(allLines, 'Memory Strands:')
 
   // Heist blueprints: "Wings Revealed: 3/4"
@@ -718,6 +724,7 @@ export function parseItemText(text: string): PoeItem | null {
     ...(mapRareMonsters != null ? { mapRareMonsters } : {}),
     ...(chartZone != null ? { chartZone } : {}),
     ...(chartShape != null ? { chartShape } : {}),
+    ...(scryingArea != null ? { scryingArea } : {}),
     ...(physDamageMin != null ? { physDamageMin, physDamageMax } : {}),
     ...(eleDamageAvg != null ? { eleDamageAvg } : {}),
     ...(chaosDamageAvg != null ? { chaosDamageAvg } : {}),
