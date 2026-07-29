@@ -13,15 +13,9 @@
  *  electron and unit-testable without a mock (same shape as prices.poe2.ts). */
 
 import { POE_NINJA_STASH_OVERVIEW } from '@shared/endpoints'
+import type { BeastPriceLine } from '@shared/data/regex/beast-engine'
 
-export interface BeastPriceLine {
-  name: string
-  chaosValue: number
-  divineValue?: number
-  listingCount: number
-  /** 7-day percent-change series, shaped for the renderer's PriceChip sparkline. */
-  graph?: (number | null)[]
-}
+export type { BeastPriceLine }
 
 export interface BeastPricesResult {
   lines: BeastPriceLine[]
@@ -100,6 +94,17 @@ export async function getBeastPrices(
       error: 'Could not reach poe.ninja.',
     }
   }
+}
+
+/** Cached lines for this league, or null when the cache is cold or holds a
+ *  different league. Never fetches.
+ *
+ *  Deliberately ignores the TTL. The caller is a hotkey press, which must not
+ *  block on the network, and prices that are an hour stale still beat a regex
+ *  frozen at whatever the economy looked like when the preset was saved. */
+export function peekBeastPrices(league: string): BeastPriceLine[] | null {
+  if (!league || cachedLeague !== league || lastFetchTime === 0) return null
+  return cachedLines
 }
 
 /** Test hook: clear the module-level cache so cases assert miss-vs-hit in isolation. */

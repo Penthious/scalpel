@@ -7,7 +7,13 @@ import {
   type BeastState,
 } from '@shared/data/regex/beast-state'
 import { beastRegex } from '@shared/data/regex/vendor/beast/GeneratedBeastRegex'
-import { beastBudget, buildBeastRegex, buildBeastRows, type BeastPriceLine, type PricedBeast } from './beast-engine'
+import {
+  beastBudget,
+  buildBeastRegex,
+  buildBeastRows,
+  type BeastPriceLine,
+  type PricedBeast,
+} from '@shared/data/regex/beast-engine'
 import { generateBeastPresetTags } from './beast-preset-tags'
 import { TAB_COLORS, usePersistedJSON, useRegexKey } from './mapmods-helpers'
 import { FilterChip } from '../../components/primitives/FilterChip'

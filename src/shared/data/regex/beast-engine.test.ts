@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_BEAST_STATE, sanitizeBeastState, type BeastState } from '@shared/data/regex/beast-state'
-import { beastRegex, type BeastRegex } from '@shared/data/regex/vendor/beast/GeneratedBeastRegex'
-import { beastBudget, buildBeastRegex, buildBeastRows, type BeastPriceLine, type PricedBeast } from './beast-engine'
+import { DEFAULT_BEAST_STATE, sanitizeBeastState, type BeastState } from './beast-state'
+import { beastRegex, type BeastRegex } from './vendor/beast/GeneratedBeastRegex'
+import {
+  beastBudget,
+  buildBeastRegex,
+  buildBeastRows,
+  deriveBeastPresetRegex,
+  type BeastPriceLine,
+  type PricedBeast,
+} from './beast-engine'
 import { generateRegex, sortByChaosValue, type BeastPriceRegex } from './__fixtures__/poere/BeastResult'
 
 function state(over: Partial<BeastState> = {}): BeastState {
@@ -354,5 +361,35 @@ describe('price-name aliases', () => {
     const rows = buildBeastRows(beastRegex, [{ name: 'Vivid Vulture', chaosValue: 500, listingCount: 20 }])
     expect(rows.find((r) => r.name === 'Vivid Vulture')!.chaosValue).toBe(500)
     expect(rows.find((r) => r.name === 'Black Mórrigan')!.chaosValue).toBe(0)
+  })
+})
+
+// Fixture beast is Craicic Maw ("cic m"): harvest false, so it survives the
+// default includeHarvest: false state, plain ASCII, and not the aliased beast.
+// Do NOT use Vivid Vulture here - it is harvest: true and the auto-pack
+// correctly excludes it unless includeHarvest is set.
+describe('deriveBeastPresetRegex', () => {
+  it('rebuilds the pack from the preset settings against fresh prices', () => {
+    const cheap = deriveBeastPresetRegex({ beast: sanitizeBeastState({ menagerieLimit: true }) }, [
+      { name: 'Craicic Maw', chaosValue: 5, listingCount: 900 },
+    ])
+    const pricey = deriveBeastPresetRegex({ beast: sanitizeBeastState({ menagerieLimit: true, minChaos: 100 }) }, [
+      { name: 'Craicic Maw', chaosValue: 5, listingCount: 900 },
+    ])
+    expect(cheap).toBe('cic m')
+    // Same preset shape, but the bound now excludes the only priced beast.
+    expect(pricey).toBe('')
+  })
+
+  it('tracks a price move between two snapshots', () => {
+    const settings = { beast: sanitizeBeastState({ minChaos: 100 }) }
+    const before = deriveBeastPresetRegex(settings, [{ name: 'Craicic Maw', chaosValue: 5, listingCount: 900 }])
+    const after = deriveBeastPresetRegex(settings, [{ name: 'Craicic Maw', chaosValue: 5000, listingCount: 900 }])
+    expect(before).toBe('')
+    expect(after).toBe('cic m')
+  })
+
+  it('treats a missing beast payload as default settings', () => {
+    expect(deriveBeastPresetRegex({}, [{ name: 'Craicic Maw', chaosValue: 5, listingCount: 900 }])).toBe('cic m')
   })
 })

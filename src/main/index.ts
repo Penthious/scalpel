@@ -51,6 +51,9 @@ import {
   setStashScrollModifier,
 } from './hotkeys'
 import { refreshLeagues } from './trade/leagues'
+import { resolvePresetRegex } from './trade/beast-preset'
+import { getBeastPrices, peekBeastPrices } from './trade/beast-prices'
+import { fetchJson } from './trade/prices'
 import { stopOnlineSync } from './online-sync'
 import { applyPendingUpdate } from './update/update-swap'
 import { getCurrentFilter, loadFilter, onFilterLoaded } from './filter-state'
@@ -329,6 +332,19 @@ app.whenReady().then(() => {
     setTimeout(restoreClip, 100)
   }
 
+  // Beasts presets re-derive against cached poe.ninja prices so a hotkey bound
+  // weeks ago still pastes today's valuable beasts. A cold cache pastes the
+  // stored regex immediately and warms in the background, so a keypress never
+  // waits on the network.
+  const beastPresetDeps = {
+    peek: peekBeastPrices,
+    warm: (league: string): void => {
+      void getBeastPrices(league, fetchJson)
+    },
+  }
+  const presetRegex = (preset: RegexPreset): string | undefined =>
+    resolvePresetRegex(preset, getProfileBackedSetting(store, 'league'), beastPresetDeps)
+
   const REGEX_REMOTE_FLUSH_EPS = 0.01
   function regexRemoteFlushLeft(anchor: { fracX: number } | null): boolean {
     if (!anchor || !getCurrentPanelState().leftPanelOpen) return false
@@ -351,6 +367,7 @@ app.whenReady().then(() => {
       },
       paste: pasteRegexToSearch,
       defer: (fn) => setTimeout(fn, 50),
+      resolveRegex: presetRegex,
     })
   })
   ipcMain.on('regex-remote:close', () => getRegexRemoteOverlay()?.hide())
@@ -372,7 +389,8 @@ app.whenReady().then(() => {
       const preset = presetId
         ? presets.find((p) => p.id === presetId)
         : presets.find((p) => p.tags?.some((t) => t.text === tag && (!t.source || t.source === 'custom')))
-      if (preset?.regex) pasteRegexToSearch(preset.regex)
+      const regex = preset ? presetRegex(preset) : undefined
+      if (regex) pasteRegexToSearch(regex)
       return
     }
     if (action === 'closeOverlay') {

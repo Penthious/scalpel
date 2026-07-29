@@ -18,8 +18,8 @@
  *
  *  Output is plain `a|b|c` -- no quote wrapping, no anchors. */
 
-import type { BeastState } from '@shared/data/regex/beast-state'
-import type { BeastRegex } from '@shared/data/regex/vendor/beast/GeneratedBeastRegex'
+import { sanitizeBeastState, type BeastState } from './beast-state'
+import { beastRegex, type BeastRegex } from './vendor/beast/GeneratedBeastRegex'
 
 /** A poe.ninja beast price line, normalized by the main process. */
 export interface BeastPriceLine {
@@ -146,4 +146,15 @@ export function buildBeastRegex(rows: PricedBeast[], state: BeastState): BeastRe
   }
 
   return { regex: acc.substring(1), included, droppedPins }
+}
+
+/** Re-derive a saved Beasts preset's regex against a fresh price snapshot.
+ *
+ *  This is the whole reason a Beasts preset stores settings instead of a regex:
+ *  the pack is only meaningful against the economy it was priced from, so a
+ *  hotkey bound three weeks ago should still paste today's valuable beasts.
+ *  Convenience wrapper that bakes in the bundled dataset; buildBeastRows still
+ *  takes its data as a parameter so tests can drive it with fixtures. */
+export function deriveBeastPresetRegex(preset: { beast?: BeastState }, lines: BeastPriceLine[]): string {
+  return buildBeastRegex(buildBeastRows(beastRegex, lines), sanitizeBeastState(preset.beast)).regex
 }
