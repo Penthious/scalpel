@@ -28,11 +28,30 @@ function getCachePath(): string {
   return join(app.getPath('userData'), 'uniques-by-base-cache.json')
 }
 
+// Merges dynamic/cached entries over the bundled static map (static supplies
+// the floor, extra supplements it). Shared by the dense-response builder and
+// the cache loader below.
+function mergeOverStatic(extra: Record<string, Iterable<string>>): Record<string, string[]> {
+  const merged = { ...(poe1StaticUniquesByBase as Record<string, string[]>) }
+  for (const [base, names] of Object.entries(extra)) {
+    const existing = new Set(merged[base] ?? [])
+    for (const n of names) existing.add(n)
+    merged[base] = [...existing]
+  }
+  return merged
+}
+
 function loadCachedUniquesByBase(): Record<string, string[]> {
   try {
     const cachePath = getCachePath()
     if (existsSync(cachePath)) {
-      return JSON.parse(readFileSync(cachePath, 'utf-8'))
+      // The cache file is a point-in-time merge from the last successful
+      // refreshPrices() call, not a live re-merge. Without re-merging over
+      // the bundled static map here, a shipped data fix (e.g. new flask
+      // bases added to unique-info.json) would stay invisible for an
+      // existing user until their next successful price refresh overwrote
+      // the file.
+      return mergeOverStatic(JSON.parse(readFileSync(cachePath, 'utf-8')))
     }
   } catch {
     /* fall through */
@@ -222,12 +241,7 @@ function buildUniquesByBaseFromDense(resp: DenseResponse): void {
   }
 
   // Merge dynamic data into the base map (dynamic supplements static)
-  const merged = { ...(poe1StaticUniquesByBase as Record<string, string[]>) }
-  for (const [base, names] of Object.entries(dynamicMap)) {
-    const existing = new Set(merged[base] ?? [])
-    for (const n of names) existing.add(n)
-    merged[base] = [...existing]
-  }
+  const merged = mergeOverStatic(dynamicMap)
   uniqueBaseMap = merged
   saveCachedUniquesByBase(merged)
 }
