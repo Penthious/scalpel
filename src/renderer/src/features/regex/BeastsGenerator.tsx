@@ -45,21 +45,6 @@ function BeastStateBox({ mode }: { mode: RowMode }): JSX.Element {
   )
 }
 
-/** Small marker pill for the red-beast / harvest flags. */
-function BeastFlag({ label, color }: { label: string; color: string }): JSX.Element {
-  return (
-    <span
-      className="text-[9px] font-semibold uppercase tracking-wider px-[5px] py-[1px] rounded-full shrink-0"
-      style={{ background: `${color}22`, color }}
-    >
-      {label}
-    </span>
-  )
-}
-
-const RED_FLAG_COLOR = '#e57373'
-const HARVEST_FLAG_COLOR = '#81c784'
-
 /** Recipes arrive as a "; "-separated list, up to 511 characters across as many
  *  as eight entries. A row shows the first one and a "+N" marker; the whole list
  *  is the hover tooltip. */
@@ -99,13 +84,11 @@ function relativeAge(updatedAt: number, now: number): string {
 function BeastRow({
   row,
   mode,
-  included,
   alt,
   onClick,
 }: {
   row: PricedBeast
   mode: RowMode
-  included: boolean
   alt: boolean
   onClick: () => void
 }): JSX.Element {
@@ -114,29 +97,23 @@ function BeastRow({
     <div
       className="flex flex-col gap-[2px] px-3 py-[6px] cursor-pointer select-none"
       style={{
-        background: included ? 'rgba(129,199,132,0.10)' : alt ? 'rgba(255,255,255,0.02)' : 'transparent',
+        background: alt ? 'rgba(255,255,255,0.02)' : 'transparent',
         opacity: dim ? 0.45 : 1,
       }}
       onClick={onClick}
     >
       <div className="flex items-center gap-2">
         <BeastStateBox mode={mode} />
-        <span
-          className="text-[11px] flex-1 min-w-0 truncate"
-          style={{ color: included || mode === 'pin' ? 'var(--text)' : 'var(--text-dim)' }}
-        >
+        {/* Every name reads at full brightness. Whether a beast is in the regex
+            is conveyed by the "N in regex" chip, not per-row styling. */}
+        <span className="text-[11px] flex-1 min-w-0 truncate" style={{ color: 'var(--text)' }}>
           {row.name}
         </span>
-        {row.red && <BeastFlag label="red" color={RED_FLAG_COLOR} />}
-        {row.harvest && <BeastFlag label="harvest" color={HARVEST_FLAG_COLOR} />}
         {row.chaosValue > 0 ? (
           <PriceChip chaosValue={row.chaosValue} divineValue={row.divineValue} graph={row.graph} showNinja size="sm" />
         ) : (
           <span className="text-[10px] text-text-dim">-</span>
         )}
-        <span className="text-[9px] text-text-dim w-[42px] text-right shrink-0">
-          {row.listingCount > 0 ? row.listingCount.toLocaleString() : ''}
-        </span>
       </div>
       <RecipeLine recipe={row.recipe} />
     </div>
@@ -434,7 +411,6 @@ export const BeastsGenerator = forwardRef<GeneratorHandle, GeneratorProps>(funct
               key={row.name}
               row={row}
               mode={pinnedSet.has(row.name) ? 'pin' : mutedSet.has(row.name) ? 'mute' : 'auto'}
-              included={result.included.has(row.name)}
               alt={i % 2 === 1}
               onClick={() => cycleRow(row.name)}
             />
