@@ -1,6 +1,6 @@
 import { rareModKeyDesc, type ItemsState } from '@shared/data/regex/items-state'
 import type { RegexPresetTag } from '@shared/types'
-import { TAB_COLORS } from './mapmods-helpers'
+import { capNamesToTags, TAB_COLORS } from './mapmods-helpers'
 
 /** Auto-tags for an Items selection: base (item name in Magic, class in Rare),
  *  rarity, then the selected mod descs / affix names for the active class capped
@@ -23,7 +23,6 @@ export function generateItemsPresetTags(state: ItemsState): RegexPresetTag[] {
           .map((k) => rareModKeyDesc(k, state.itembase?.baseType ?? ''))
       : state.selectedMagicMods.filter((m) => m.basetype === state.itembase?.baseType).map((m) => m.affixName)
 
-  for (const name of names.slice(0, 3)) tag(name)
-  if (names.length > 3) tag(`+${names.length - 3} more`)
+  tags.push(...capNamesToTags(names, { color: TAB_COLORS.qualifiers, source: 'qualifier' }))
   return tags
 }

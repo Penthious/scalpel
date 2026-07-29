@@ -162,24 +162,44 @@ export const BeastsGenerator = forwardRef<GeneratorHandle, GeneratorProps>(funct
   const [search, setSearch] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [prices, setPrices] = useState<BeastPriceLine[]>([])
+  const [league, setLeague] = useState('')
   const [updatedAt, setUpdatedAt] = useState<number | null>(null)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [now, setNow] = useState(() => Date.now())
 
   // ---- Price loading ---------------------------------------------------------
+  // Bumped on every load and on unmount. A resolve whose generation is stale
+  // (tab switched away, or a Refresh overtook an in-flight initial load) drops
+  // its result instead of setting state on a dead or newer instance.
+  const loadGeneration = useRef(0)
+  useEffect(() => {
+    return () => {
+      loadGeneration.current += 1
+    }
+  }, [])
+
   const load = useCallback((force: boolean): void => {
+    const generation = ++loadGeneration.current
     setLoading(true)
     window.api
       .getBeastPrices(force)
       .then((r) => {
+        if (loadGeneration.current !== generation) return
         setPrices(r.lines)
+        setLeague(r.league)
         setUpdatedAt(r.updatedAt)
         setFetchError(r.error ?? null)
         setNow(Date.now())
       })
-      .catch(() => setFetchError('Could not reach poe.ninja.'))
-      .finally(() => setLoading(false))
+      .catch(() => {
+        if (loadGeneration.current !== generation) return
+        setFetchError('Could not reach poe.ninja.')
+      })
+      .finally(() => {
+        if (loadGeneration.current !== generation) return
+        setLoading(false)
+      })
   }, [])
 
   useEffect(() => {
@@ -230,15 +250,16 @@ export const BeastsGenerator = forwardRef<GeneratorHandle, GeneratorProps>(funct
       return `${n} pinned ${n === 1 ? 'beast' : 'beasts'} did not fit the ${beastBudget(state)} character limit.`
     }
     if (fetchError) return 'Could not reach poe.ninja. Pinned beasts still generate.'
-    if (!loading && prices.length === 0) return 'poe.ninja has no beast prices for this league.'
+    if (!loading && prices.length === 0) return `poe.ninja has no beast prices for ${league || 'this league'}.`
     return null
-  }, [result.droppedPins, fetchError, loading, prices.length, state])
+  }, [result.droppedPins, fetchError, loading, prices.length, league, state])
 
+  const leagueLabel = league ? ` - ${league}` : ''
   const priceSourceLine = loading
-    ? 'Prices from poe.ninja - loading'
+    ? `Prices from poe.ninja${leagueLabel} - loading`
     : updatedAt == null
-      ? 'Prices from poe.ninja - unavailable'
-      : `Prices from poe.ninja - updated ${relativeAge(updatedAt, now)}`
+      ? `Prices from poe.ninja${leagueLabel} - unavailable`
+      : `Prices from poe.ninja${leagueLabel} - updated ${relativeAge(updatedAt, now)}`
 
   // ---- State updates ---------------------------------------------------------
   const patch = (over: Partial<BeastState>): void => setState((prev) => ({ ...prev, ...over }))
@@ -269,7 +290,7 @@ export const BeastsGenerator = forwardRef<GeneratorHandle, GeneratorProps>(funct
         want: [],
         wantMode: 'any',
         qualifiers: {},
-        beast: state,
+        beast: structuredClone(state),
       }),
       applyPreset: (preset: RegexPreset) => {
         setState(sanitizeBeastState(preset.beast))

@@ -19,6 +19,9 @@ export type { BeastPriceLine }
 
 export interface BeastPricesResult {
   lines: BeastPriceLine[]
+  /** Echoed back so the UI can label its price source ("Prices from poe.ninja
+   *  - <league>"); per-profile leagues make this real information, not noise. */
+  league: string
   /** Epoch ms of the last successful fetch, or null if there has never been one. */
   updatedAt: number | null
   /** Set when the most recent attempt failed. `lines` may still hold stale data. */
@@ -70,11 +73,11 @@ export async function getBeastPrices(
   fetchJson: (url: string) => Promise<unknown>,
   force = false,
 ): Promise<BeastPricesResult> {
-  if (!league) return { lines: [], updatedAt: null, error: 'No league selected.' }
+  if (!league) return { lines: [], league, updatedAt: null, error: 'No league selected.' }
 
   const now = Date.now()
   const fresh = cachedLeague === league && lastFetchTime > 0 && now - lastFetchTime < TTL
-  if (fresh && !force) return { lines: cachedLines, updatedAt: lastFetchTime }
+  if (fresh && !force) return { lines: cachedLines, league, updatedAt: lastFetchTime }
 
   try {
     const url = `${POE_NINJA_STASH_OVERVIEW}?league=${encodeURIComponent(league)}&type=Beast`
@@ -82,7 +85,7 @@ export async function getBeastPrices(
     cachedLines = lines
     cachedLeague = league
     lastFetchTime = now
-    return { lines, updatedAt: now }
+    return { lines, league, updatedAt: now }
   } catch {
     // Hold the stale cache and leave lastFetchTime alone so the next call
     // retries instead of being short-circuited by the TTL. Same failure posture
@@ -90,6 +93,7 @@ export async function getBeastPrices(
     const haveStale = cachedLeague === league && lastFetchTime > 0
     return {
       lines: haveStale ? cachedLines : [],
+      league,
       updatedAt: haveStale ? lastFetchTime : null,
       error: 'Could not reach poe.ninja.',
     }

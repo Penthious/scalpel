@@ -137,4 +137,10 @@ describe('getBeastPrices', () => {
     expect(fetchJson).not.toHaveBeenCalled()
     expect(r.error).toBeTruthy()
   })
+
+  it('echoes the league back so the UI can label the price source', async () => {
+    const fetchJson = vi.fn().mockResolvedValue(PAYLOAD)
+    expect((await getBeastPrices('Mirage', fetchJson)).league).toBe('Mirage')
+    expect((await getBeastPrices('', fetchJson)).league).toBe('')
+  })
 })

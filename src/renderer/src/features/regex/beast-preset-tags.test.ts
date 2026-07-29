@@ -36,12 +36,16 @@ describe('generateBeastPresetTags', () => {
   })
 
   it('caps long pin and mute lists', () => {
-    const t = texts(state({ pinned: ['A', 'B', 'C', 'D', 'E'], muted: ['V', 'W', 'X', 'Y'] }))
+    // Pin and mute overflow both read "+N more" now, so assert on the full tag
+    // (text plus source) for the overflow rows rather than text alone -- a
+    // bare text assertion could match either list's overflow tag.
+    const tags = generateBeastPresetTags(state({ pinned: ['A', 'B', 'C', 'D', 'E'], muted: ['V', 'W', 'X', 'Y'] }))
+    const t = tags.map((tag) => tag.text)
     expect(t).toContain('+A')
     expect(t).toContain('+C')
     expect(t).not.toContain('+D')
-    expect(t).toContain('+2 more')
-    expect(t).toContain('-1 more')
+    expect(tags).toContainEqual({ text: '+2 more', color: TAB_COLORS.want, source: 'want' })
+    expect(tags).toContainEqual({ text: '+1 more', color: TAB_COLORS.avoid, source: 'avoid' })
   })
 
   it('orders names deterministically regardless of input order', () => {

@@ -244,6 +244,25 @@ export function tagChipStyle(tag: RegexPresetTag): React.CSSProperties {
   }
 }
 
+/** Cap a name list into preset tags: the first `cap` names verbatim, then a
+ *  single "+N more" overflow tag. Shared by the Items and Beasts tabs, which
+ *  both need a preset name that stays readable when a selection runs long.
+ *  `prefix` decorates each name (the Beasts tab uses "+" and "-" for pins and
+ *  mutes); the overflow tag always reads "+N more". */
+export function capNamesToTags(
+  names: string[],
+  {
+    cap = 3,
+    prefix = '',
+    color,
+    source,
+  }: { cap?: number; prefix?: string; color: string; source: RegexPresetTag['source'] },
+): RegexPresetTag[] {
+  const tags = names.slice(0, cap).map((n) => ({ text: `${prefix}${n}`, color, source }))
+  if (names.length > cap) tags.push({ text: `+${names.length - cap} more`, color, source })
+  return tags
+}
+
 /** Icon for a preset tag source type (qualifier / avoid / want). */
 export function TagSourceIcon({ source, size = 12 }: { source?: string; size?: number }): JSX.Element | null {
   const fill: [string, string] = ['currentColor', 'rgba(255,255,255,0.2)']

@@ -5,19 +5,7 @@
 
 import type { BeastState } from '@shared/data/regex/beast-state'
 import type { RegexPresetTag } from '@shared/types'
-import { TAB_COLORS } from './mapmods-helpers'
-
-/** How many individual beast names to name before collapsing to a count. */
-const NAME_CAP = 3
-
-function nameTags(names: string[], prefix: string, color: string, source: 'want' | 'avoid'): RegexPresetTag[] {
-  const sorted = [...names].sort()
-  const tags = sorted.slice(0, NAME_CAP).map((n) => ({ text: `${prefix}${n}`, color, source }))
-  if (sorted.length > NAME_CAP) {
-    tags.push({ text: `${prefix}${sorted.length - NAME_CAP} more`, color, source })
-  }
-  return tags
-}
+import { capNamesToTags, TAB_COLORS } from './mapmods-helpers'
 
 export function generateBeastPresetTags(state: BeastState): RegexPresetTag[] {
   const tags: RegexPresetTag[] = []
@@ -33,8 +21,8 @@ export function generateBeastPresetTags(state: BeastState): RegexPresetTag[] {
   if (state.minChaos != null) tags.push(qualifier(`min ${state.minChaos}c`))
   if (state.maxChaos != null) tags.push(qualifier(`max ${state.maxChaos}c`))
 
-  tags.push(...nameTags(state.pinned, '+', TAB_COLORS.want, 'want'))
-  tags.push(...nameTags(state.muted, '-', TAB_COLORS.avoid, 'avoid'))
+  tags.push(...capNamesToTags([...state.pinned].sort(), { prefix: '+', color: TAB_COLORS.want, source: 'want' }))
+  tags.push(...capNamesToTags([...state.muted].sort(), { prefix: '-', color: TAB_COLORS.avoid, source: 'avoid' }))
 
   // Default state still needs a name, since the tab always produces a regex.
   if (tags.length === 0) tags.push(qualifier('beasts by value'))

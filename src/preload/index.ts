@@ -133,6 +133,7 @@ export const api = {
       listingCount: number
       graph?: (number | null)[]
     }>
+    league: string
     updatedAt: number | null
     error?: string
   }> => ipcRenderer.invoke('get-beast-prices', force),
