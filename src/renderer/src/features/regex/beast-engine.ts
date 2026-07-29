@@ -58,6 +58,26 @@ export function beastBudget(state: BeastState): number {
   return state.menagerieLimit ? 100 : 250
 }
 
+/** poe.ninja's economy names lag upstream's dataset across a beast rename, so an
+ *  exact-name join prices the renamed beast at 0c and drops it from the pack.
+ *  Keyed by the current upstream name, valued with legacy names to try in order.
+ *
+ *  Craicic Croaker is Craicic Chimeral renamed: upstream's row carries Chimeral's
+ *  exact recipe ("Apply a Hinekora's Lock - To a Magic Item") under the new name,
+ *  while poe.ninja still lists the old one at a four-figure chaos price.
+ *
+ *  Retire an entry once poe.ninja reports the new name; the exact-name hit wins
+ *  over the alias either way, so a stale entry is inert rather than wrong. */
+const PRICE_NAME_ALIASES = new Map<string, string[]>([['Craicic Croaker', ['Craicic Chimeral']]])
+
+function findAliasedPrice(byName: Map<string, BeastPriceLine>, name: string): BeastPriceLine | undefined {
+  for (const legacy of PRICE_NAME_ALIASES.get(name) ?? []) {
+    const hit = byName.get(legacy)
+    if (hit) return hit
+  }
+  return undefined
+}
+
 /** Join the static dataset against live prices by exact name. Returns every
  *  beast -- unpriced and thin-market ones included -- so the UI can list them
  *  and the user can pin them. All pack filtering happens in buildBeastRegex.
@@ -69,7 +89,7 @@ export function buildBeastRows(data: BeastRegex[], prices: BeastPriceLine[]): Pr
   const byName = new Map(prices.map((p) => [p.name, p]))
   return data
     .map((b) => {
-      const p = byName.get(b.beast)
+      const p = byName.get(b.beast) ?? findAliasedPrice(byName, b.beast)
       return {
         name: b.beast,
         regex: b.regex,

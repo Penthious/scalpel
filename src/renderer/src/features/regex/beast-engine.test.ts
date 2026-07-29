@@ -329,3 +329,30 @@ describe('pins and mutes (Scalpel extension over poe.re)', () => {
     expectParity(rows, state({ redOnly: true, minChaos: 100, maxChaos: 400 }))
   })
 })
+
+describe('price-name aliases', () => {
+  it("prices Craicic Croaker from poe.ninja's pre-rename Craicic Chimeral line", () => {
+    const rows = buildBeastRows(beastRegex, [
+      { name: 'Craicic Chimeral', chaosValue: 2424, divineValue: 3, listingCount: 2724, graph: [0, 5] },
+    ])
+    const croaker = rows.find((r) => r.name === 'Craicic Croaker')
+    expect(croaker, 'upstream dropped Craicic Croaker; retire the alias').toBeDefined()
+    expect(croaker!.chaosValue).toBe(2424)
+    expect(croaker!.listingCount).toBe(2724)
+    expect(croaker!.graph).toEqual([0, 5])
+  })
+
+  it('prefers an exact-name line over an alias when poe.ninja catches up', () => {
+    const rows = buildBeastRows(beastRegex, [
+      { name: 'Craicic Chimeral', chaosValue: 2424, listingCount: 2724 },
+      { name: 'Craicic Croaker', chaosValue: 99, listingCount: 10 },
+    ])
+    expect(rows.find((r) => r.name === 'Craicic Croaker')!.chaosValue).toBe(99)
+  })
+
+  it('leaves non-aliased beasts alone', () => {
+    const rows = buildBeastRows(beastRegex, [{ name: 'Vivid Vulture', chaosValue: 500, listingCount: 20 }])
+    expect(rows.find((r) => r.name === 'Vivid Vulture')!.chaosValue).toBe(500)
+    expect(rows.find((r) => r.name === 'Black Mórrigan')!.chaosValue).toBe(0)
+  })
+})
