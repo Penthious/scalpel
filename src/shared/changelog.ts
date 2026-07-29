@@ -1,5 +1,17 @@
 export const CHANGELOG: { version: string; notes: string[] }[] = [
   {
+    version: '1.0.2',
+    notes: [
+      'Added a Beasts tab to the PoE1 regex tool.',
+      "Refreshed the PoE2 regex tool's tablet mod data.",
+      "The regex tool's trade results dropped the in-panel Travel and Whisper buttons; \"Open in Trade\" is now the panel's main action, and the Maps tab's Trade button no longer looks greyed out.",
+      'Fixed Scrying Orbs price-checking as a plain bulk currency.',
+      'Fixed fractured, crafted, desecrated and foulborn mods all showing as plain explicits in trade listings after a trade site change (fractured is gold again).',
+      'Fixed the PoE1 filter tab showing no uniques for flask, tincture and abyss jewel bases.',
+      'Fixed jewels with "+#% Chance to Block Attack Damage while wielding a Staff" price-checking against the staff-only version of the stat, so no listings came back (s/o eniner!).',
+    ],
+  },
+  {
     version: '1.0.1',
     notes: [
       'Brought back the socket color calculator, rebuilt on the new chromatic orb math for white sockets, the non-white bench recipes, and Omen of Trichromatism.',
