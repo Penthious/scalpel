@@ -57,7 +57,7 @@ export const regexMapModsJAPANESE: Regex<MapModsTokenOption> = {
     {id: -166549521, regex: "の確率で発", rawText: "モンスターはヒット時に(15-20)%の確率で発火、凍結および感電を付与する", generalizedText: "^モンスターはヒット時に#%の確率で発火、凍結および感電を付与する$", options: {scary: 98, nm: false, prefix: true}},
     {id: -128171261, regex: "は冒", rawText: "エリアには冒涜領域がまだらに存在する", generalizedText: "^エリアには冒涜領域がまだらに存在する$", options: {scary: 310, nm: false, prefix: true}},
     {id: -126908257, regex: "に確", rawText: "モンスターはヒット時に確率で発火、凍結および感電を付与する|モンスターは全てのダメージで発火、凍結および感電を付与できる|エリアで見つかるスカラベの量が60%上昇する", generalizedText: "^モンスターはヒット時に確率で発火、凍結および感電を付与する$|^モンスターは全てのダメージで発火、凍結および感電を付与できる$|^エリアで見つかるスカラベの量が#%上昇する$", options: {scary: 1001, nm: true, prefix: true}},
-    {id: -114660370, regex: "ヤーの命", rawText: "全てのプレイヤーの命中力が(15-25)%低下する", generalizedText: "^全てのプレイヤー��命中力が#%低下する$", options: {scary: 85, nm: false, prefix: true}},
+    {id: -114660370, regex: "ヤーの命", rawText: "全てのプレイヤーの命中力が(15-25)%低下する", generalizedText: "^全てのプレイヤーの命中力が#%低下する$", options: {scary: 85, nm: false, prefix: true}},
     {id: -106750911, regex: "スのラ", rawText: "ユニークボスのライフが(25-35)%増加する|ユニークボスの効果範囲が(45-70)%増加する", generalizedText: "^ユニークボスのライフが#%増加する$|^ユニークボスの効果範囲が#%増加する$", options: {scary: 400, nm: false, prefix: true}},
     {id: -106071007, regex: "取", rawText: "ユニークボスは取り憑かれている", generalizedText: "^ユニークボスは取り憑かれている$", options: {scary: 90, nm: false, prefix: true}},
     {id: -105914721, regex: "適", rawText: "プレイヤーは適用されるフラスコの効果が40%低下する|エリアで見つかるカレンシーの量が47%上昇する", generalizedText: "^プレイヤーは適用されるフラスコの効果が#%低下する$|^エリアで見つかるカレンシーの量が#%上昇する$", options: {scary: 1001, nm: true, prefix: true}},
