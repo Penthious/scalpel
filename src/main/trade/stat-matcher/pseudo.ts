@@ -172,6 +172,14 @@ function buildPseudoMap(): void {
     // the negative value into the player's Total Elemental Resistance pseudo.
     // Exposure mods never feed any player pseudo, so skip them outright.
     if (/\bExposure\b/i.test(entry.text)) continue
+    // "Minions have +#% to all Elemental Resistances" (and totems/allies/etc.)
+    // is likewise not player resistance. Bone Rings and other minion gear were
+    // folding those rolls into Total Elemental Resistance (e.g. 37 all-res × 3).
+    if (
+      /\b(?:Minions?|Totems?|Spectres?|Allies|Companions?)\b/i.test(entry.text) &&
+      /\bResistances?\b/i.test(entry.text)
+    )
+      continue
     for (const [pattern, pseudoId, pseudoLabel, multiplier, opts] of pseudoMappings) {
       if (pattern.test(entry.text)) {
         if (!PSEUDO_CONTRIBUTIONS[entry.id]) PSEUDO_CONTRIBUTIONS[entry.id] = []
