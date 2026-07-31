@@ -337,8 +337,17 @@ let consecutiveClipboardFailures = 0
  * The user's prior clipboard contents are stashed on entry and restored on exit
  * so price-checking an item doesn't stomp whatever they had copied. Explicit
  * "Copy to clipboard" actions (trade whispers, regex copy buttons) bypass this.
+ *
+ * On a failed capture, shows the main overlay unless `opts.showOverlay` is
+ * explicitly false - the `elevation-hint` and `no-item-in-clipboard` IPC
+ * messages still fire regardless, so the renderer's state is correct the next
+ * time the overlay opens.
  */
-async function captureItemFromClipboard(isElevated: () => boolean): Promise<PoeItem | null> {
+async function captureItemFromClipboard(
+  isElevated: () => boolean,
+  opts?: { showOverlay?: boolean },
+): Promise<PoeItem | null> {
+  const showOverlayFlag = opts?.showOverlay ?? true
   const restoreClip = snapshotClipboard()
 
   // Hotkeys are also valid while a gameplay overlay owns focus. Hand input
@@ -376,7 +385,7 @@ async function captureItemFromClipboard(isElevated: () => boolean): Promise<PoeI
       getOverlayWindow()?.webContents.send('elevation-hint')
     }
     getOverlayWindow()?.webContents.send('no-item-in-clipboard')
-    showOverlay()
+    if (showOverlayFlag) showOverlay()
     return null
   }
 
@@ -386,25 +395,47 @@ async function captureItemFromClipboard(isElevated: () => boolean): Promise<PoeI
 
 /**
  * Core copy-and-evaluate flow shared by the main hotkey and the plugin IPC handler.
- * Captures an item from the clipboard, dispatches it to the filter/price-check pipeline,
- * shows the overlay, and returns the parsed item (or null when nothing recognisable is
- * on the clipboard). Callers that want a specific overlay view should send the appropriate
- * IPC message before or after calling this.
+ * Captures an item from the clipboard and dispatches it to the filter/price-check
+ * pipeline, returning the parsed item (or null when nothing recognisable is on the
+ * clipboard). Shows the main overlay unless `opts.showOverlay` is explicitly false -
+ * a plugin with its own overlay passes that to avoid Scalpel's overlay popping open
+ * on top of it. The suppression also covers a failed clipboard capture (no filter
+ * loaded, nothing recognisable on the clipboard), not just the success path.
+ * Callers that want a specific overlay view should send the appropriate IPC message
+ * before or after calling this.
+ *
+ * `opts.dispatch` defaults to true. When explicitly false, this is a private read:
+ * the item is captured and returned to the caller alone. `evaluateAndSend` (which
+ * pushes `overlay-data` and hijacks the main overlay's view to 'item') and
+ * `preloadPriceCheck` (which warms the price-check pipeline) are both skipped, and
+ * since nothing is evaluated against a filter, the no-filter early return does not
+ * apply either - no filter needs to be loaded, and `no-filter-loaded` is not sent.
  */
-export async function runMainHotkeyFlow(store: Store<AppSettings>, isElevated: () => boolean): Promise<PoeItem | null> {
-  const currentFilter = getCurrentFilter()
-  if (!currentFilter) {
-    getOverlayWindow()?.webContents.send('no-filter-loaded')
-    showOverlay()
-    return null
+export async function runMainHotkeyFlow(
+  store: Store<AppSettings>,
+  isElevated: () => boolean,
+  opts?: { showOverlay?: boolean; dispatch?: boolean },
+): Promise<PoeItem | null> {
+  const showOverlayFlag = opts?.showOverlay ?? true
+  const dispatchFlag = opts?.dispatch ?? true
+
+  if (dispatchFlag) {
+    const currentFilter = getCurrentFilter()
+    if (!currentFilter) {
+      getOverlayWindow()?.webContents.send('no-filter-loaded')
+      if (showOverlayFlag) showOverlay()
+      return null
+    }
   }
 
-  const item = await captureItemFromClipboard(isElevated)
+  const item = await captureItemFromClipboard(isElevated, { showOverlay: showOverlayFlag })
   if (!item) return null
 
-  evaluateAndSend(item)
-  preloadPriceCheck(item, store)
-  showOverlay()
+  if (dispatchFlag) {
+    evaluateAndSend(item)
+    preloadPriceCheck(item, store)
+  }
+  if (showOverlayFlag) showOverlay()
   return item
 }
 

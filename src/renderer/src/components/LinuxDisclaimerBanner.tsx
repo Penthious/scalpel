@@ -1,6 +1,7 @@
+import type { NodePlatform } from '@shared/contracts/settings'
 import { ErrorBanner } from './ErrorBanner'
 
-export function LinuxDisclaimerBanner({ platform }: { platform: NodeJS.Platform | undefined }): JSX.Element | null {
+export function LinuxDisclaimerBanner({ platform }: { platform: NodePlatform | undefined }): JSX.Element | null {
   if (platform !== 'linux') return null
   return (
     <ErrorBanner

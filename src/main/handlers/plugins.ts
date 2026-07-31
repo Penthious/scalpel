@@ -273,9 +273,15 @@ export function register(store: Store<AppSettings>, isElevated: () => boolean = 
     notifyHotkeysChanged()
   })
 
-  ipcMain.handle('plugins:trigger-main-hotkey', async (): Promise<import('@shared/types').PoeItem | null> => {
-    return runMainHotkeyFlow(store, isElevated)
-  })
+  ipcMain.handle(
+    'plugins:trigger-main-hotkey',
+    async (
+      _evt,
+      opts?: { showOverlay?: boolean; dispatch?: boolean },
+    ): Promise<import('@shared/types').PoeItem | null> => {
+      return runMainHotkeyFlow(store, isElevated, opts)
+    },
+  )
 
   // Show the overlay BrowserWindow. Called from ctx.openTab() so plugins that
   // bind a hotkey can open the overlay even when no item is being inspected

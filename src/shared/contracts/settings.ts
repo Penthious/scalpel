@@ -87,7 +87,23 @@ export interface AppSettings {
   currencyLabelsAsText: boolean
 }
 
+// Spelled out instead of `NodeJS.Platform`: the plugin-sdk build compiles
+// this file with `types: []` (no Node ambients in scope), so the namespace
+// reference would fail to resolve there. Members mirror Node's Platform type.
+export type NodePlatform =
+  | 'aix'
+  | 'android'
+  | 'darwin'
+  | 'freebsd'
+  | 'haiku'
+  | 'linux'
+  | 'openbsd'
+  | 'sunos'
+  | 'win32'
+  | 'cygwin'
+  | 'netbsd'
+
 export interface RuntimeSettings extends AppSettings {
   activeProfile: PoeProfile | null
-  platform: NodeJS.Platform
+  platform: NodePlatform
 }

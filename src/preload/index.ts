@@ -963,8 +963,10 @@ export const api = {
     ipcRenderer.on('plugin-overlay:init', handler)
     return () => ipcRenderer.removeListener('plugin-overlay:init', handler)
   },
-  pluginTriggerMainHotkey: (): Promise<import('@shared/types').PoeItem | null> =>
-    ipcRenderer.invoke('plugins:trigger-main-hotkey'),
+  pluginTriggerMainHotkey: (opts?: {
+    showOverlay?: boolean
+    dispatch?: boolean
+  }): Promise<import('@shared/types').PoeItem | null> => ipcRenderer.invoke('plugins:trigger-main-hotkey', opts),
   pluginShowOverlay: (): Promise<void> => ipcRenderer.invoke('plugins:show-overlay'),
   pluginRegisterOverlay: (
     pluginId: string,
@@ -982,6 +984,8 @@ export const api = {
     region?: import('../plugin-sdk/src/types').GameRect,
   ): Promise<import('../plugin-sdk/src/types').GameCapture | null> =>
     ipcRenderer.invoke('plugins:capture-game-window', region),
+  pluginGetCursorPosition: (): Promise<{ x: number; y: number } | null> =>
+    ipcRenderer.invoke('plugins:get-cursor-position'),
 }
 
 contextBridge.exposeInMainWorld('api', api)

@@ -79,8 +79,9 @@ export function useActivatePlugin(pluginId: string): ActivatedPlugin {
           }
         },
         openTab: () => {},
-        copyAndEvaluateItem: () => window.api.pluginTriggerMainHotkey(),
+        copyAndEvaluateItem: (opts) => window.api.pluginTriggerMainHotkey(opts),
         captureGameWindow: (region) => window.api.pluginCaptureGameWindow(region),
+        getCursorPosition: () => window.api.pluginGetCursorPosition(),
         fetch: window.fetch.bind(window),
         storage: {
           get: <T = unknown>(key: string): Promise<T | null> =>

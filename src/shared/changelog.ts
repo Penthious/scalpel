@@ -2,6 +2,7 @@ export const CHANGELOG: { version: string; notes: string[] }[] = [
   {
     version: '1.0.2',
     notes: [
+      "Plugin developers can now read the cursor position via ctx.getCursorPosition and use Scalpel's map-mod danger data via MAP_MODS.",
       'Added a Beasts tab to the PoE1 regex tool.',
       "Refreshed the PoE2 regex tool's tablet mod data.",
       "The regex tool's trade results dropped the in-panel Travel and Whisper buttons; \"Open in Trade\" is now the panel's main action, and the Maps tab's Trade button no longer looks greyed out.",
