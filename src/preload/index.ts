@@ -874,6 +874,9 @@ export const api = {
     Array<{
       manifest: import('../plugin-sdk/src/types').PluginManifest
       entryUrl: string
+      /** Absent when the plugin was side-loaded before source dirs were
+       *  tracked - Reload needs it, so the button stays disabled without one. */
+      sourceDir?: string
     }>
   > => ipcRenderer.invoke('plugins:list-unpacked'),
   getInstalledPlugin: (
@@ -898,6 +901,10 @@ export const api = {
     ipcRenderer.invoke('plugins:list-registered-tabs'),
   pluginInstallUnpacked: (): Promise<{ ok: true; id: string } | { ok: false; error: string }> =>
     ipcRenderer.invoke('plugins:install-unpacked'),
+  /** Re-copy an unpacked plugin from the directory it was loaded from and
+   *  hot-swap the running instance. The plugin dev loop, without a restart. */
+  pluginReloadUnpacked: (pluginId: string): Promise<{ ok: true; id: string } | { ok: false; error: string }> =>
+    ipcRenderer.invoke('plugins:reload-unpacked', pluginId),
   pluginFetchRegistry: (): Promise<
     { ok: true; snapshot: import('@shared/plugin-registry-types').RegistrySnapshot } | { ok: false; error: string }
   > => ipcRenderer.invoke('plugins:fetch-registry'),
