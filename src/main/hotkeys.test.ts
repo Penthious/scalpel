@@ -8,14 +8,20 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 // pieces itself in beforeEach.
 //
 // This file owns the Escape-delivery behavior (globalShortcut sync + uiohook
-// fallback). The async focus gate and the other contextual hotkey paths are
+// fallback). The shared focus gate and the other contextual hotkey paths are
 // covered in hotkeys-focus.test.ts, which uses a static-import harness that
 // cannot reset the module-level Escape dedupe stamp between tests.
 
+const activeGlobalShortcuts = new Map<string, () => void>()
+const registerGlobalShortcut = (accelerator: string, callback: () => void): boolean => {
+  if (activeGlobalShortcuts.has(accelerator)) return false
+  activeGlobalShortcuts.set(accelerator, callback)
+  return true
+}
 const globalShortcutMock = {
-  register: vi.fn((_accelerator: string, _callback: () => void) => true),
-  unregister: vi.fn(),
-  unregisterAll: vi.fn(),
+  register: vi.fn(registerGlobalShortcut),
+  unregister: vi.fn((accelerator: string) => activeGlobalShortcuts.delete(accelerator)),
+  unregisterAll: vi.fn(() => activeGlobalShortcuts.clear()),
 }
 
 const overlayControllerState: { targetHasFocus: boolean; events: EventEmitter; targetBounds: unknown } = {
@@ -42,10 +48,8 @@ const windowingMockState = {
   hideFocusedOrAnyVisibleSecondaryOverlay: vi.fn(() => false),
 }
 
-// Inputs to the async fire-path focus gate (hasPoeOrOverlayFocus): the exact
-// foreground PoE title seen by active-win, and Scalpel-owned window focus.
-const focusMockState: { focusedVersion: 1 | 2 | null; scalpelBrowserWindowFocused: boolean } = {
-  focusedVersion: null,
+// Scalpel-owned gameplay-window focus complements OverlayController target focus.
+const focusMockState: { scalpelBrowserWindowFocused: boolean } = {
   scalpelBrowserWindowFocused: false,
 }
 
@@ -92,10 +96,6 @@ vi.mock('./windowing', () => ({
   isAnyScalpelBrowserWindowFocused: () => focusMockState.scalpelBrowserWindowFocused,
 }))
 
-vi.mock('./game-detector', () => ({
-  detectFocusedPoeVersion: vi.fn(async () => focusMockState.focusedVersion),
-}))
-
 vi.mock('./diagnostics', () => ({
   guardNativeListener:
     (_label: string, fn: (...args: unknown[]) => void) =>
@@ -108,24 +108,15 @@ vi.mock('./diagnostics', () => ({
 
 const ESCAPE_KEYDOWN = { keycode: 1, ctrlKey: false, shiftKey: false, altKey: false }
 
-/** The fire path resolves the async focus gate (hasPoeOrOverlayFocus) through a
- *  few microtasks; flush them so post-gate effects are observable. Promise
- *  microtasks run on await even under fake timers, so this is safe in both. */
-async function flushEscapeGate(): Promise<void> {
-  await Promise.resolve()
-  await Promise.resolve()
-  await Promise.resolve()
-}
-
 /** Fresh SUT import with all shared mock state reset. Wires up startHotkeyListener
  *  and setEscapeHandler the same way index.ts does at boot, so every test starts
  *  from a known baseline (nothing registered, overlay hidden, game unfocused -
- *  but with the fire-path focus gate seeing PoE in the foreground, since most
- *  tests exercise delivery; unfocused-path tests override focusMockState). */
+ *  and tests opt into target or gameplay-overlay focus before delivery. */
 async function loadHotkeys(onEscape: () => void) {
   vi.resetModules()
+  activeGlobalShortcuts.clear()
   globalShortcutMock.register.mockClear()
-  globalShortcutMock.register.mockImplementation(() => true)
+  globalShortcutMock.register.mockImplementation(registerGlobalShortcut)
   globalShortcutMock.unregister.mockClear()
   globalShortcutMock.unregisterAll.mockClear()
   overlayControllerState.targetHasFocus = false
@@ -135,7 +126,6 @@ async function loadHotkeys(onEscape: () => void) {
   overlayMockState.visibilityListener = null
   windowingMockState.hideFocusedOrAnyVisibleSecondaryOverlay.mockReset()
   windowingMockState.hideFocusedOrAnyVisibleSecondaryOverlay.mockReturnValue(false)
-  focusMockState.focusedVersion = 1
   focusMockState.scalpelBrowserWindowFocused = false
 
   const hotkeys = await import('./hotkeys')
@@ -223,7 +213,6 @@ describe('Escape globalShortcut sync', () => {
 
     windowingMockState.hideFocusedOrAnyVisibleSecondaryOverlay.mockReturnValue(true)
     cb()
-    await flushEscapeGate()
     expect(onEscape).not.toHaveBeenCalled()
   })
 
@@ -236,18 +225,27 @@ describe('Escape globalShortcut sync', () => {
 
     windowingMockState.hideFocusedOrAnyVisibleSecondaryOverlay.mockReturnValue(false)
     cb()
-    await flushEscapeGate()
     expect(onEscape).toHaveBeenCalledTimes(1)
   })
 
   it('does not call onEscape when an unrelated app owns the foreground', async () => {
     const onEscape = vi.fn()
     await loadHotkeys(onEscape)
-    focusMockState.focusedVersion = null
     focusMockState.scalpelBrowserWindowFocused = false
 
     emitKeydown(ESCAPE_KEYDOWN)
-    await flushEscapeGate()
+    expect(onEscape).not.toHaveBeenCalled()
+  })
+
+  it('does not call onEscape while typing in an overlay', async () => {
+    const onEscape = vi.fn()
+    await loadHotkeys(onEscape)
+    overlayControllerState.targetHasFocus = true
+    overlayMockState.isTypingInOverlay = true
+    overlayMockState.visibilityListener?.(true)
+
+    lastEscapeCallback()()
+
     expect(onEscape).not.toHaveBeenCalled()
   })
 
@@ -264,7 +262,6 @@ describe('Escape globalShortcut sync', () => {
     const cb = lastEscapeCallback()
 
     expect(() => cb()).not.toThrow()
-    await flushEscapeGate()
     expect(onEscape).toHaveBeenCalledTimes(1)
     expect(globalShortcutMock.unregister).toHaveBeenCalledWith('Escape')
 
@@ -283,18 +280,15 @@ describe('Escape globalShortcut sync', () => {
     const cb = lastEscapeCallback()
 
     cb()
-    await flushEscapeGate()
     expect(onEscape).toHaveBeenCalledTimes(1)
 
     // Same physical press also seen by the uiohook fallback within the window - deduped.
     emitKeydown(ESCAPE_KEYDOWN)
-    await flushEscapeGate()
     expect(onEscape).toHaveBeenCalledTimes(1)
 
     // Past the dedupe window, a fresh Esc fires again.
     vi.advanceTimersByTime(101)
     emitKeydown(ESCAPE_KEYDOWN)
-    await flushEscapeGate()
     expect(onEscape).toHaveBeenCalledTimes(2)
   })
 
@@ -314,7 +308,6 @@ describe('Escape globalShortcut sync', () => {
 
     // uiohook fallback is independent of globalShortcut registration succeeding.
     emitKeydown(ESCAPE_KEYDOWN)
-    await flushEscapeGate()
     expect(onEscape).toHaveBeenCalledTimes(1)
   })
 
@@ -331,7 +324,6 @@ describe('Escape globalShortcut sync', () => {
     expect(consoleErrorSpy).toHaveBeenCalled()
 
     emitKeydown(ESCAPE_KEYDOWN)
-    await flushEscapeGate()
     expect(onEscape).toHaveBeenCalledTimes(1)
     consoleErrorSpy.mockRestore()
   })
@@ -340,14 +332,137 @@ describe('Escape globalShortcut sync', () => {
     const onEscape = vi.fn()
     await loadHotkeys(onEscape)
     overlayControllerState.targetHasFocus = false
-    focusMockState.focusedVersion = null
     focusMockState.scalpelBrowserWindowFocused = true
 
     overlayMockState.visibilityListener?.(true)
     expect(globalShortcutMock.register).not.toHaveBeenCalled()
 
     emitKeydown(ESCAPE_KEYDOWN)
-    await flushEscapeGate()
     expect(onEscape).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('scoped hotkey refresh', () => {
+  it('rebuilds complete chat and app sources across repeated game switches', async () => {
+    const hotkeys = await loadHotkeys(() => {})
+    const { setPoeVersion } = await import('./game-state')
+    setPoeVersion(2)
+
+    hotkeys.setChatCommands([
+      { hotkey: 'Ctrl+H', command: '/hideout' },
+      { hotkey: 'Ctrl+M', command: '/menagerie' },
+      { hotkey: 'Ctrl+T', command: '/trade', scope: 'poe2' },
+    ])
+    hotkeys.setAppMacros([
+      { hotkey: 'Ctrl+D', action: 'openDust' },
+      { hotkey: 'Ctrl+C', action: 'openDivCards' },
+      { hotkey: 'Ctrl+S', action: 'openSettings' },
+    ])
+
+    const expected = {
+      1: ['Ctrl+C', 'Ctrl+D', 'Ctrl+H', 'Ctrl+M', 'Ctrl+S'],
+      2: ['Ctrl+H', 'Ctrl+S', 'Ctrl+T'],
+    }
+    expect([...activeGlobalShortcuts.keys()].sort()).toEqual(expected[2])
+
+    for (const game of [1, 2, 1] as const) {
+      setPoeVersion(game)
+      hotkeys.refreshScopedHotkeys('test-switch')
+      expect([...activeGlobalShortcuts.keys()].sort()).toEqual(expected[game])
+    }
+  })
+
+  it('retains complete sources while suspended and applies the current game on resume', async () => {
+    const hotkeys = await loadHotkeys(() => {})
+    const { setPoeVersion } = await import('./game-state')
+    setPoeVersion(2)
+    hotkeys.setChatCommands([
+      { hotkey: 'Ctrl+H', command: '/hideout' },
+      { hotkey: 'Ctrl+M', command: '/menagerie' },
+      { hotkey: 'Ctrl+T', command: '/trade', scope: 'poe2' },
+    ])
+
+    hotkeys.suspendHotkeys()
+    setPoeVersion(1)
+    hotkeys.refreshScopedHotkeys('test-switch')
+    expect(activeGlobalShortcuts.size).toBe(0)
+
+    hotkeys.resumeHotkeys()
+    expect([...activeGlobalShortcuts.keys()].sort()).toEqual(['Ctrl+H', 'Ctrl+M'])
+  })
+
+  it('unregisters both categories before transferring an accelerator', async () => {
+    const handler = vi.fn()
+    const hotkeys = await loadHotkeys(() => {})
+    const { setPoeVersion } = await import('./game-state')
+    setPoeVersion(2)
+    hotkeys.setAppMacroHandler(handler)
+    hotkeys.setChatCommands([{ hotkey: 'Ctrl+X', command: '/trade', scope: 'poe2' }])
+    hotkeys.setAppMacros([{ hotkey: 'Ctrl+X', action: 'openDust' }])
+    expect(activeGlobalShortcuts.has('Ctrl+X')).toBe(true)
+
+    setPoeVersion(1)
+    hotkeys.refreshScopedHotkeys('test-switch')
+    overlayControllerState.targetHasFocus = true
+    activeGlobalShortcuts.get('Ctrl+X')?.()
+
+    expect(handler).toHaveBeenCalledWith('openDust', undefined, undefined)
+    const { registerDiagnosticProvider } = await import('./diagnostics')
+    const provider = vi
+      .mocked(registerDiagnosticProvider)
+      .mock.calls.filter(([name]) => name === 'hotkeyDiagnostics')
+      .at(-1)?.[1]
+    expect(provider?.().failedScopedRegistrations).toEqual([])
+  })
+
+  it('reports register false without counting it as active', async () => {
+    const hotkeys = await loadHotkeys(() => {})
+    globalShortcutMock.register.mockImplementation((accelerator, callback) => {
+      if (accelerator === 'Ctrl+F' || accelerator === 'Ctrl+G') return false
+      return registerGlobalShortcut(accelerator, callback)
+    })
+
+    hotkeys.setChatCommands([{ hotkey: 'Ctrl+F', command: '/hideout' }])
+    hotkeys.setAppMacros([{ hotkey: 'Ctrl+G', action: 'openSettings' }])
+
+    const { registerDiagnosticProvider } = await import('./diagnostics')
+    const provider = vi
+      .mocked(registerDiagnosticProvider)
+      .mock.calls.filter(([name]) => name === 'hotkeyDiagnostics')
+      .at(-1)?.[1]
+    expect(provider?.()).toMatchObject({
+      chatCommandConfiguredCount: 1,
+      chatCommandApplicableCount: 1,
+      chatCommandHotkeyCount: 0,
+      appMacroConfiguredCount: 1,
+      appMacroApplicableCount: 1,
+      appMacroHotkeyCount: 0,
+      failedScopedRegistrations: [
+        { category: 'chat-command', accelerator: 'Ctrl+F' },
+        { category: 'app-macro', accelerator: 'Ctrl+G' },
+      ],
+    })
+  })
+
+  it('rejects stale scoped chat and app callbacks after the game changes', async () => {
+    const handler = vi.fn()
+    const hotkeys = await loadHotkeys(() => {})
+    const { setPoeVersion } = await import('./game-state')
+    const { uIOhook } = await import('uiohook-napi')
+    setPoeVersion(1)
+    hotkeys.setAppMacroHandler(handler)
+    hotkeys.setChatCommands([{ hotkey: 'Ctrl+M', command: '/menagerie' }])
+    hotkeys.setAppMacros([{ hotkey: 'Ctrl+D', action: 'openDust' }])
+    const staleChatCallback = activeGlobalShortcuts.get('Ctrl+M')
+    const staleAppCallback = activeGlobalShortcuts.get('Ctrl+D')
+
+    overlayControllerState.targetHasFocus = true
+    vi.mocked(uIOhook.keyToggle).mockClear()
+    setPoeVersion(2)
+    staleChatCallback?.()
+    staleAppCallback?.()
+
+    expect(handler).not.toHaveBeenCalled()
+    expect(uIOhook.keyToggle).not.toHaveBeenCalled()
   })
 })
