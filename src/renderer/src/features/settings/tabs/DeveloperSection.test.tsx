@@ -21,6 +21,7 @@ function installApi(
     onPluginInstalled: vi.fn(() => () => {}),
     onPluginUpdated: vi.fn(() => () => {}),
     onPluginUninstalled: vi.fn(() => () => {}),
+    restartApp: vi.fn(),
     ...overrides,
   }
 }
@@ -58,6 +59,29 @@ describe('DeveloperSection unpacked plugins list', () => {
     const removeBtn = await findByText('Remove')
     fireEvent.click(removeBtn)
     await waitFor(() => expect(pluginUninstall).toHaveBeenCalledWith('test-plugin'))
+  })
+})
+
+describe('DeveloperSection restart button', () => {
+  beforeEach(() => installApi([]))
+
+  it('renders the Restart now button when dev mode is on', async () => {
+    const { findByText } = render(<DeveloperSection settings={settings} update={noop} onError={noop} />)
+    expect(await findByText('Restart now')).toBeTruthy()
+  })
+
+  it('calls window.api.restartApp when Restart now is clicked', async () => {
+    const restartApp = vi.fn()
+    installApi([], { restartApp })
+    const { findByText } = render(<DeveloperSection settings={settings} update={noop} onError={noop} />)
+    fireEvent.click(await findByText('Restart now'))
+    await waitFor(() => expect(restartApp).toHaveBeenCalledTimes(1))
+  })
+
+  it('does not render the Restart button when dev mode is off', () => {
+    const offSettings = { developerMode: false } as unknown as AppSettings
+    const { queryByText } = render(<DeveloperSection settings={offSettings} update={noop} onError={noop} />)
+    expect(queryByText('Restart now')).toBeNull()
   })
 })
 

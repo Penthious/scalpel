@@ -141,6 +141,19 @@ export function DeveloperSection({ settings, update, onError }: Props): JSX.Elem
               </div>
             )}
           </div>
+          <div className="flex flex-col gap-1 mt-3 pt-3 border-t border-border">
+            <span className="text-xs text-zinc-400">Restart Scalpel</span>
+            <span className="text-[10px] text-zinc-500">
+              Relaunches the app. Rebuilt plugin code no longer needs this - use Reload above - but a full restart still
+              clears anything that only initialises at startup. Packaged builds only.
+            </span>
+            <button
+              onClick={() => window.api.restartApp()}
+              className="btn-bounce self-start px-3 py-1 text-xs bg-zinc-700 hover:bg-zinc-600 rounded mt-1"
+            >
+              Restart now
+            </button>
+          </div>
         </div>
       )}
     </div>
