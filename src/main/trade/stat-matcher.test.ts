@@ -3941,6 +3941,38 @@ describe('matchModToStat (PoE2 stat text without leading sign)', () => {
     expect(mana?.aggregated).toBeUndefined()
   })
 
+  // The same mod as it actually arrives from a basic (Ctrl+C) copy: wrapped across
+  // two lines, with the clipboard parser adding the "\n"-joined candidate. Only the
+  // joined row may survive -- the trailing half alone matches the WRONG twin (Mana)
+  // with no value, which searched for a different item entirely (#527).
+  it('resolves the wrapped basic-copy Kitava mod to one valued row on the right twin', () => {
+    _setStatEntriesForTests([
+      {
+        id: 'explicit.stat_2513998383',
+        text: '#% chance to Trigger Socketed Spells when you Spend at least # Life on an\nUpfront Cost to Use or Trigger a Skill, with a 0.1 second Cooldown',
+        type: 'explicit',
+      },
+      {
+        id: 'explicit.stat_723388324',
+        text: '#% chance to Trigger Socketed Spells when you Spend at least # Mana on an\nUpfront Cost to Use or Trigger a Skill, with a 0.1 second Cooldown',
+        type: 'explicit',
+      },
+    ])
+    const half1 = '50% chance to Trigger Socketed Spells when you Spend at least 200 Life on an'
+    const half2 = 'Upfront Cost to Use or Trigger a Skill, with a 0.1 second Cooldown'
+    const filters = matchItemMods(
+      [half1, half2, `${half1}\n${half2}`],
+      [],
+      undefined,
+      makeItemInfo({ rarity: 'Unique', itemClass: 'Helmets', baseType: 'Zealot Helmet' }),
+    )
+    const rows = filters.filter((f) => f.type === 'explicit')
+    expect(rows).toHaveLength(1)
+    expect(rows[0].id).toBe('explicit.stat_2513998383')
+    expect(rows[0].value).toBe(50)
+    expect(rows[0].aggregated).toBeUndefined()
+  })
+
   // The trade API stores "fewer enemies to be Surrounded" as the inverse of its
   // positive "additional" stat: clipboard "Require 4 fewer" -> trade value -4.
   // Without the fewer->additional variant the row never matches and the line is

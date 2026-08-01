@@ -138,6 +138,13 @@ const RUNE_SUFFIX = /\s*\((?:rune|added rune)\)\s*$/i
 // Display-only prefix on a vestigial item's base-type line ("Vestigial Simple Robe").
 const VESTIGIAL_PREFIX = /^Vestigial\s+/
 
+// A mod too long for the item panel wraps mid-sentence, and GGG's wrap point is not
+// always before a lowercase word: Kitava's Thirst breaks as "... Spend at least 200
+// Life on an" / "Upfront Cost to Use or Trigger a Skill ...". No complete mod line
+// ends on one of these function words, so a line that does is always a first half.
+const DANGLING_WRAP_TAIL =
+  /\b(?:a|an|the|to|of|on|in|at|by|for|with|and|or|from|per|while|when|if|as|is|are|than|that|this|your|their|you)$/i
+
 /** Strip advanced-mod roll-range notation ("41(39-42)%" -> "41%"), variant
  *  alternatives ("Bladefall(Fireball-Divine Blast)" -> "Bladefall"), and the
  *  trailing "Unscalable Value" suffix from a single advanced-mod stat line. */
@@ -941,11 +948,12 @@ function parseModSections(sections: string[], explicits: string[], implicits: st
         explicits.push(modLines[li])
         // A mod too long for the item panel wraps onto the next line. A basic
         // (Ctrl+C) copy has no advanced-mod headers to group the halves, so offer
-        // the pair joined as well. Every real mod line starts with a capital, a
-        // digit or a sign, so a lowercase start is always the previous line
-        // spilling over. The leftover half-line row is dropped downstream by
-        // dropFragmentDuplicates.
-        if (li > 0 && /^[a-z]/.test(modLines[li])) explicits.push(`${modLines[li - 1]}\n${modLines[li]}`)
+        // the pair joined as well. Two tells: the continuation starts lowercase
+        // (most real mod lines start with a capital, a digit or a sign), or the
+        // previous line ends on a dangling function word. The leftover half-line
+        // rows are dropped downstream by dropFragmentDuplicates.
+        if (li > 0 && (/^[a-z]/.test(modLines[li]) || DANGLING_WRAP_TAIL.test(modLines[li - 1])))
+          explicits.push(`${modLines[li - 1]}\n${modLines[li]}`)
       }
       break
     }

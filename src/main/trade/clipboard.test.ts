@@ -799,6 +799,35 @@ describe('parseItemText', () => {
       expect(item.explicits).not.toContain('4% increased maximum Life\n6% increased maximum Energy Shield')
     })
 
+    it('joins a wrapped mod whose continuation starts with a capital (#527)', () => {
+      // Kitava's Thirst wraps before "Upfront", so the lowercase-continuation tell
+      // doesn't fire. The first half ends on a dangling "an" instead. Without the
+      // join, the trailing half matched the WRONG twin (the Mana stat id) with no
+      // value, and the real Life mod never reached the search at all.
+      const text = [
+        'Item Class: Helmets',
+        'Rarity: Unique',
+        "Foulborn Kitava's Thirst",
+        'Zealot Helmet',
+        '--------',
+        'Item Level: 84',
+        '--------',
+        '50% chance to Trigger Socketed Spells when you Spend at least 200 Life on an',
+        'Upfront Cost to Use or Trigger a Skill, with a 0.1 second Cooldown',
+        '15% reduced Cast Speed',
+      ].join('\n')
+
+      const item = parseItemText(text)!
+      expect(item.explicits).toContain(
+        '50% chance to Trigger Socketed Spells when you Spend at least 200 Life on an\nUpfront Cost to Use or Trigger a Skill, with a 0.1 second Cooldown',
+      )
+      expect(item.explicits).toContain('15% reduced Cast Speed')
+      // "...Cooldown" is not a dangling tail, so the next mod is not swept into a join.
+      expect(item.explicits).not.toContain(
+        'Upfront Cost to Use or Trigger a Skill, with a 0.1 second Cooldown\n15% reduced Cast Speed',
+      )
+    })
+
     it('parses a PoE2 Waystone property block and monster affixes', () => {
       const text = [
         'Item Class: Waystones',
