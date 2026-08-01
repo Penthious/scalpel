@@ -1311,6 +1311,45 @@ describe('parseItemText', () => {
       expect(item.vestigial).toBe(false)
     })
 
+    it('detects a foulborn unique via the name prefix and does NOT strip it (#532)', () => {
+      // Unlike vestigial, the Foulborn prefix stays on `name` -- trade.ts strips it
+      // at query time instead, since poe.ninja/the clipboard need the full name.
+      const text = [
+        'Item Class: Belts',
+        'Rarity: Unique',
+        'Foulborn Headhunter',
+        'Heavy Belt',
+        '--------',
+        'Requires: Level 50',
+        '--------',
+        'Item Level: 64',
+        '--------',
+        '{ Unique Modifier }',
+        'When you kill a Rare monster, you gain its Modifiers for 60 seconds',
+      ].join('\n')
+      const item = parseItemText(text)!
+      expect(item.foulborn).toBe(true)
+      expect(item.name).toBe('Foulborn Headhunter')
+    })
+
+    it('a plain unique is not foulborn', () => {
+      const text = [
+        'Item Class: Belts',
+        'Rarity: Unique',
+        'Headhunter',
+        'Heavy Belt',
+        '--------',
+        'Requires: Level 50',
+        '--------',
+        'Item Level: 64',
+        '--------',
+        '{ Unique Modifier }',
+        'When you kill a Rare monster, you gain its Modifiers for 60 seconds',
+      ].join('\n')
+      const item = parseItemText(text)!
+      expect(item.foulborn).toBeFalsy()
+    })
+
     it('detects Fractured flag via (fractured) suffix', () => {
       const text = [
         'Item Class: Rings',

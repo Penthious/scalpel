@@ -449,6 +449,54 @@ describe('matchItemMods', () => {
       expect(vestigialChip).toBeUndefined()
     })
 
+    it('generates foulborn chip with chipState "no" on a non-foulborn unique (#532)', () => {
+      const filters = matchItemMods(
+        [],
+        [],
+        undefined,
+        makeItemInfo({ foulborn: false, rarity: 'Unique', itemClass: 'Belts', sockets: '' }),
+      )
+      const foulbornChip = filters.find((f) => f.id === 'misc.foulborn')
+      expect(foulbornChip).toBeDefined()
+      expect(foulbornChip?.chipState).toBe('no')
+      expect(foulbornChip?.enabled).toBe(false)
+    })
+
+    it('generates foulborn chip with chipState "yes" on a foulborn unique (#532)', () => {
+      const filters = matchItemMods(
+        [],
+        [],
+        undefined,
+        makeItemInfo({ foulborn: true, rarity: 'Unique', itemClass: 'Belts', sockets: '' }),
+      )
+      const foulbornChip = filters.find((f) => f.id === 'misc.foulborn')
+      expect(foulbornChip).toBeDefined()
+      expect(foulbornChip?.chipState).toBe('yes')
+    })
+
+    it('leaves foulborn chipState undefined on an unidentified unique (#532)', () => {
+      const filters = matchItemMods(
+        [],
+        [],
+        undefined,
+        makeItemInfo({ foulborn: false, identified: false, rarity: 'Unique', itemClass: 'Belts', sockets: '' }),
+      )
+      const foulbornChip = filters.find((f) => f.id === 'misc.foulborn')
+      expect(foulbornChip).toBeDefined()
+      expect(foulbornChip?.chipState).toBeUndefined()
+    })
+
+    it('does not generate a foulborn chip on a Rare (#532)', () => {
+      const filters = matchItemMods(
+        [],
+        [],
+        undefined,
+        makeItemInfo({ foulborn: false, rarity: 'Rare', itemClass: 'Belts', sockets: '' }),
+      )
+      const foulbornChip = filters.find((f) => f.id === 'misc.foulborn')
+      expect(foulbornChip).toBeUndefined()
+    })
+
     it('generates unidentified chip when item is not identified', () => {
       const filters = matchItemMods(
         [],

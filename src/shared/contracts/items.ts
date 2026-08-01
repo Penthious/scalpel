@@ -100,6 +100,7 @@ export interface PoeItem {
   uberBlighted?: boolean
   scourged: boolean
   vestigial?: boolean
+  foulborn?: boolean
   zanaMemory: boolean
   implicitCount: number
   gemLevel: number

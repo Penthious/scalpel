@@ -17,6 +17,7 @@ type MiscItemInfo = {
   isSynthetic?: boolean
   unidentifiedTier?: number
   vestigial?: boolean
+  foulborn?: boolean
 }
 
 // Non-gem quality, item level, open prefix/suffix, memory strands, corrupted,
@@ -207,6 +208,25 @@ export function buildMiscFilters(
       max: null,
       enabled: false,
       chipState: 'yes',
+      type: 'misc',
+    })
+  }
+
+  // Foulborn (3.27) is unique-only, and the trade API's name match is prefix-insensitive:
+  // searching "Headhunter" also returns "Foulborn Headhunter" at wildly different prices.
+  // Default the chip to the item's own state so a plain unique never shows foulborn copies
+  // (#532). An UNIDENTIFIED unique is the one case we cannot call - an unid foulborn listing
+  // has an empty name field, so the clipboard has no prefix to read. Leave that as Any
+  // rather than wrongly excluding foulborn copies from an unid search.
+  if (itemInfo.rarity === 'Unique') {
+    out.push({
+      id: 'misc.foulborn',
+      text: 'Foulborn',
+      value: null,
+      min: null,
+      max: null,
+      enabled: false,
+      ...(itemInfo.identified === false ? {} : { chipState: itemInfo.foulborn ? ('yes' as const) : ('no' as const) }),
       type: 'misc',
     })
   }

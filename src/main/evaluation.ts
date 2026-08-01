@@ -290,6 +290,7 @@ export async function preloadPriceCheck(item: PoeItem, store: Store<AppSettings>
       transfigured: item.transfigured,
       synthesised: item.synthesised,
       vestigial: item.vestigial,
+      foulborn: item.foulborn,
       logbookFactions: item.logbookFactions,
       logbookBosses: item.logbookBosses,
       atzoatlRooms: item.atzoatlRooms,

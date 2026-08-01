@@ -138,6 +138,9 @@ const RUNE_SUFFIX = /\s*\((?:rune|added rune)\)\s*$/i
 // Display-only prefix on a vestigial item's base-type line ("Vestigial Simple Robe").
 const VESTIGIAL_PREFIX = /^Vestigial\s+/
 
+// Name prefix on a foulborn unique ("Foulborn Headhunter").
+const FOULBORN_PREFIX = /^Foulborn\s+/i
+
 // A mod too long for the item panel wraps mid-sentence, and GGG's wrap point is not
 // always before a lowercase word: Kitava's Thirst breaks as "... Spend at least 200
 // Life on an" / "Upfront Cost to Use or Trigger a Skill ...". No complete mod line
@@ -493,6 +496,10 @@ export function parseItemText(text: string): PoeItem | null {
   const transfigured = isGemClass && allLines.some((l) => l === 'Transfigured')
   const vaalGem = isGemClass && rarity === 'Gem' && allLines.some((l) => l.startsWith('Souls Per Use:'))
   const scourged = allLines.some((l) => l.includes('Scourge'))
+  // Foulborn uniques (3.27) carry the mechanic as a NAME prefix ("Foulborn Headhunter").
+  // Unlike the vestigial base-type prefix this is NOT stripped: poe.ninja lists Foulborn
+  // variants separately and trade.ts strips it at query time instead.
+  const foulborn = FOULBORN_PREFIX.test(name)
   const zanaMemory = allLines.some((l) => l.toLowerCase().includes("originator's memories"))
   const implicitCount = allLines.filter((l) => l.endsWith('(implicit)')).length
 
@@ -711,6 +718,7 @@ export function parseItemText(text: string): PoeItem | null {
     uberBlighted,
     scourged,
     vestigial,
+    foulborn,
     zanaMemory,
     implicitCount,
     gemLevel,

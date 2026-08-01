@@ -49,6 +49,7 @@ export interface ItemInfo {
   transfigured?: boolean
   synthesised?: boolean
   vestigial?: boolean
+  foulborn?: boolean
   logbookFactions?: string[]
   logbookBosses?: string[]
   atzoatlRooms?: string[]

@@ -859,6 +859,62 @@ describe('searchTrade filter-group dispatch', () => {
     expect(body.query.filters.misc_filters?.filters.vestigial).toEqual({ option: 'false' })
   })
 
+  it('foulborn chipState "no" sends misc_filters.mutated:false and the bare query.name (#532)', async () => {
+    setPoeVersion(1)
+    const foulbornUnique = {
+      name: 'Foulborn Headhunter',
+      baseType: 'Leather Belt',
+      itemClass: 'Belts',
+      rarity: 'Unique',
+    }
+    const filters: StatFilter[] = [
+      {
+        id: 'misc.foulborn',
+        text: 'Foulborn',
+        type: 'misc',
+        enabled: false,
+        chipState: 'no',
+        value: null,
+        min: null,
+        max: null,
+      },
+    ]
+    await searchTrade('Allflame', foulbornUnique, filters, { tradeStatus: 'any', tradePriceOption: 'chaos_divine' })
+    const req = capturedRequests.find((r) => r.url.includes('/search/'))
+    expect(req).toBeDefined()
+    const body = parseCapturedBody(req)
+    expect(body.query.name).toBe('Headhunter')
+    expect(body.query.filters.misc_filters?.filters.mutated).toEqual({ option: 'false' })
+  })
+
+  it('foulborn chipState "yes" sends misc_filters.mutated:true (#532)', async () => {
+    setPoeVersion(1)
+    const foulbornUnique = {
+      name: 'Foulborn Headhunter',
+      baseType: 'Leather Belt',
+      itemClass: 'Belts',
+      rarity: 'Unique',
+    }
+    const filters: StatFilter[] = [
+      {
+        id: 'misc.foulborn',
+        text: 'Foulborn',
+        type: 'misc',
+        enabled: false,
+        chipState: 'yes',
+        value: null,
+        min: null,
+        max: null,
+      },
+    ]
+    await searchTrade('Allflame', foulbornUnique, filters, { tradeStatus: 'any', tradePriceOption: 'chaos_divine' })
+    const req = capturedRequests.find((r) => r.url.includes('/search/'))
+    expect(req).toBeDefined()
+    const body = parseCapturedBody(req)
+    expect(body.query.name).toBe('Headhunter')
+    expect(body.query.filters.misc_filters?.filters.mutated).toEqual({ option: 'true' })
+  })
+
   describe('unidentified unique map name resolution (#470)', () => {
     // trade.ts didn't import prices.ts before #470, so no other test in this file
     // depends on uniques-by-base content -- safe to seed per-test and restore after.
