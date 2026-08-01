@@ -803,6 +803,62 @@ describe('searchTrade filter-group dispatch', () => {
     expect(body.query.filters?.type_filters?.filters?.rarity).toBeUndefined()
   })
 
+  it('vestigial unique sends the stripped name/type and misc_filters.vestigial (#533)', async () => {
+    setPoeVersion(1)
+    const vestigialUnique = {
+      name: 'Tabula Rasa',
+      baseType: 'Simple Robe',
+      itemClass: 'Body Armours',
+      rarity: 'Unique',
+    }
+    const filters: StatFilter[] = [
+      {
+        id: 'misc.vestigial',
+        text: 'Vestigial',
+        type: 'misc',
+        enabled: false,
+        chipState: 'yes',
+        value: null,
+        min: null,
+        max: null,
+      },
+    ]
+    await searchTrade('Allflame', vestigialUnique, filters, { tradeStatus: 'any', tradePriceOption: 'chaos_divine' })
+    const req = capturedRequests.find((r) => r.url.includes('/search/'))
+    expect(req).toBeDefined()
+    const body = parseCapturedBody(req)
+    expect(body.query.name).toBe('Tabula Rasa')
+    expect(body.query.type).toBe('Simple Robe')
+    expect(body.query.filters.misc_filters?.filters.vestigial).toEqual({ option: 'true' })
+  })
+
+  it('flipping the vestigial chip to "no" sends misc_filters.vestigial with option false', async () => {
+    setPoeVersion(1)
+    const vestigialUnique = {
+      name: 'Tabula Rasa',
+      baseType: 'Simple Robe',
+      itemClass: 'Body Armours',
+      rarity: 'Unique',
+    }
+    const filters: StatFilter[] = [
+      {
+        id: 'misc.vestigial',
+        text: 'Vestigial',
+        type: 'misc',
+        enabled: false,
+        chipState: 'no',
+        value: null,
+        min: null,
+        max: null,
+      },
+    ]
+    await searchTrade('Allflame', vestigialUnique, filters, { tradeStatus: 'any', tradePriceOption: 'chaos_divine' })
+    const req = capturedRequests.find((r) => r.url.includes('/search/'))
+    expect(req).toBeDefined()
+    const body = parseCapturedBody(req)
+    expect(body.query.filters.misc_filters?.filters.vestigial).toEqual({ option: 'false' })
+  })
+
   describe('unidentified unique map name resolution (#470)', () => {
     // trade.ts didn't import prices.ts before #470, so no other test in this file
     // depends on uniques-by-base content -- safe to seed per-test and restore after.

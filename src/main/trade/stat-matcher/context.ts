@@ -48,6 +48,7 @@ export interface ItemInfo {
   mapReward?: string
   transfigured?: boolean
   synthesised?: boolean
+  vestigial?: boolean
   logbookFactions?: string[]
   logbookBosses?: string[]
   atzoatlRooms?: string[]

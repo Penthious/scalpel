@@ -135,6 +135,9 @@ const ENHANCEMENT_HEADER = /^\{\s*(?:Corruption\s+)?Enhancement\b[^}]*\}$/i
 // trade group; routed the same). Captured into runes[] and kept out of explicits.
 const RUNE_SUFFIX = /\s*\((?:rune|added rune)\)\s*$/i
 
+// Display-only prefix on a vestigial item's base-type line ("Vestigial Simple Robe").
+const VESTIGIAL_PREFIX = /^Vestigial\s+/
+
 /** Strip advanced-mod roll-range notation ("41(39-42)%" -> "41%"), variant
  *  alternatives ("Bladefall(Fireball-Divine Blast)" -> "Bladefall"), and the
  *  trailing "Unscalable Value" suffix from a single advanced-mod stat line. */
@@ -224,6 +227,10 @@ export function parseItemText(text: string): PoeItem | null {
   // For Normal/Magic items, name IS the base type; for Rare/Unique, line 2 is base type
   // Unidentified Rare/Unique items only have one line (the base type), no separate name
   const rawBaseType = rarity === 'Rare' || rarity === 'Unique' ? (afterRarity[1] ?? nameStripped) : nameStripped
+  // Vestigial items (3.27 Legion) carry the mechanic as a base-type prefix
+  // ("Vestigial Simple Robe"); there is no marker line. The real base type has no
+  // prefix (the trade API's baseType field drops it), so it is stripped below.
+  const vestigial = VESTIGIAL_PREFIX.test(rawBaseType)
   // Strip modifier prefixes -- filters treat these as separate conditions, not part of the base type
   // Keep Blighted/Blight-ravaged for maps and incubators since it's part of the actual base type name
   const keepBlight = itemClass === 'Maps' || itemClass === 'Incubators'
@@ -260,12 +267,17 @@ export function parseItemText(text: string): PoeItem | null {
     cleanBaseType(
       rawBaseType
         .replace(/^Synthesised /, '')
+        .replace(VESTIGIAL_PREFIX, '')
         .replace(keepBlight ? /(?:)/ : /^Blighted /i, '')
         .replace(keepBlight ? /(?:)/ : /^Blight-[Rr]avaged /i, ''),
       rarity as ItemRarity,
       itemClass,
       magicAffixNames,
     )
+
+  // Unid items have no name line, so `name` is the prefixed base-type line. trade.ts
+  // detects an unid unique via name === baseType, which the prefix would break.
+  const cleanName = vestigial && name === rawBaseType ? name.replace(VESTIGIAL_PREFIX, '') : name
 
   const isGemClass = SKILL_GEM_CLASSES.has(itemClass)
   const isVaalGem =
@@ -474,9 +486,6 @@ export function parseItemText(text: string): PoeItem | null {
   const transfigured = isGemClass && allLines.some((l) => l === 'Transfigured')
   const vaalGem = isGemClass && rarity === 'Gem' && allLines.some((l) => l.startsWith('Souls Per Use:'))
   const scourged = allLines.some((l) => l.includes('Scourge'))
-  // Vestigial uniques (3.27 Legion, replaces incubators). Marker line is the
-  // expected form; unverified against a real in-game item copy yet.
-  const vestigial = allLines.some((l) => l === 'Vestigial' || l === 'Vestigial Item')
   const zanaMemory = allLines.some((l) => l.toLowerCase().includes("originator's memories"))
   const implicitCount = allLines.filter((l) => l.endsWith('(implicit)')).length
 
@@ -666,7 +675,7 @@ export function parseItemText(text: string): PoeItem | null {
   return {
     itemClass,
     rarity,
-    name: isVaalGem ? `Vaal ${name}` : name,
+    name: isVaalGem ? `Vaal ${cleanName}` : cleanName,
     baseType: isVaalGem ? `Vaal ${baseType}` : baseType,
     mapTier,
     itemLevel,

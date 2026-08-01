@@ -1216,9 +1216,65 @@ describe('parseItemText', () => {
       expect(item.mirrored).toBe(true)
     })
 
-    it('detects Vestigial flag', () => {
-      const item = parseItemText(makeRing(['--------', 'Vestigial']))!
+    it('detects a vestigial unique via the base-type prefix and strips it', () => {
+      // Vestigial items (3.27 Legion) carry the mechanic as a "Vestigial " base-type
+      // prefix -- there is no marker line. The prefix is display-only: the real base
+      // type (what the trade API's baseType field expects) has no prefix.
+      const text = [
+        'Item Class: Body Armours',
+        'Rarity: Unique',
+        'Tabula Rasa',
+        'Vestigial Simple Robe',
+        '--------',
+        'Requirements:',
+        'Level: 14',
+        '--------',
+        'Sockets: W-W-W-W-W-W',
+        '--------',
+        'Item Level: 83',
+        '--------',
+        '{ Vestigial Implicit Modifier }',
+        '20% of Physical Damage taken as Fire Damage',
+      ].join('\n')
+      const item = parseItemText(text)!
       expect(item.vestigial).toBe(true)
+      expect(item.baseType).toBe('Simple Robe')
+      expect(item.name).toBe('Tabula Rasa')
+    })
+
+    it('detects a vestigial rare via the base-type prefix and strips it', () => {
+      const text = [
+        'Item Class: Boots',
+        'Rarity: Rare',
+        'Storm Knuckle',
+        'Vestigial Dragonscale Boots',
+        '--------',
+        'Item Level: 83',
+        '--------',
+        '+30 to Strength',
+      ].join('\n')
+      const item = parseItemText(text)!
+      expect(item.vestigial).toBe(true)
+      expect(item.baseType).toBe('Dragonscale Boots')
+    })
+
+    it('an unidentified vestigial item has no separate name line -- name === baseType with the prefix stripped', () => {
+      // Unid items only have one line under the header (the base type), so the
+      // parser sets name == the raw base line. trade.ts keys the unid-unique
+      // search off name === baseType, so both must have the prefix stripped.
+      const text = [
+        'Item Class: Body Armours',
+        'Rarity: Unique',
+        'Vestigial Simple Robe',
+        '--------',
+        'Unidentified',
+        '--------',
+        'Item Level: 83',
+      ].join('\n')
+      const item = parseItemText(text)!
+      expect(item.vestigial).toBe(true)
+      expect(item.name).toBe('Simple Robe')
+      expect(item.baseType).toBe('Simple Robe')
     })
 
     it('a normal item is not vestigial', () => {

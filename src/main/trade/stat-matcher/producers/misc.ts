@@ -16,6 +16,7 @@ type MiscItemInfo = {
   memoryStrands?: number
   isSynthetic?: boolean
   unidentifiedTier?: number
+  vestigial?: boolean
 }
 
 // Non-gem quality, item level, open prefix/suffix, memory strands, corrupted,
@@ -185,6 +186,22 @@ export function buildMiscFilters(
     out.push({
       id: 'misc.corrupted',
       text: 'Corrupted',
+      value: null,
+      min: null,
+      max: null,
+      enabled: false,
+      chipState: 'yes',
+      type: 'misc',
+    })
+  }
+
+  // Vestigial (3.27 Legion). Ternary like Corrupted so the user can flip to 'no' and
+  // price the plain version for comparison. Only emitted for vestigial items - the
+  // mechanic is rare enough that a chip on every item would be noise.
+  if (itemInfo.vestigial) {
+    out.push({
+      id: 'misc.vestigial',
+      text: 'Vestigial',
       value: null,
       min: null,
       max: null,

@@ -50,6 +50,16 @@ describe('shouldIncludeImplicitsInBase', () => {
   it('includes implicits for corrupted uniques', () => {
     expect(shouldIncludeImplicitsInBase('Unique', true)).toBe(true)
   })
+
+  it('includes implicits for a non-corrupted vestigial unique', () => {
+    // The vestigial implicit replaces the base implicit and is the item's custom
+    // mod, not a fixed base roll -- it stays enabled even without corruption.
+    expect(shouldIncludeImplicitsInBase('Unique', false, true)).toBe(true)
+  })
+
+  it('excludes implicits for a non-corrupted non-vestigial unique (regression guard)', () => {
+    expect(shouldIncludeImplicitsInBase('Unique', false, false)).toBe(false)
+  })
 })
 
 describe('applyBaseModeToFilters', () => {
@@ -113,6 +123,18 @@ describe('applyBaseModeToFilters', () => {
     const input = [f({ id: 'implicit.x', type: 'implicit', enabled: false })]
     const result = applyBaseModeToFilters(input, 'Unique', true)
     expect(result.find((x) => x.type === 'implicit')!.enabled).toBe(true)
+  })
+
+  it('keeps implicit rows enabled through Base mode for a non-corrupted vestigial unique', () => {
+    const input = [f({ id: 'implicit.x', type: 'implicit', enabled: false })]
+    const result = applyBaseModeToFilters(input, 'Unique', false, { vestigial: true })
+    expect(result.find((x) => x.type === 'implicit')!.enabled).toBe(true)
+  })
+
+  it('still disables implicit rows for a non-corrupted non-vestigial unique (regression guard)', () => {
+    const input = [f({ id: 'implicit.x', type: 'implicit', enabled: true })]
+    const result = applyBaseModeToFilters(input, 'Unique', false)
+    expect(result.find((x) => x.type === 'implicit')!.enabled).toBe(false)
   })
 
   it('enables foulborn mods on uniques', () => {

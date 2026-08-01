@@ -34,7 +34,7 @@ export const CHIP_COLORS: Record<string, string> = {
   'misc.identified': '#ffb74d',
 }
 
-export const TERNARY_CHIP_IDS = new Set(['misc.corrupted', 'misc.mirrored', 'misc.fractured'])
+export const TERNARY_CHIP_IDS = new Set(['misc.corrupted', 'misc.mirrored', 'misc.fractured', 'misc.vestigial'])
 export const MINMAX_CHIP_IDS = new Set(['misc.ilvl'])
 
 export function getChipColor(id: string): string {

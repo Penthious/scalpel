@@ -195,9 +195,9 @@ export function PriceCheck({
   const [statusOption, setStatusOption] = useState<StatusOption>('available')
   const [resultsView, setResultsView] = useState<ResultsView>('default')
 
-  const includeImplicits = shouldIncludeImplicitsInBase(item.rarity, item.corrupted)
+  const includeImplicits = shouldIncludeImplicitsInBase(item.rarity, item.corrupted, item.vestigial)
   const applyBaseMode = (): void => {
-    setFilters((prev) => applyBaseModeToFilters(prev, item.rarity, item.corrupted))
+    setFilters((prev) => applyBaseModeToFilters(prev, item.rarity, item.corrupted, { vestigial: item.vestigial }))
   }
 
   // Gear-only: maps/tablets/relics/flasks are isEquipment but their explicit "affixes" are
@@ -262,7 +262,8 @@ export function PriceCheck({
       setFilters((prev) => {
         let seeded = prev
         if (craftingReadyDefault) seeded = applyCraftingReadyToFilters(prev, item.rarity, item.corrupted)
-        else if (useBaseMode) seeded = applyBaseModeToFilters(prev, item.rarity, item.corrupted)
+        else if (useBaseMode)
+          seeded = applyBaseModeToFilters(prev, item.rarity, item.corrupted, { vestigial: item.vestigial })
         return applyLearnedDecisions(seeded, learnedDecisions)
       })
       baseModeApplied.current = true

@@ -425,6 +425,30 @@ describe('matchItemMods', () => {
       expect(mirroredChip?.chipState).toBe('yes')
     })
 
+    it('generates vestigial chip with chipState "yes" when item is vestigial', () => {
+      const filters = matchItemMods(
+        [],
+        [],
+        undefined,
+        makeItemInfo({ vestigial: true, rarity: 'Unique', itemClass: 'Body Armours', sockets: '' }),
+      )
+      const vestigialChip = filters.find((f) => f.id === 'misc.vestigial')
+      expect(vestigialChip).toBeDefined()
+      expect(vestigialChip?.chipState).toBe('yes')
+      expect(vestigialChip?.enabled).toBe(false)
+    })
+
+    it('does not generate vestigial chip when item is not vestigial', () => {
+      const filters = matchItemMods(
+        [],
+        [],
+        undefined,
+        makeItemInfo({ vestigial: false, rarity: 'Unique', itemClass: 'Body Armours', sockets: '' }),
+      )
+      const vestigialChip = filters.find((f) => f.id === 'misc.vestigial')
+      expect(vestigialChip).toBeUndefined()
+    })
+
     it('generates unidentified chip when item is not identified', () => {
       const filters = matchItemMods(
         [],
@@ -1773,6 +1797,33 @@ describe('matchItemMods', () => {
       )
       const res = filters.find((f) => f.id === 'implicit.stat_3372524247')
       expect(res?.value).toBe(12)
+    })
+  })
+
+  describe('vestigial items (#533)', () => {
+    // A vestigial item's implicit replaces the base implicit and is the item's
+    // defining mod (the whole reason it's worth anything), so it must default to
+    // enabled even on a non-corrupted unique -- unlike a normal unique implicit,
+    // which is a fixed base roll and stays disabled unless corrupted.
+    it('enables the implicit row on a non-corrupted vestigial unique', () => {
+      _setStatEntriesForTests([
+        { id: 'implicit.stat_383509486', text: '#% of Physical Damage taken as Fire Damage', type: 'implicit' },
+      ])
+      const filters = matchItemMods(
+        [],
+        ['20% of Physical Damage taken as Fire Damage'],
+        undefined,
+        makeItemInfo({
+          rarity: 'Unique',
+          itemClass: 'Body Armours',
+          baseType: 'Simple Robe',
+          corrupted: false,
+          vestigial: true,
+        }),
+      )
+      const implicitRow = filters.find((f) => f.id === 'implicit.stat_383509486')
+      expect(implicitRow).toBeDefined()
+      expect(implicitRow?.enabled).toBe(true)
     })
   })
 

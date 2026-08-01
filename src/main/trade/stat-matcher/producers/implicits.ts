@@ -72,7 +72,10 @@ export function processImplicits(ctx: MatchContext): StatFilter[] {
           // A tablet's sole implicit ("Adds X to a Map / # uses remaining") is its
           // defining property and what buyers filter on, so default it on with the
           // parsed uses count as the min.
-          isTablet,
+          isTablet ||
+          // A vestigial item's implicit replaces the base implicit and is the
+          // item's defining mod, so it is what buyers filter on.
+          !!itemInfo?.vestigial,
         type: 'implicit',
         option: matched.option,
         aggregated: matched.aggregated,

@@ -969,6 +969,8 @@ export async function searchTrade(
       miscQuery.corrupted = { option: ynToOption(f.chipState) }
     if (f.id === 'misc.mirrored' && (f.chipState === 'yes' || f.chipState === 'no'))
       miscQuery.mirrored = { option: ynToOption(f.chipState) }
+    if (f.id === 'misc.vestigial' && (f.chipState === 'yes' || f.chipState === 'no'))
+      miscQuery.vestigial = { option: ynToOption(f.chipState) }
     if (f.id === 'misc.identified') miscQuery.identified = { option: f.enabled ? 'false' : 'true' }
     if (f.id === 'misc.memory_level' && f.enabled) miscQuery.memory_level = minMaxValue(f)
     if (f.id === 'misc.area_level' && f.enabled) miscQuery.area_level = minMaxValue(f)

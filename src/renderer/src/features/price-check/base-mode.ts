@@ -27,9 +27,10 @@ function higherOpenAffixId(filters: StatFilter[]): string | null {
 }
 
 /** Returns true if implicit/enchant filters should stay enabled in Base mode.
- *  For uniques, implicits are only meaningful when the item is corrupted (variable roll). */
-export function shouldIncludeImplicitsInBase(rarity: string, corrupted: boolean): boolean {
-  return rarity !== 'Unique' || corrupted
+ *  For uniques, implicits are only meaningful when the item is corrupted (variable roll)
+ *  or vestigial (the implicit is the item's custom mod, not a fixed base implicit). */
+export function shouldIncludeImplicitsInBase(rarity: string, corrupted: boolean, vestigial = false): boolean {
+  return rarity !== 'Unique' || corrupted || vestigial
 }
 
 /** A unique explicit rolled at or above its best possible value -- perfect, or over-rolled
@@ -58,9 +59,9 @@ export function applyBaseModeToFilters(
   filters: StatFilter[],
   rarity: string,
   corrupted: boolean,
-  opts: { keepExplicits?: boolean } = {},
+  opts: { keepExplicits?: boolean; vestigial?: boolean } = {},
 ): StatFilter[] {
-  const includeImplicits = shouldIncludeImplicitsInBase(rarity, corrupted)
+  const includeImplicits = shouldIncludeImplicitsInBase(rarity, corrupted, opts.vestigial)
   const isUnique = rarity === 'Unique'
   return filters.map((f) => {
     // Chips the adaptive-defaults engine deliberately set (learned) win over base mode;
