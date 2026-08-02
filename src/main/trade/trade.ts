@@ -1,5 +1,10 @@
 import { app, net } from 'electron'
 import { CHART_ZONES } from '@shared/data/trade/charts'
+import {
+  MERCENARY_WARRANT_BASE_TYPE,
+  MERCENARY_WARRANT_BUILDS,
+  MERCENARY_WARRANT_DISCRIMINATOR,
+} from '@shared/data/trade/mercenary-warrants'
 import { SCRYING_ORB_AREAS, SCRYING_ORB_DISCRIMINATOR } from '@shared/data/trade/scrying-orbs'
 import tabletModMap from '@shared/data/trade/tablet-mods.json'
 import { TRANSFIGURED_GEM_DISC } from '@shared/data/trade/transfigured-gems'
@@ -950,6 +955,16 @@ export async function searchTrade(
     query.type = { option: scryingAreaOption, discriminator: SCRYING_ORB_DISCRIMINATOR }
   }
 
+  // Mercenary Warrants: one trade type per mercenary build, "Infamous" variants
+  // included. Without this the search is the bare "Mercenary Warrant" type, which
+  // matches every build in the league and prices a Cardinal against the cheapest
+  // Striker. Runs after the base-type block for the same reason the two above do.
+  const mercenaryBuildFilter = statFilters.find((f) => f.id === 'misc.mercenary_build' && f.enabled)
+  const mercenaryBuildOption = mercenaryBuildFilter ? MERCENARY_WARRANT_BUILDS[mercenaryBuildFilter.text] : undefined
+  if (mercenaryBuildOption) {
+    query.type = { option: mercenaryBuildOption, discriminator: MERCENARY_WARRANT_DISCRIMINATOR }
+  }
+
   // Add misc filters (quality, ilvl, corrupted, mirrored)
   const miscFiltersAll = statFilters.filter(
     (f) =>
@@ -1660,6 +1675,9 @@ export function isBulkExchangeItem(itemClass: string, name: string, baseType: st
   // A Scrying Orb is Stackable Currency but carries a bound map area, so it is
   // priced per area on regular search and has no exchange listing at all (#513).
   if (baseType === 'Scrying Orb') return false
+  // A Mercenary Warrant is Map Fragments, but it sells one specific mercenary --
+  // build and level are the price, and there is no bulk listing to offer.
+  if (baseType === MERCENARY_WARRANT_BASE_TYPE) return false
   // Beasts are "Stackable Currency" but have rarity Rare/Unique and need regular trade
   if (itemClass === 'Stackable Currency' && (_rarity === 'Rare' || _rarity === 'Unique')) return false
   // Modified map-class items (Magic/Rare/Unique) aren't stackable, so they can't be on

@@ -2776,3 +2776,102 @@ describe('searchTrade scrying orb handling (#513)', () => {
     expect(body.query.type).toEqual({ option: '53116', discriminator: 'scrying_orb' })
   })
 })
+
+describe('searchTrade mercenary warrant handling', () => {
+  beforeEach(() => {
+    capturedRequests.length = 0
+    _resetRateLimitsForTests()
+    setPoeVersion(1)
+  })
+
+  const warrant = {
+    name: 'Mercenary Warrant',
+    baseType: 'Mercenary Warrant',
+    itemClass: 'Map Fragments',
+    rarity: 'Normal',
+  }
+
+  const buildChip: StatFilter = {
+    id: 'misc.mercenary_build',
+    text: 'Mysterious Diver',
+    value: null,
+    min: null,
+    max: null,
+    enabled: true,
+    type: 'misc',
+  }
+
+  const levelChip: StatFilter = {
+    id: 'misc.ilvl',
+    text: 'Mercenary Level',
+    value: 83,
+    min: 83,
+    max: null,
+    enabled: true,
+    type: 'gem',
+  }
+
+  async function warrantSearchBody(filters: StatFilter[]) {
+    await searchTrade('Allflame', warrant, filters, { tradeStatus: 'any' })
+    return parseCapturedBody(capturedRequests.find((r) => r.url.includes('/search/')))
+  }
+
+  it('sends the build discriminator when the build chip is enabled', async () => {
+    const body = await warrantSearchBody([buildChip])
+
+    expect(body.query.type).toEqual({ option: 'DivingDuelist', discriminator: 'mercenary_warrant' })
+  })
+
+  it('sends the Infamous build as its own type', async () => {
+    const body = await warrantSearchBody([{ ...buildChip, text: 'Infamous Mysterious Diver' }])
+
+    expect(body.query.type).toEqual({ option: 'DivingDuelistNoble', discriminator: 'mercenary_warrant' })
+  })
+
+  it('falls back to the all-builds base type when the chip is disabled', async () => {
+    const body = await warrantSearchBody([{ ...buildChip, enabled: false }])
+
+    expect(body.query.type).toBe('Mercenary Warrant')
+  })
+
+  it('ignores a build chip whose text is not an indexed build', async () => {
+    const body = await warrantSearchBody([{ ...buildChip, text: 'Chronomancer' }])
+
+    expect(body.query.type).toBe('Mercenary Warrant')
+  })
+
+  it('does not fall back to a Map Fragments category search', async () => {
+    const body = await warrantSearchBody([])
+
+    expect(body.query.type).toBe('Mercenary Warrant')
+    expect(body.query.filters?.type_filters?.filters?.category).toBeUndefined()
+  })
+
+  it('lets the build chip win over an enabled base-type chip', async () => {
+    const baseChip: StatFilter = {
+      id: 'misc.basetype',
+      text: 'Mercenary Warrant',
+      value: null,
+      min: null,
+      max: null,
+      enabled: true,
+      type: 'misc',
+    }
+
+    const body = await warrantSearchBody([buildChip, baseChip])
+
+    expect(body.query.type).toEqual({ option: 'DivingDuelist', discriminator: 'mercenary_warrant' })
+  })
+
+  it('sends the mercenary level as misc_filters.ilvl', async () => {
+    const body = await warrantSearchBody([buildChip, levelChip])
+
+    expect(body.query.filters?.misc_filters?.filters?.ilvl).toEqual({ min: 83 })
+  })
+
+  it('keeps warrants off the bulk exchange', () => {
+    // Map Fragments bulk by default, but a warrant is one specific mercenary --
+    // there is no fungible exchange listing for it.
+    expect(isBulkExchangeItem('Map Fragments', 'Mercenary Warrant', 'Mercenary Warrant', 'Normal')).toBe(false)
+  })
+})

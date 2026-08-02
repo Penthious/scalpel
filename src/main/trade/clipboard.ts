@@ -1,5 +1,6 @@
 import { clipboard } from 'electron'
 import { getItemClasses } from '@shared/data/items/item-classes'
+import { MERCENARY_WARRANT_BASE_TYPE } from '@shared/data/trade/mercenary-warrants'
 import { endgameAreaLevel, SKILL_GEM_CLASSES } from '@shared/poe-item'
 import type { AdvancedMod, ItemRarity, PoeItem } from '@shared/types'
 import { getPoeVersion } from '../game-state'
@@ -368,6 +369,14 @@ export function parseItemText(text: string): PoeItem | null {
   // on the base so an unrelated future item printing the same line can't emit a
   // chip that resolves to nothing.
   const scryingArea = baseType === 'Scrying Orb' ? extractStr(allLines, 'Map Area:') : undefined
+
+  // A Mercenary Warrant sells one mercenary, and the build ("Build: Mysterious
+  // Diver", "Infamous" prefix included when it has one) is its trade identity --
+  // the API indexes each build as a separate type. The level rides along as
+  // misc_filters.ilvl. Gated on the base for the same reason the orb is.
+  const isMercenaryWarrant = baseType === MERCENARY_WARRANT_BASE_TYPE
+  const mercenaryBuild = isMercenaryWarrant ? extractStr(allLines, 'Build:') : undefined
+  const mercenaryLevel = isMercenaryWarrant ? (extractNum(allLines, 'Mercenary Level:') ?? undefined) : undefined
 
   const memoryStrands = extractNum(allLines, 'Memory Strands:')
 
@@ -749,6 +758,8 @@ export function parseItemText(text: string): PoeItem | null {
     ...(chartZone != null ? { chartZone } : {}),
     ...(chartShape != null ? { chartShape } : {}),
     ...(scryingArea != null ? { scryingArea } : {}),
+    ...(mercenaryBuild != null ? { mercenaryBuild } : {}),
+    ...(mercenaryLevel != null ? { mercenaryLevel } : {}),
     ...(physDamageMin != null ? { physDamageMin, physDamageMax } : {}),
     ...(eleDamageAvg != null ? { eleDamageAvg } : {}),
     ...(chaosDamageAvg != null ? { chaosDamageAvg } : {}),
@@ -851,6 +862,8 @@ function parseModSections(sections: string[], explicits: string[], implicits: st
     'Attacks per Second:',
     'Weapon Range:',
     'Map Area:',
+    'Build:',
+    'Mercenary Level:',
     'Monster Level:',
     'Reward:',
     'One Handed',

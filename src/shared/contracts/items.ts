@@ -160,6 +160,14 @@ export interface PoeItem {
    *  line. Part of the orb's trade identity: the trade API indexes each area as
    *  its own type + discriminator (see shared/data/trade/scrying-orbs.ts). */
   scryingArea?: string
+  /** Mercenary build a Mercenary Warrant sells, e.g. "Mysterious Diver" or
+   *  "Infamous Mysterious Diver", from its "Build:" line. Part of the warrant's
+   *  trade identity: the trade API indexes each build as its own type +
+   *  discriminator (see shared/data/trade/mercenary-warrants.ts). */
+  mercenaryBuild?: string
+  /** Mercenary level a Mercenary Warrant sells, capped at 83. Indexes as
+   *  misc_filters.ilvl on trade, not as area level. */
+  mercenaryLevel?: number
 }
 
 export interface Zone {

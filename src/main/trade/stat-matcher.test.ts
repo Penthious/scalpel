@@ -5731,3 +5731,40 @@ describe('unique tablet class rule: drawback (reduced pack size) prefills max bo
     expect(waystoneRow!.max).toBeNull()
   })
 })
+
+describe('mercenary warrant chips', () => {
+  const warrantInfo = makeItemInfo({
+    baseType: 'Mercenary Warrant',
+    itemClass: 'Map Fragments',
+    rarity: 'Normal',
+    mercenaryBuild: 'Mysterious Diver',
+    mercenaryLevel: 83,
+  })
+
+  it('emits the build chip and the mercenary level row', () => {
+    const filters = matchItemMods([], [], undefined, warrantInfo)
+
+    expect(filters.find((f) => f.id === 'misc.mercenary_build')).toMatchObject({
+      text: 'Mysterious Diver',
+      enabled: true,
+    })
+    expect(filters.find((f) => f.id === 'misc.ilvl')).toMatchObject({ text: 'Mercenary Level', value: 83 })
+  })
+
+  it('emits exactly one ilvl row -- the generic one never fires at itemLevel 0', () => {
+    const filters = matchItemMods([], [], undefined, warrantInfo)
+
+    expect(filters.filter((f) => f.id === 'misc.ilvl')).toHaveLength(1)
+  })
+
+  it('leaves other map fragments alone', () => {
+    const filters = matchItemMods(
+      [],
+      [],
+      undefined,
+      makeItemInfo({ baseType: 'Sacrifice at Dusk', itemClass: 'Map Fragments', rarity: 'Normal' }),
+    )
+
+    expect(filters.find((f) => f.id === 'misc.mercenary_build')).toBeUndefined()
+  })
+})

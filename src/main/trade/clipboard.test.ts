@@ -1165,6 +1165,66 @@ describe('parseItemText', () => {
   })
 
   // ---------------------------------------------------------------------------
+  // Mercenary Warrants (PoE1)
+  // ---------------------------------------------------------------------------
+
+  describe('mercenary warrants', () => {
+    const warrantText = (build: string, level = 83) =>
+      [
+        'Item Class: Map Fragments',
+        'Rarity: Normal',
+        'Mercenary Warrant',
+        '--------',
+        'Saxon, the Azadin Seafarer',
+        '--------',
+        `Build: ${build}`,
+        `Mercenary Level: ${level}`,
+        '--------',
+        'Right click this item to view Mercenary details.',
+        'Can be used in a personal Map Device alongside a Map to have this previously fought Mercenary reappear in the area for a rematch.',
+      ].join('\n')
+
+    it('parses the build and the mercenary level', () => {
+      const item = parseItemText(warrantText('Mysterious Diver'))!
+
+      expect(item.itemClass).toBe('Map Fragments')
+      expect(item.baseType).toBe('Mercenary Warrant')
+      expect(item.mercenaryBuild).toBe('Mysterious Diver')
+      expect(item.mercenaryLevel).toBe(83)
+    })
+
+    it('keeps the Infamous prefix, which is its own trade type', () => {
+      expect(parseItemText(warrantText('Infamous Mysterious Diver'))!.mercenaryBuild).toBe('Infamous Mysterious Diver')
+    })
+
+    it('parses a below-cap mercenary level', () => {
+      expect(parseItemText(warrantText('Sniper', 68))!.mercenaryLevel).toBe(68)
+    })
+
+    it('leaves the build, level and mercenary name out of the mod list', () => {
+      const explicits = parseItemText(warrantText('Mysterious Diver'))!.explicits ?? []
+
+      expect(explicits).not.toContain('Build: Mysterious Diver')
+      expect(explicits).not.toContain('Mercenary Level: 83')
+      expect(explicits).not.toContain('Saxon, the Azadin Seafarer')
+    })
+
+    it('leaves both fields undefined on another map fragment', () => {
+      const text = [
+        'Item Class: Map Fragments',
+        'Rarity: Normal',
+        'Sacrifice at Dusk',
+        '--------',
+        'Only the unworthy shall be sacrificed.',
+      ].join('\n')
+
+      const item = parseItemText(text)!
+      expect(item.mercenaryBuild).toBeUndefined()
+      expect(item.mercenaryLevel).toBeUndefined()
+    })
+  })
+
+  // ---------------------------------------------------------------------------
   // Flags
   // ---------------------------------------------------------------------------
 

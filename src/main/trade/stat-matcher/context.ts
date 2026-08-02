@@ -63,6 +63,8 @@ export interface ItemInfo {
   chartZone?: string
   chartShape?: string
   scryingArea?: string
+  mercenaryBuild?: string
+  mercenaryLevel?: number
 }
 
 export interface DefenseValues {

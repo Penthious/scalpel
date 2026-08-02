@@ -35,6 +35,10 @@ const POE1_RULES: BulkExchangeRules = {
     // Bound to a map area, so it has no fungible stack to exchange -- Faustus
     // does not carry it and the banner would be a dead end (#513).
     'Scrying Orb',
+    // Map Fragments by class, but each warrant sells one specific mercenary
+    // (build + level are the price), so there is no fungible stack for Faustus
+    // to exchange and the banner would be a dead end.
+    'Mercenary Warrant',
   ]),
   baseTypes: new Set([
     // Delirium
