@@ -7,7 +7,7 @@ import { accumulatePseudo, PSEUDO_CONTRIBUTIONS } from '../pseudo'
 import { dropFragmentDuplicates, GEM_LEVEL_MOD } from './explicits'
 
 export function processImplicits(ctx: MatchContext): StatFilter[] {
-  const { implicits, itemInfo, advancedMods, isWeapon, isTablet, pseudoAccumulator } = ctx
+  const { implicits, itemInfo, advancedMods, isWeapon, hasLocalMods, isTablet, pseudoAccumulator } = ctx
   const out: StatFilter[] = []
 
   // Trade stats that share display text across item categories carry a trailing
@@ -25,7 +25,17 @@ export function processImplicits(ctx: MatchContext): StatFilter[] {
     if (/^Has \d+ Abyssal Sockets?$/i.test(cleaned)) continue
     // Try implicit stats first, then fall back to explicit (non-local, then local) and remap the ID
     const matched =
-      matchModToStat(cleaned, false, 'implicit', false, preferQualifier) ??
+      // Weapons index every local-twinned implicit under the "(Local)" id (a claw's leech
+      // implicit is implicit.stat_55876295; its non-local twin has zero listings league-wide).
+      matchModToStat(cleaned, isWeapon, 'implicit', false, preferQualifier) ??
+      // Armour bases carry local-ONLY implicits (+# to Armour, +# to Evasion Rating, #%
+      // increased Energy Shield, #% increased Armour/Evasion/ES, Adds # to # Physical Damage)
+      // that have no non-local twin, so the plain lookup above returns nothing and the explicit
+      // fallback below invents an implicit.<id> the catalog does not have (0 results). Retry
+      // local only for that no-alternative case: armour deliberately does NOT get a blanket
+      // local preference, because for twinned stats it is genuinely mixed (a glove's "#% chance
+      // to Poison on Hit" implicit is the NON-local id and the local twin has zero listings).
+      (hasLocalMods && !isWeapon ? matchModToStat(cleaned, true, 'implicit', false, preferQualifier) : null) ??
       (() => {
         const fallback =
           matchModToStat(cleaned, false, 'explicit', false, preferQualifier) ??

@@ -3875,6 +3875,101 @@ describe('category-qualified implicit stats', () => {
   })
 })
 
+// ─── local vs non-local implicit resolution (#542) ───────────────────────────
+
+describe('local vs non-local implicit resolution', () => {
+  it('resolves a weapon-twinned implicit to the "(Local)" id, not the zero-listing non-local twin', () => {
+    // A claw's phys-leech-as-life corruption implicit indexes under the local id
+    // league-wide; its non-local twin has zero listings (probe-verified).
+    _setStatEntriesForTests([
+      { id: 'implicit.stat_55876295', text: '#% of Physical Attack Damage Leeched as Life (Local)', type: 'implicit' },
+      { id: 'implicit.stat_3593843976', text: '#% of Physical Attack Damage Leeched as Life', type: 'implicit' },
+    ])
+    const filters = matchItemMods(
+      [],
+      ['1.2% of Physical Attack Damage Leeched as Life'],
+      undefined,
+      makeItemInfo({ itemClass: 'Claws', corrupted: true }),
+    )
+    expect(filters.find((f) => f.id === 'implicit.stat_55876295')).toBeDefined()
+    expect(filters.find((f) => f.id === 'implicit.stat_3593843976')).toBeUndefined()
+  })
+
+  it('regression: jewellery keeps resolving a twinned implicit to the non-local id', () => {
+    // Rings are neither weapon nor armour, so hasLocalMods is false and the local
+    // retry never fires -- the "Adds # to # Fire Damage" implicit stays on its
+    // non-local id even though a local twin exists in the catalog.
+    _setStatEntriesForTests([
+      { id: 'implicit.stat_local_fire', text: 'Adds # to # Fire Damage (Local)', type: 'implicit' },
+      { id: 'implicit.stat_321077055', text: 'Adds # to # Fire Damage', type: 'implicit' },
+    ])
+    const filters = matchItemMods(
+      [],
+      ['Adds 1 to 5 Fire Damage'],
+      undefined,
+      makeItemInfo({ itemClass: 'Rings', corrupted: true }),
+    )
+    expect(filters.find((f) => f.id === 'implicit.stat_321077055')).toBeDefined()
+    expect(filters.find((f) => f.id === 'implicit.stat_local_fire')).toBeUndefined()
+  })
+
+  it('regression: the ambiguous armour "chance to Poison on Hit" implicit stays on the non-local id', () => {
+    // Armour deliberately gets no blanket local preference -- a glove's poison-on-hit
+    // implicit is the NON-local id (the local twin has zero listings), unlike its
+    // "#% increased Armour" implicit which IS local. A blanket rule would regress this.
+    _setStatEntriesForTests([
+      { id: 'implicit.stat_3885634897', text: '#% chance to Poison on Hit (Local)', type: 'implicit' },
+      { id: 'implicit.stat_795138349', text: '#% chance to Poison on Hit', type: 'implicit' },
+    ])
+    const filters = matchItemMods(
+      [],
+      ['10% chance to Poison on Hit'],
+      undefined,
+      makeItemInfo({ itemClass: 'Gloves', corrupted: true }),
+    )
+    expect(filters.find((f) => f.id === 'implicit.stat_795138349')).toBeDefined()
+    expect(filters.find((f) => f.id === 'implicit.stat_3885634897')).toBeUndefined()
+  })
+
+  it('resolves an armour local-ONLY implicit instead of falling through to the explicit remap', () => {
+    // "+# to Armour" has no non-local implicit twin. Before the fix, the plain
+    // implicit lookup found nothing and execution fell through to the explicit
+    // fallback, which matched the non-local EXPLICIT twin and rewrote its id to
+    // implicit.stat_809229260 -- an id that does not exist in the implicit catalog.
+    // Seeding that explicit twin here proves the local retry wins instead.
+    _setStatEntriesForTests([
+      { id: 'implicit.stat_3484657501', text: '+# to Armour (Local)', type: 'implicit' },
+      { id: 'explicit.stat_809229260', text: '+# to Armour', type: 'explicit' },
+    ])
+    const filters = matchItemMods(
+      [],
+      ['+50 to Armour'],
+      undefined,
+      makeItemInfo({ itemClass: 'Gloves', corrupted: true }),
+    )
+    expect(filters.find((f) => f.id === 'implicit.stat_3484657501')).toBeDefined()
+    expect(filters.find((f) => f.id === 'implicit.stat_809229260')).toBeUndefined()
+  })
+
+  it('resolves a weapon local-ONLY implicit instead of the nonexistent explicit-remap id', () => {
+    // "Adds # to # Physical Damage" is local-only on weapons too -- same failure
+    // mode as the armour case above, this time gated through isWeapon rather than
+    // the hasLocalMods-and-not-weapon retry.
+    _setStatEntriesForTests([
+      { id: 'implicit.stat_1940865751', text: 'Adds # to # Physical Damage (Local)', type: 'implicit' },
+      { id: 'explicit.stat_960081730', text: 'Adds # to # Physical Damage', type: 'explicit' },
+    ])
+    const filters = matchItemMods(
+      [],
+      ['Adds 5 to 10 Physical Damage'],
+      undefined,
+      makeItemInfo({ itemClass: 'Two Hand Axes', corrupted: true }),
+    )
+    expect(filters.find((f) => f.id === 'implicit.stat_1940865751')).toBeDefined()
+    expect(filters.find((f) => f.id === 'implicit.stat_960081730')).toBeUndefined()
+  })
+})
+
 // ─── matchModToStat: requires stat entries (network-dependent) ───────────────
 
 describe('matchModToStat (requires stat entries)', () => {
