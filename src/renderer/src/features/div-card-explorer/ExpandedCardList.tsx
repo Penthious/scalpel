@@ -84,9 +84,16 @@ export function ExpandedCardList({
                 <span className="text-text-dim text-[10px] font-normal ml-[6px]">{cardTiers[c.card.name]}</span>
               )}
             </span>
-            <span className="text-[11px] text-text-dim relative z-[2] font-mono w-[55px] text-right">
+            <span
+              className="text-[11px] text-text-dim relative z-[2] font-mono w-[55px] text-right"
+              title={
+                c.card.weightSource === 'mapsofexile'
+                  ? 'Not in the stacked deck pool - weight from Maps of Exile'
+                  : undefined
+              }
+            >
               {Math.round(c.card.weight ?? 0)}
-              {c.card.weightEstimated ? '*' : ''}
+              {c.card.weightSource === 'mapsofexile' ? '*' : ''}
             </span>
             <span
               className={`text-[11px] text-text-dim relative z-[2] font-mono w-[65px] text-right ${isFlagged ? 'line-through' : ''}`}
@@ -97,7 +104,7 @@ export function ExpandedCardList({
               className={`text-[11px] font-mono relative z-[2] w-[55px] text-right flex items-center justify-end gap-[3px] ${isFlagged ? 'text-[#ef9a3f]' : 'text-text-dim'}`}
             >
               {isFlagged ? '--' : formatEv(c.cardEv)}
-              {!isFlagged && c.card.weightEstimated ? '*' : ''}
+              {!isFlagged && c.card.weightSource === 'mapsofexile' ? '*' : ''}
               {!isFlagged && <img src={chaosIcon} alt="" className="w-3 h-3" />}
             </span>
             <span

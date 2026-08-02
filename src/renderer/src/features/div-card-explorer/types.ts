@@ -4,10 +4,12 @@ export interface DivCard {
   price: number
   /** Absent for cards upstream could not resolve a drop weight for. */
   weight?: number
+  /** Which dataset `weight` came from once wraeclast weights are applied.
+   *  Absent on the raw Maps of Exile records; set by resolveWeights. */
+  weightSource?: 'wraeclast' | 'mapsofexile' | 'override'
   stack: number
   reward: string
   drop: { areas: string[]; min_level: number; monsters: string[]; text: string; all_areas?: boolean }
-  weightEstimated?: boolean
 }
 
 export interface MapData {

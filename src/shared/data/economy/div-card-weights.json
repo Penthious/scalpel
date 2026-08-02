@@ -1,0 +1,1903 @@
+{
+  "schema_version": 6,
+  "generated_at": "2026-08-01T22:11:54.961Z",
+  "league": "Allflame",
+  "observed_total": 1060150,
+  "cards": [
+    {
+      "name": "A Chilling Wind",
+      "community_estimated_weight": 265,
+      "reference_weight": 264
+    },
+    {
+      "name": "A Dab of Ink",
+      "community_estimated_weight": 473,
+      "reference_weight": 475
+    },
+    {
+      "name": "A Dusty Memory",
+      "community_estimated_weight": 296,
+      "reference_weight": 328
+    },
+    {
+      "name": "A Fate Worse Than Death",
+      "community_estimated_weight": 73,
+      "reference_weight": 75
+    },
+    {
+      "name": "A Mother's Parting Gift",
+      "community_estimated_weight": 1079,
+      "reference_weight": 1056
+    },
+    {
+      "name": "A Note in the Wind",
+      "community_estimated_weight": 212,
+      "reference_weight": 191
+    },
+    {
+      "name": "A Sea of Blue",
+      "community_estimated_weight": 7762,
+      "reference_weight": 7914
+    },
+    {
+      "name": "A Stone Perfected",
+      "community_estimated_weight": 106,
+      "reference_weight": 105
+    },
+    {
+      "name": "Abandoned Wealth",
+      "community_estimated_weight": 3427,
+      "reference_weight": 3455
+    },
+    {
+      "name": "Acclimatisation",
+      "community_estimated_weight": 3516,
+      "reference_weight": 3506
+    },
+    {
+      "name": "Akil's Prophecy",
+      "community_estimated_weight": 129,
+      "reference_weight": 165
+    },
+    {
+      "name": "Alivia's Grace",
+      "community_estimated_weight": 1737,
+      "reference_weight": 1771
+    },
+    {
+      "name": "Alluring Bounty",
+      "community_estimated_weight": 1585,
+      "reference_weight": 1679
+    },
+    {
+      "name": "Alone in the Darkness",
+      "community_estimated_weight": 7123,
+      "reference_weight": 6997
+    },
+    {
+      "name": "Altered Perception",
+      "community_estimated_weight": 27,
+      "reference_weight": 27
+    },
+    {
+      "name": "Ambitious Obsession",
+      "community_estimated_weight": 1,
+      "reference_weight": 0
+    },
+    {
+      "name": "Anarchy's Price",
+      "community_estimated_weight": 5,
+      "reference_weight": 3
+    },
+    {
+      "name": "Apocalypse",
+      "community_estimated_weight": 1,
+      "reference_weight": 1
+    },
+    {
+      "name": "Arrogance of the Vaal",
+      "community_estimated_weight": 581,
+      "reference_weight": 573
+    },
+    {
+      "name": "Assassin's Favour",
+      "community_estimated_weight": 10519,
+      "reference_weight": 10480
+    },
+    {
+      "name": "Assassin's Gift",
+      "community_estimated_weight": 0,
+      "reference_weight": 0
+    },
+    {
+      "name": "Astral Protection",
+      "community_estimated_weight": 559,
+      "reference_weight": 638
+    },
+    {
+      "name": "Atziri's Arsenal",
+      "community_estimated_weight": 1242,
+      "reference_weight": 1229
+    },
+    {
+      "name": "Audacity",
+      "community_estimated_weight": 67,
+      "reference_weight": 64
+    },
+    {
+      "name": "Avian Pursuit",
+      "community_estimated_weight": 209,
+      "reference_weight": 181
+    },
+    {
+      "name": "Azure Rage",
+      "community_estimated_weight": 3093,
+      "reference_weight": 3322
+    },
+    {
+      "name": "Baited Expectations",
+      "community_estimated_weight": 394,
+      "reference_weight": 397
+    },
+    {
+      "name": "Bijoux",
+      "community_estimated_weight": 190,
+      "reference_weight": 207
+    },
+    {
+      "name": "Blind Venture",
+      "community_estimated_weight": 2091,
+      "reference_weight": 2233
+    },
+    {
+      "name": "Boon of Justice",
+      "community_estimated_weight": 8272,
+      "reference_weight": 8337
+    },
+    {
+      "name": "Bound by Flame",
+      "community_estimated_weight": 512,
+      "reference_weight": 538
+    },
+    {
+      "name": "Boundless Realms",
+      "community_estimated_weight": 5430,
+      "reference_weight": 5576
+    },
+    {
+      "name": "Bowyer's Dream",
+      "community_estimated_weight": 115,
+      "reference_weight": 107
+    },
+    {
+      "name": "Broken Truce",
+      "community_estimated_weight": 1487,
+      "reference_weight": 1629
+    },
+    {
+      "name": "Brother's Gift",
+      "community_estimated_weight": 49,
+      "reference_weight": 56
+    },
+    {
+      "name": "Brother's Stash",
+      "community_estimated_weight": 438,
+      "reference_weight": 420
+    },
+    {
+      "name": "Brush, Paint and Palette",
+      "community_estimated_weight": 592,
+      "reference_weight": 597
+    },
+    {
+      "name": "Buried Treasure",
+      "community_estimated_weight": 650,
+      "reference_weight": 631
+    },
+    {
+      "name": "Call to the First Ones",
+      "community_estimated_weight": 1738,
+      "reference_weight": 1730
+    },
+    {
+      "name": "Cameria's Cut",
+      "community_estimated_weight": 5084,
+      "reference_weight": 5079
+    },
+    {
+      "name": "Cartographer's Delight",
+      "community_estimated_weight": 4649,
+      "reference_weight": 4967
+    },
+    {
+      "name": "Chaotic Disposition",
+      "community_estimated_weight": 3769,
+      "reference_weight": 3791
+    },
+    {
+      "name": "Checkmate",
+      "community_estimated_weight": 274,
+      "reference_weight": 314
+    },
+    {
+      "name": "Coveted Possession",
+      "community_estimated_weight": 6988,
+      "reference_weight": 6540
+    },
+    {
+      "name": "Cursed Words",
+      "community_estimated_weight": 3351,
+      "reference_weight": 3450
+    },
+    {
+      "name": "Dark Dreams",
+      "community_estimated_weight": 78,
+      "reference_weight": 54
+    },
+    {
+      "name": "Dark Temptation",
+      "community_estimated_weight": 10339,
+      "reference_weight": 10275
+    },
+    {
+      "name": "Darker Half",
+      "community_estimated_weight": 28,
+      "reference_weight": 30
+    },
+    {
+      "name": "Death",
+      "community_estimated_weight": 1126,
+      "reference_weight": 1030
+    },
+    {
+      "name": "Deathly Designs",
+      "community_estimated_weight": 171,
+      "reference_weight": 191
+    },
+    {
+      "name": "Dementophobia",
+      "community_estimated_weight": 62,
+      "reference_weight": 51
+    },
+    {
+      "name": "Demigod's Wager",
+      "community_estimated_weight": 1556,
+      "reference_weight": 1582
+    },
+    {
+      "name": "Desperate Crusade",
+      "community_estimated_weight": 153,
+      "reference_weight": 132
+    },
+    {
+      "name": "Destined to Crumble",
+      "community_estimated_weight": 47016,
+      "reference_weight": 47434
+    },
+    {
+      "name": "Dialla's Subjugation",
+      "community_estimated_weight": 1261,
+      "reference_weight": 1299
+    },
+    {
+      "name": "Disdain",
+      "community_estimated_weight": 300,
+      "reference_weight": 291
+    },
+    {
+      "name": "Divine Beauty",
+      "community_estimated_weight": 400,
+      "reference_weight": 389
+    },
+    {
+      "name": "Divine Justice",
+      "community_estimated_weight": 1,
+      "reference_weight": 1
+    },
+    {
+      "name": "Divine Shard",
+      "community_estimated_weight": 1329,
+      "reference_weight": 1281
+    },
+    {
+      "name": "Doedre's Madness",
+      "community_estimated_weight": 12799,
+      "reference_weight": 12408
+    },
+    {
+      "name": "Doryani's Epiphany",
+      "community_estimated_weight": 98,
+      "reference_weight": 114
+    },
+    {
+      "name": "Draped in Dreams",
+      "community_estimated_weight": 39,
+      "reference_weight": 43
+    },
+    {
+      "name": "Dying Anguish",
+      "community_estimated_weight": 2412,
+      "reference_weight": 2487
+    },
+    {
+      "name": "Earth Drinker",
+      "community_estimated_weight": 1505,
+      "reference_weight": 1575
+    },
+    {
+      "name": "Echoes of Love",
+      "community_estimated_weight": 459,
+      "reference_weight": 416
+    },
+    {
+      "name": "Emperor of Purity",
+      "community_estimated_weight": 1866,
+      "reference_weight": 1872
+    },
+    {
+      "name": "Emperor's Luck",
+      "community_estimated_weight": 52328,
+      "reference_weight": 52643
+    },
+    {
+      "name": "Endless Night",
+      "community_estimated_weight": 358,
+      "reference_weight": 427
+    },
+    {
+      "name": "Energy Sword",
+      "community_estimated_weight": 4,
+      "reference_weight": 2
+    },
+    {
+      "name": "Etched in Blood",
+      "community_estimated_weight": 27,
+      "reference_weight": 26
+    },
+    {
+      "name": "Eternal Bonds",
+      "community_estimated_weight": 32,
+      "reference_weight": 31
+    },
+    {
+      "name": "Ever-Changing",
+      "community_estimated_weight": 1271,
+      "reference_weight": 1272
+    },
+    {
+      "name": "Forbidden Power",
+      "community_estimated_weight": 2103,
+      "reference_weight": 2086
+    },
+    {
+      "name": "From Bone to Ashes",
+      "community_estimated_weight": 150,
+      "reference_weight": 162
+    },
+    {
+      "name": "Gemcutter's Mercy",
+      "community_estimated_weight": 111,
+      "reference_weight": 95
+    },
+    {
+      "name": "Gemcutter's Promise",
+      "community_estimated_weight": 7927,
+      "reference_weight": 8297
+    },
+    {
+      "name": "Gift of Asenath",
+      "community_estimated_weight": 88,
+      "reference_weight": 83
+    },
+    {
+      "name": "Gift of the Gemling Queen",
+      "community_estimated_weight": 2081,
+      "reference_weight": 1943
+    },
+    {
+      "name": "Glimmer of Hope",
+      "community_estimated_weight": 9959,
+      "reference_weight": 10337
+    },
+    {
+      "name": "Grave Knowledge",
+      "community_estimated_weight": 2979,
+      "reference_weight": 3005
+    },
+    {
+      "name": "Guardian's Challenge",
+      "community_estimated_weight": 1463,
+      "reference_weight": 1536
+    },
+    {
+      "name": "Harmony of Souls",
+      "community_estimated_weight": 188,
+      "reference_weight": 212
+    },
+    {
+      "name": "Haunting Shadows",
+      "community_estimated_weight": 668,
+      "reference_weight": 597
+    },
+    {
+      "name": "Her Mask",
+      "community_estimated_weight": 10016,
+      "reference_weight": 10238
+    },
+    {
+      "name": "Heterochromia",
+      "community_estimated_weight": 1509,
+      "reference_weight": 1589
+    },
+    {
+      "name": "History",
+      "community_estimated_weight": 2,
+      "reference_weight": 3
+    },
+    {
+      "name": "Hope",
+      "community_estimated_weight": 2115,
+      "reference_weight": 2021
+    },
+    {
+      "name": "House of Mirrors",
+      "community_estimated_weight": 2,
+      "reference_weight": 4
+    },
+    {
+      "name": "Hubris",
+      "community_estimated_weight": 5577,
+      "reference_weight": 5713
+    },
+    {
+      "name": "Humility",
+      "community_estimated_weight": 2644,
+      "reference_weight": 2561
+    },
+    {
+      "name": "Hunter's Resolve",
+      "community_estimated_weight": 8865,
+      "reference_weight": 8862
+    },
+    {
+      "name": "Hunter's Reward",
+      "community_estimated_weight": 261,
+      "reference_weight": 260
+    },
+    {
+      "name": "I See Brothers",
+      "community_estimated_weight": 10,
+      "reference_weight": 6
+    },
+    {
+      "name": "Immortal Resolve",
+      "community_estimated_weight": 705,
+      "reference_weight": 721
+    },
+    {
+      "name": "Imperial Legacy",
+      "community_estimated_weight": 12825,
+      "reference_weight": 13026
+    },
+    {
+      "name": "Jack in the Box",
+      "community_estimated_weight": 4612,
+      "reference_weight": 4655
+    },
+    {
+      "name": "Justified Ambition",
+      "community_estimated_weight": 404,
+      "reference_weight": 412
+    },
+    {
+      "name": "Keeper's Corruption",
+      "community_estimated_weight": 14,
+      "reference_weight": 12
+    },
+    {
+      "name": "Lachrymal Necrosis",
+      "community_estimated_weight": 516,
+      "reference_weight": 526
+    },
+    {
+      "name": "Lantador's Lost Love",
+      "community_estimated_weight": 17911,
+      "reference_weight": 18049
+    },
+    {
+      "name": "Last Hope",
+      "community_estimated_weight": 6528,
+      "reference_weight": 6577
+    },
+    {
+      "name": "Left to Fate",
+      "community_estimated_weight": 3079,
+      "reference_weight": 3208
+    },
+    {
+      "name": "Light and Truth",
+      "community_estimated_weight": 592,
+      "reference_weight": 552
+    },
+    {
+      "name": "Lingering Remnants",
+      "community_estimated_weight": 1064,
+      "reference_weight": 1071
+    },
+    {
+      "name": "Lonely Warrior",
+      "community_estimated_weight": 6,
+      "reference_weight": 6
+    },
+    {
+      "name": "Lost Worlds",
+      "community_estimated_weight": 8610,
+      "reference_weight": 9218
+    },
+    {
+      "name": "Love Through Ice",
+      "community_estimated_weight": 5,
+      "reference_weight": 6
+    },
+    {
+      "name": "Loyalty",
+      "community_estimated_weight": 33930,
+      "reference_weight": 34623
+    },
+    {
+      "name": "Lucky Connections",
+      "community_estimated_weight": 7012,
+      "reference_weight": 6759
+    },
+    {
+      "name": "Lucky Deck",
+      "community_estimated_weight": 235,
+      "reference_weight": 228
+    },
+    {
+      "name": "Lysah's Respite",
+      "community_estimated_weight": 2138,
+      "reference_weight": 2170
+    },
+    {
+      "name": "Man With Bear",
+      "community_estimated_weight": 608,
+      "reference_weight": 683
+    },
+    {
+      "name": "Matryoshka",
+      "community_estimated_weight": 682,
+      "reference_weight": 626
+    },
+    {
+      "name": "Mawr Blaidd",
+      "community_estimated_weight": 20,
+      "reference_weight": 22
+    },
+    {
+      "name": "Merciless Armament",
+      "community_estimated_weight": 194,
+      "reference_weight": 178
+    },
+    {
+      "name": "Might is Right",
+      "community_estimated_weight": 2690,
+      "reference_weight": 2714
+    },
+    {
+      "name": "Mitts",
+      "community_estimated_weight": 5473,
+      "reference_weight": 5687
+    },
+    {
+      "name": "Monochrome",
+      "community_estimated_weight": 494,
+      "reference_weight": 453
+    },
+    {
+      "name": "More is Never Enough",
+      "community_estimated_weight": 22937,
+      "reference_weight": 22707
+    },
+    {
+      "name": "No Traces",
+      "community_estimated_weight": 2075,
+      "reference_weight": 2112
+    },
+    {
+      "name": "Nook's Crown",
+      "community_estimated_weight": 16,
+      "reference_weight": 24
+    },
+    {
+      "name": "One Last Score",
+      "community_estimated_weight": 3,
+      "reference_weight": 2
+    },
+    {
+      "name": "Peaceful Moments",
+      "community_estimated_weight": 233,
+      "reference_weight": 238
+    },
+    {
+      "name": "Perfection",
+      "community_estimated_weight": 37,
+      "reference_weight": 34
+    },
+    {
+      "name": "Poisoned Faith",
+      "community_estimated_weight": 58,
+      "reference_weight": 67
+    },
+    {
+      "name": "Prejudice",
+      "community_estimated_weight": 2003,
+      "reference_weight": 2036
+    },
+    {
+      "name": "Pride Before the Fall",
+      "community_estimated_weight": 111,
+      "reference_weight": 111
+    },
+    {
+      "name": "Prosperity",
+      "community_estimated_weight": 11898,
+      "reference_weight": 12389
+    },
+    {
+      "name": "Rain of Chaos",
+      "community_estimated_weight": 121400,
+      "reference_weight": 121400
+    },
+    {
+      "name": "Rain Tempter",
+      "community_estimated_weight": 12456,
+      "reference_weight": 12979
+    },
+    {
+      "name": "Rats",
+      "community_estimated_weight": 16206,
+      "reference_weight": 16310
+    },
+    {
+      "name": "Rebirth and Renewal",
+      "community_estimated_weight": 484,
+      "reference_weight": 513
+    },
+    {
+      "name": "Reflection of the Heart",
+      "community_estimated_weight": 3,
+      "reference_weight": 2
+    },
+    {
+      "name": "Runic Luck",
+      "community_estimated_weight": 1705,
+      "reference_weight": 1792
+    },
+    {
+      "name": "Sambodhi's Vow",
+      "community_estimated_weight": 4739,
+      "reference_weight": 4626
+    },
+    {
+      "name": "Sambodhi's Wisdom",
+      "community_estimated_weight": 58,
+      "reference_weight": 57
+    },
+    {
+      "name": "Scholar of the Seas",
+      "community_estimated_weight": 2219,
+      "reference_weight": 2353
+    },
+    {
+      "name": "Seven Years Bad Luck",
+      "community_estimated_weight": 58,
+      "reference_weight": 57
+    },
+    {
+      "name": "Shard of Fate",
+      "community_estimated_weight": 5226,
+      "reference_weight": 5207
+    },
+    {
+      "name": "Society's Remorse",
+      "community_estimated_weight": 3432,
+      "reference_weight": 3615
+    },
+    {
+      "name": "Something Dark",
+      "community_estimated_weight": 551,
+      "reference_weight": 506
+    },
+    {
+      "name": "Struck by Lightning",
+      "community_estimated_weight": 7170,
+      "reference_weight": 7134
+    },
+    {
+      "name": "Terrible Secret of Space",
+      "community_estimated_weight": 4,
+      "reference_weight": 3
+    },
+    {
+      "name": "The Academic",
+      "community_estimated_weight": 151,
+      "reference_weight": 170
+    },
+    {
+      "name": "The Adventuring Spirit",
+      "community_estimated_weight": 9380,
+      "reference_weight": 9711
+    },
+    {
+      "name": "The Aesthete",
+      "community_estimated_weight": 5714,
+      "reference_weight": 5697
+    },
+    {
+      "name": "The Apothecary",
+      "community_estimated_weight": 11,
+      "reference_weight": 11
+    },
+    {
+      "name": "The Archmage's Right Hand",
+      "community_estimated_weight": 2225,
+      "reference_weight": 2248
+    },
+    {
+      "name": "The Arena Champion",
+      "community_estimated_weight": 11942,
+      "reference_weight": 11833
+    },
+    {
+      "name": "The Army of Blood",
+      "community_estimated_weight": 9142,
+      "reference_weight": 9403
+    },
+    {
+      "name": "The Artist",
+      "community_estimated_weight": 32,
+      "reference_weight": 37
+    },
+    {
+      "name": "The Aspirant",
+      "community_estimated_weight": 16,
+      "reference_weight": 17
+    },
+    {
+      "name": "The Avenger",
+      "community_estimated_weight": 157,
+      "reference_weight": 159
+    },
+    {
+      "name": "The Awakened",
+      "community_estimated_weight": 16,
+      "reference_weight": 24
+    },
+    {
+      "name": "The Battle Born",
+      "community_estimated_weight": 5962,
+      "reference_weight": 6203
+    },
+    {
+      "name": "The Bear Woman",
+      "community_estimated_weight": 780,
+      "reference_weight": 791
+    },
+    {
+      "name": "The Beast",
+      "community_estimated_weight": 1830,
+      "reference_weight": 1914
+    },
+    {
+      "name": "The Betrayal",
+      "community_estimated_weight": 2592,
+      "reference_weight": 2604
+    },
+    {
+      "name": "The Bitter Blossom",
+      "community_estimated_weight": 105,
+      "reference_weight": 125
+    },
+    {
+      "name": "The Blazing Fire",
+      "community_estimated_weight": 12273,
+      "reference_weight": 12435
+    },
+    {
+      "name": "The Blessing of Moosh",
+      "community_estimated_weight": 161,
+      "reference_weight": 168
+    },
+    {
+      "name": "The Body",
+      "community_estimated_weight": 4688,
+      "reference_weight": 4812
+    },
+    {
+      "name": "The Bones",
+      "community_estimated_weight": 433,
+      "reference_weight": 459
+    },
+    {
+      "name": "The Brawny Battle Mage",
+      "community_estimated_weight": 184,
+      "reference_weight": 196
+    },
+    {
+      "name": "The Breach",
+      "community_estimated_weight": 207,
+      "reference_weight": 209
+    },
+    {
+      "name": "The Brittle Emperor",
+      "community_estimated_weight": 113,
+      "reference_weight": 129
+    },
+    {
+      "name": "The Cache",
+      "community_estimated_weight": 6899,
+      "reference_weight": 6835
+    },
+    {
+      "name": "The Cacophony",
+      "community_estimated_weight": 203,
+      "reference_weight": 184
+    },
+    {
+      "name": "The Calling",
+      "community_estimated_weight": 4074,
+      "reference_weight": 3979
+    },
+    {
+      "name": "The Card Sharp",
+      "community_estimated_weight": 417,
+      "reference_weight": 481
+    },
+    {
+      "name": "The Carrion Crow",
+      "community_estimated_weight": 23868,
+      "reference_weight": 23689
+    },
+    {
+      "name": "The Cataclysm",
+      "community_estimated_weight": 2443,
+      "reference_weight": 2460
+    },
+    {
+      "name": "The Catalyst",
+      "community_estimated_weight": 25218,
+      "reference_weight": 25559
+    },
+    {
+      "name": "The Catch",
+      "community_estimated_weight": 13,
+      "reference_weight": 18
+    },
+    {
+      "name": "The Celestial Justicar",
+      "community_estimated_weight": 720,
+      "reference_weight": 754
+    },
+    {
+      "name": "The Celestial Stone",
+      "community_estimated_weight": 33,
+      "reference_weight": 22
+    },
+    {
+      "name": "The Chains that Bind",
+      "community_estimated_weight": 9683,
+      "reference_weight": 10065
+    },
+    {
+      "name": "The Coming Storm",
+      "community_estimated_weight": 2417,
+      "reference_weight": 2418
+    },
+    {
+      "name": "The Conduit",
+      "community_estimated_weight": 501,
+      "reference_weight": 583
+    },
+    {
+      "name": "The Craving",
+      "community_estimated_weight": 87,
+      "reference_weight": 77
+    },
+    {
+      "name": "The Cursed King",
+      "community_estimated_weight": 573,
+      "reference_weight": 597
+    },
+    {
+      "name": "The Dapper Prodigy",
+      "community_estimated_weight": 2397,
+      "reference_weight": 2453
+    },
+    {
+      "name": "The Dark Mage",
+      "community_estimated_weight": 1077,
+      "reference_weight": 1045
+    },
+    {
+      "name": "The Darkest Dream",
+      "community_estimated_weight": 250,
+      "reference_weight": 260
+    },
+    {
+      "name": "The Deal",
+      "community_estimated_weight": 979,
+      "reference_weight": 1068
+    },
+    {
+      "name": "The Deceiver",
+      "community_estimated_weight": 1688,
+      "reference_weight": 1795
+    },
+    {
+      "name": "The Deep Ones",
+      "community_estimated_weight": 138,
+      "reference_weight": 144
+    },
+    {
+      "name": "The Demon",
+      "community_estimated_weight": 0,
+      "reference_weight": 1
+    },
+    {
+      "name": "The Demoness",
+      "community_estimated_weight": 10034,
+      "reference_weight": 10586
+    },
+    {
+      "name": "The Doctor",
+      "community_estimated_weight": 17,
+      "reference_weight": 20
+    },
+    {
+      "name": "The Doppelganger",
+      "community_estimated_weight": 20083,
+      "reference_weight": 20997
+    },
+    {
+      "name": "The Dragon",
+      "community_estimated_weight": 6405,
+      "reference_weight": 6229
+    },
+    {
+      "name": "The Dragon's Heart",
+      "community_estimated_weight": 35,
+      "reference_weight": 36
+    },
+    {
+      "name": "The Dreamer",
+      "community_estimated_weight": 108,
+      "reference_weight": 116
+    },
+    {
+      "name": "The Dreamland",
+      "community_estimated_weight": 1162,
+      "reference_weight": 1216
+    },
+    {
+      "name": "The Drunken Aristocrat",
+      "community_estimated_weight": 2257,
+      "reference_weight": 2297
+    },
+    {
+      "name": "The Easy Stroll",
+      "community_estimated_weight": 1569,
+      "reference_weight": 1565
+    },
+    {
+      "name": "The Encroaching Darkness",
+      "community_estimated_weight": 809,
+      "reference_weight": 841
+    },
+    {
+      "name": "The Endurance",
+      "community_estimated_weight": 5442,
+      "reference_weight": 5271
+    },
+    {
+      "name": "The Enforcer",
+      "community_estimated_weight": 6,
+      "reference_weight": 6
+    },
+    {
+      "name": "The Enlightened",
+      "community_estimated_weight": 69,
+      "reference_weight": 64
+    },
+    {
+      "name": "The Enthusiasts",
+      "community_estimated_weight": 306,
+      "reference_weight": 269
+    },
+    {
+      "name": "The Escape",
+      "community_estimated_weight": 563,
+      "reference_weight": 531
+    },
+    {
+      "name": "The Eternal War",
+      "community_estimated_weight": 11,
+      "reference_weight": 17
+    },
+    {
+      "name": "The Ethereal",
+      "community_estimated_weight": 539,
+      "reference_weight": 543
+    },
+    {
+      "name": "The Explorer",
+      "community_estimated_weight": 7893,
+      "reference_weight": 7660
+    },
+    {
+      "name": "The Eye of Terror",
+      "community_estimated_weight": 10,
+      "reference_weight": 9
+    },
+    {
+      "name": "The Eye of the Dragon",
+      "community_estimated_weight": 60,
+      "reference_weight": 60
+    },
+    {
+      "name": "The Feast",
+      "community_estimated_weight": 1909,
+      "reference_weight": 1900
+    },
+    {
+      "name": "The Fiend",
+      "community_estimated_weight": 4,
+      "reference_weight": 5
+    },
+    {
+      "name": "The Finishing Touch",
+      "community_estimated_weight": 466,
+      "reference_weight": 459
+    },
+    {
+      "name": "The Fishmonger",
+      "community_estimated_weight": 17,
+      "reference_weight": 22
+    },
+    {
+      "name": "The Fletcher",
+      "community_estimated_weight": 2084,
+      "reference_weight": 2036
+    },
+    {
+      "name": "The Flora's Gift",
+      "community_estimated_weight": 29079,
+      "reference_weight": 29176
+    },
+    {
+      "name": "The Fool",
+      "community_estimated_weight": 3505,
+      "reference_weight": 3589
+    },
+    {
+      "name": "The Forbidden Fruit",
+      "community_estimated_weight": 256,
+      "reference_weight": 299
+    },
+    {
+      "name": "The Formless Sea",
+      "community_estimated_weight": 17,
+      "reference_weight": 17
+    },
+    {
+      "name": "The Forsaken",
+      "community_estimated_weight": 2064,
+      "reference_weight": 1943
+    },
+    {
+      "name": "The Fortunate",
+      "community_estimated_weight": 1280,
+      "reference_weight": 1247
+    },
+    {
+      "name": "The Forward Gaze",
+      "community_estimated_weight": 1128,
+      "reference_weight": 1056
+    },
+    {
+      "name": "The Fox",
+      "community_estimated_weight": 2421,
+      "reference_weight": 2499
+    },
+    {
+      "name": "The Fox in the Brambles",
+      "community_estimated_weight": 695,
+      "reference_weight": 675
+    },
+    {
+      "name": "The Gambler",
+      "community_estimated_weight": 5065,
+      "reference_weight": 5286
+    },
+    {
+      "name": "The Garish Power",
+      "community_estimated_weight": 77,
+      "reference_weight": 86
+    },
+    {
+      "name": "The Gemcutter",
+      "community_estimated_weight": 5360,
+      "reference_weight": 5626
+    },
+    {
+      "name": "The Gentleman",
+      "community_estimated_weight": 1154,
+      "reference_weight": 1153
+    },
+    {
+      "name": "The Gladiator",
+      "community_estimated_weight": 5966,
+      "reference_weight": 6176
+    },
+    {
+      "name": "The Golden Era",
+      "community_estimated_weight": 1350,
+      "reference_weight": 1365
+    },
+    {
+      "name": "The Hale Heart",
+      "community_estimated_weight": 42,
+      "reference_weight": 40
+    },
+    {
+      "name": "The Harvester",
+      "community_estimated_weight": 16675,
+      "reference_weight": 17117
+    },
+    {
+      "name": "The Hermit",
+      "community_estimated_weight": 17937,
+      "reference_weight": 18229
+    },
+    {
+      "name": "The Heroic Shot",
+      "community_estimated_weight": 115,
+      "reference_weight": 92
+    },
+    {
+      "name": "The Hive of Knowledge",
+      "community_estimated_weight": 24,
+      "reference_weight": 22
+    },
+    {
+      "name": "The Hoarder",
+      "community_estimated_weight": 24912,
+      "reference_weight": 25150
+    },
+    {
+      "name": "The Hook",
+      "community_estimated_weight": 81,
+      "reference_weight": 75
+    },
+    {
+      "name": "The Hunger",
+      "community_estimated_weight": 512,
+      "reference_weight": 599
+    },
+    {
+      "name": "The Immortal",
+      "community_estimated_weight": 19,
+      "reference_weight": 20
+    },
+    {
+      "name": "The Incantation",
+      "community_estimated_weight": 1187,
+      "reference_weight": 1195
+    },
+    {
+      "name": "The Innocent",
+      "community_estimated_weight": 456,
+      "reference_weight": 393
+    },
+    {
+      "name": "The Inoculated",
+      "community_estimated_weight": 6869,
+      "reference_weight": 7205
+    },
+    {
+      "name": "The Insane Cat",
+      "community_estimated_weight": 1,
+      "reference_weight": 1
+    },
+    {
+      "name": "The Insatiable",
+      "community_estimated_weight": 1212,
+      "reference_weight": 1244
+    },
+    {
+      "name": "The Inventor",
+      "community_estimated_weight": 6114,
+      "reference_weight": 6344
+    },
+    {
+      "name": "The Jester",
+      "community_estimated_weight": 384,
+      "reference_weight": 407
+    },
+    {
+      "name": "The Jeweller's Boon",
+      "community_estimated_weight": 3653,
+      "reference_weight": 3602
+    },
+    {
+      "name": "The Journalist",
+      "community_estimated_weight": 12562,
+      "reference_weight": 12179
+    },
+    {
+      "name": "The Journey",
+      "community_estimated_weight": 1,
+      "reference_weight": 1
+    },
+    {
+      "name": "The King's Blade",
+      "community_estimated_weight": 44125,
+      "reference_weight": 43946
+    },
+    {
+      "name": "The King's Heart",
+      "community_estimated_weight": 443,
+      "reference_weight": 437
+    },
+    {
+      "name": "The Lake",
+      "community_estimated_weight": 6,
+      "reference_weight": 6
+    },
+    {
+      "name": "The Last Laugh",
+      "community_estimated_weight": 389,
+      "reference_weight": 403
+    },
+    {
+      "name": "The Last Supper",
+      "community_estimated_weight": 10,
+      "reference_weight": 12
+    },
+    {
+      "name": "The Lich",
+      "community_estimated_weight": 4840,
+      "reference_weight": 4856
+    },
+    {
+      "name": "The Lion",
+      "community_estimated_weight": 3847,
+      "reference_weight": 3992
+    },
+    {
+      "name": "The Long Watch",
+      "community_estimated_weight": 51,
+      "reference_weight": 53
+    },
+    {
+      "name": "The Lord in Black",
+      "community_estimated_weight": 962,
+      "reference_weight": 937
+    },
+    {
+      "name": "The Lord of Celebration",
+      "community_estimated_weight": 672,
+      "reference_weight": 741
+    },
+    {
+      "name": "The Lover",
+      "community_estimated_weight": 65518,
+      "reference_weight": 67884
+    },
+    {
+      "name": "The Lunaris Priestess",
+      "community_estimated_weight": 8033,
+      "reference_weight": 8698
+    },
+    {
+      "name": "The Magma Crab",
+      "community_estimated_weight": 449,
+      "reference_weight": 479
+    },
+    {
+      "name": "The Master Artisan",
+      "community_estimated_weight": 3395,
+      "reference_weight": 3450
+    },
+    {
+      "name": "The Mercenary",
+      "community_estimated_weight": 1432,
+      "reference_weight": 1359
+    },
+    {
+      "name": "The Messenger",
+      "community_estimated_weight": 667,
+      "reference_weight": 655
+    },
+    {
+      "name": "The Metalsmith's Gift",
+      "community_estimated_weight": 35625,
+      "reference_weight": 36995
+    },
+    {
+      "name": "The Mind's Eyes",
+      "community_estimated_weight": 423,
+      "reference_weight": 389
+    },
+    {
+      "name": "The Mountain",
+      "community_estimated_weight": 5224,
+      "reference_weight": 5435
+    },
+    {
+      "name": "The Nurse",
+      "community_estimated_weight": 78,
+      "reference_weight": 90
+    },
+    {
+      "name": "The Oath",
+      "community_estimated_weight": 1781,
+      "reference_weight": 1900
+    },
+    {
+      "name": "The Offering",
+      "community_estimated_weight": 409,
+      "reference_weight": 391
+    },
+    {
+      "name": "The Offspring",
+      "community_estimated_weight": 258,
+      "reference_weight": 293
+    },
+    {
+      "name": "The Old Man",
+      "community_estimated_weight": 3,
+      "reference_weight": 3
+    },
+    {
+      "name": "The One That Got Away",
+      "community_estimated_weight": 5,
+      "reference_weight": 6
+    },
+    {
+      "name": "The One With All",
+      "community_estimated_weight": 2416,
+      "reference_weight": 2449
+    },
+    {
+      "name": "The Opulent",
+      "community_estimated_weight": 12059,
+      "reference_weight": 11801
+    },
+    {
+      "name": "The Pack Leader",
+      "community_estimated_weight": 1763,
+      "reference_weight": 1785
+    },
+    {
+      "name": "The Patient",
+      "community_estimated_weight": 717,
+      "reference_weight": 767
+    },
+    {
+      "name": "The Penitent",
+      "community_estimated_weight": 6265,
+      "reference_weight": 6271
+    },
+    {
+      "name": "The Poet",
+      "community_estimated_weight": 1790,
+      "reference_weight": 1879
+    },
+    {
+      "name": "The Polymath",
+      "community_estimated_weight": 176,
+      "reference_weight": 209
+    },
+    {
+      "name": "The Porcupine",
+      "community_estimated_weight": 3617,
+      "reference_weight": 3399
+    },
+    {
+      "name": "The Price of Devotion",
+      "community_estimated_weight": 0,
+      "reference_weight": 1
+    },
+    {
+      "name": "The Price of Loyalty",
+      "community_estimated_weight": 2,
+      "reference_weight": 3
+    },
+    {
+      "name": "The Price of Prescience",
+      "community_estimated_weight": 182,
+      "reference_weight": 178
+    },
+    {
+      "name": "The Price of Protection",
+      "community_estimated_weight": 1409,
+      "reference_weight": 1349
+    },
+    {
+      "name": "The Primordial",
+      "community_estimated_weight": 890,
+      "reference_weight": 912
+    },
+    {
+      "name": "The Prince of Darkness",
+      "community_estimated_weight": 169,
+      "reference_weight": 157
+    },
+    {
+      "name": "The Professor",
+      "community_estimated_weight": 119,
+      "reference_weight": 100
+    },
+    {
+      "name": "The Rabid Rhoa",
+      "community_estimated_weight": 4899,
+      "reference_weight": 4885
+    },
+    {
+      "name": "The Realm",
+      "community_estimated_weight": 860,
+      "reference_weight": 767
+    },
+    {
+      "name": "The Return of the Rat",
+      "community_estimated_weight": 959,
+      "reference_weight": 893
+    },
+    {
+      "name": "The Risk",
+      "community_estimated_weight": 4863,
+      "reference_weight": 4741
+    },
+    {
+      "name": "The Rite of Elements",
+      "community_estimated_weight": 2066,
+      "reference_weight": 2241
+    },
+    {
+      "name": "The Road to Power",
+      "community_estimated_weight": 218,
+      "reference_weight": 197
+    },
+    {
+      "name": "The Rusted Bard",
+      "community_estimated_weight": 129,
+      "reference_weight": 116
+    },
+    {
+      "name": "The Ruthless Ceinture",
+      "community_estimated_weight": 2867,
+      "reference_weight": 2798
+    },
+    {
+      "name": "The Saint's Treasure",
+      "community_estimated_weight": 10648,
+      "reference_weight": 11020
+    },
+    {
+      "name": "The Scarred Meadow",
+      "community_estimated_weight": 17762,
+      "reference_weight": 18169
+    },
+    {
+      "name": "The Scavenger",
+      "community_estimated_weight": 2302,
+      "reference_weight": 2204
+    },
+    {
+      "name": "The Scholar",
+      "community_estimated_weight": 46778,
+      "reference_weight": 47146
+    },
+    {
+      "name": "The Scout",
+      "community_estimated_weight": 2435,
+      "reference_weight": 2615
+    },
+    {
+      "name": "The Seeker",
+      "community_estimated_weight": 635,
+      "reference_weight": 607
+    },
+    {
+      "name": "The Sephirot",
+      "community_estimated_weight": 218,
+      "reference_weight": 181
+    },
+    {
+      "name": "The Shepherd's Sandals",
+      "community_estimated_weight": 215,
+      "reference_weight": 202
+    },
+    {
+      "name": "The Shieldbearer",
+      "community_estimated_weight": 15,
+      "reference_weight": 13
+    },
+    {
+      "name": "The Shortcut",
+      "community_estimated_weight": 119,
+      "reference_weight": 129
+    },
+    {
+      "name": "The Sigil",
+      "community_estimated_weight": 7792,
+      "reference_weight": 8056
+    },
+    {
+      "name": "The Silly Boy",
+      "community_estimated_weight": 201,
+      "reference_weight": 175
+    },
+    {
+      "name": "The Siren",
+      "community_estimated_weight": 570,
+      "reference_weight": 585
+    },
+    {
+      "name": "The Skeleton",
+      "community_estimated_weight": 5721,
+      "reference_weight": 6077
+    },
+    {
+      "name": "The Slumbering Beast",
+      "community_estimated_weight": 2,
+      "reference_weight": 2
+    },
+    {
+      "name": "The Soul",
+      "community_estimated_weight": 18,
+      "reference_weight": 12
+    },
+    {
+      "name": "The Spark and the Flame",
+      "community_estimated_weight": 644,
+      "reference_weight": 698
+    },
+    {
+      "name": "The Spoiled Prince",
+      "community_estimated_weight": 808,
+      "reference_weight": 828
+    },
+    {
+      "name": "The Standoff",
+      "community_estimated_weight": 5984,
+      "reference_weight": 5995
+    },
+    {
+      "name": "The Stormcaller",
+      "community_estimated_weight": 6341,
+      "reference_weight": 6166
+    },
+    {
+      "name": "The Strategist",
+      "community_estimated_weight": 26,
+      "reference_weight": 26
+    },
+    {
+      "name": "The Summoner",
+      "community_estimated_weight": 6355,
+      "reference_weight": 5948
+    },
+    {
+      "name": "The Sun",
+      "community_estimated_weight": 10813,
+      "reference_weight": 10548
+    },
+    {
+      "name": "The Surgeon",
+      "community_estimated_weight": 4753,
+      "reference_weight": 4769
+    },
+    {
+      "name": "The Surveyor",
+      "community_estimated_weight": 4518,
+      "reference_weight": 4679
+    },
+    {
+      "name": "The Survivalist",
+      "community_estimated_weight": 7714,
+      "reference_weight": 7482
+    },
+    {
+      "name": "The Sword King's Salute",
+      "community_estimated_weight": 14040,
+      "reference_weight": 13926
+    },
+    {
+      "name": "The Thaumaturgist",
+      "community_estimated_weight": 120,
+      "reference_weight": 116
+    },
+    {
+      "name": "The Throne",
+      "community_estimated_weight": 152,
+      "reference_weight": 150
+    },
+    {
+      "name": "The Tinkerer's Table",
+      "community_estimated_weight": 204,
+      "reference_weight": 211
+    },
+    {
+      "name": "The Tireless Extractor",
+      "community_estimated_weight": 9653,
+      "reference_weight": 9930
+    },
+    {
+      "name": "The Tower",
+      "community_estimated_weight": 6713,
+      "reference_weight": 6992
+    },
+    {
+      "name": "The Traitor",
+      "community_estimated_weight": 1253,
+      "reference_weight": 1262
+    },
+    {
+      "name": "The Transformation",
+      "community_estimated_weight": 227,
+      "reference_weight": 235
+    },
+    {
+      "name": "The Trial",
+      "community_estimated_weight": 5983,
+      "reference_weight": 6203
+    },
+    {
+      "name": "The Tumbleweed",
+      "community_estimated_weight": 27,
+      "reference_weight": 31
+    },
+    {
+      "name": "The Twilight Moon",
+      "community_estimated_weight": 355,
+      "reference_weight": 378
+    },
+    {
+      "name": "The Twins",
+      "community_estimated_weight": 4762,
+      "reference_weight": 4894
+    },
+    {
+      "name": "The Tyrant",
+      "community_estimated_weight": 409,
+      "reference_weight": 457
+    },
+    {
+      "name": "The Undaunted",
+      "community_estimated_weight": 898,
+      "reference_weight": 863
+    },
+    {
+      "name": "The Undisputed",
+      "community_estimated_weight": 20,
+      "reference_weight": 24
+    },
+    {
+      "name": "The Unexpected Prize",
+      "community_estimated_weight": 374,
+      "reference_weight": 344
+    },
+    {
+      "name": "The Union",
+      "community_estimated_weight": 1177,
+      "reference_weight": 1210
+    },
+    {
+      "name": "The Valkyrie",
+      "community_estimated_weight": 3626,
+      "reference_weight": 3729
+    },
+    {
+      "name": "The Vast",
+      "community_estimated_weight": 5,
+      "reference_weight": 6
+    },
+    {
+      "name": "The Visionary",
+      "community_estimated_weight": 9195,
+      "reference_weight": 9182
+    },
+    {
+      "name": "The Warden",
+      "community_estimated_weight": 9269,
+      "reference_weight": 9705
+    },
+    {
+      "name": "The Warlord",
+      "community_estimated_weight": 605,
+      "reference_weight": 675
+    },
+    {
+      "name": "The Watcher",
+      "community_estimated_weight": 3637,
+      "reference_weight": 3685
+    },
+    {
+      "name": "The Web",
+      "community_estimated_weight": 7576,
+      "reference_weight": 7660
+    },
+    {
+      "name": "The Wedding Gift",
+      "community_estimated_weight": 59,
+      "reference_weight": 57
+    },
+    {
+      "name": "The White Knight",
+      "community_estimated_weight": 40,
+      "reference_weight": 29
+    },
+    {
+      "name": "The Whiteout",
+      "community_estimated_weight": 417,
+      "reference_weight": 412
+    },
+    {
+      "name": "The Wilted Rose",
+      "community_estimated_weight": 2521,
+      "reference_weight": 2557
+    },
+    {
+      "name": "The Wind",
+      "community_estimated_weight": 399,
+      "reference_weight": 340
+    },
+    {
+      "name": "The Witch",
+      "community_estimated_weight": 15721,
+      "reference_weight": 15715
+    },
+    {
+      "name": "The Wolf",
+      "community_estimated_weight": 4878,
+      "reference_weight": 4982
+    },
+    {
+      "name": "The Wolf's Legacy",
+      "community_estimated_weight": 256,
+      "reference_weight": 284
+    },
+    {
+      "name": "The Wolf's Shadow",
+      "community_estimated_weight": 4741,
+      "reference_weight": 4693
+    },
+    {
+      "name": "The Wolven King's Bite",
+      "community_estimated_weight": 423,
+      "reference_weight": 389
+    },
+    {
+      "name": "The Wolverine",
+      "community_estimated_weight": 1163,
+      "reference_weight": 1201
+    },
+    {
+      "name": "The Wrath",
+      "community_estimated_weight": 8231,
+      "reference_weight": 8494
+    },
+    {
+      "name": "The Wretched",
+      "community_estimated_weight": 4414,
+      "reference_weight": 4565
+    },
+    {
+      "name": "Thirst for Knowledge",
+      "community_estimated_weight": 7584,
+      "reference_weight": 7554
+    },
+    {
+      "name": "Three Faces in the Dark",
+      "community_estimated_weight": 24088,
+      "reference_weight": 25225
+    },
+    {
+      "name": "Three Voices",
+      "community_estimated_weight": 11922,
+      "reference_weight": 12257
+    },
+    {
+      "name": "Thunderous Skies",
+      "community_estimated_weight": 9846,
+      "reference_weight": 10028
+    },
+    {
+      "name": "Time-Lost Relic",
+      "community_estimated_weight": 6650,
+      "reference_weight": 6706
+    },
+    {
+      "name": "Toxic Tidings",
+      "community_estimated_weight": 186,
+      "reference_weight": 201
+    },
+    {
+      "name": "Tranquillity",
+      "community_estimated_weight": 10,
+      "reference_weight": 10
+    },
+    {
+      "name": "Treasure Hunter",
+      "community_estimated_weight": 111,
+      "reference_weight": 115
+    },
+    {
+      "name": "Triskaidekaphobia",
+      "community_estimated_weight": 1087,
+      "reference_weight": 982
+    },
+    {
+      "name": "Turn the Other Cheek",
+      "community_estimated_weight": 519,
+      "reference_weight": 483
+    },
+    {
+      "name": "Unchained",
+      "community_estimated_weight": 417,
+      "reference_weight": 401
+    },
+    {
+      "name": "Underground Forest",
+      "community_estimated_weight": 170,
+      "reference_weight": 159
+    },
+    {
+      "name": "Unrequited Love",
+      "community_estimated_weight": 3,
+      "reference_weight": 2
+    },
+    {
+      "name": "Vanity",
+      "community_estimated_weight": 677,
+      "reference_weight": 623
+    },
+    {
+      "name": "Vile Power",
+      "community_estimated_weight": 1538,
+      "reference_weight": 1605
+    },
+    {
+      "name": "Vinia's Token",
+      "community_estimated_weight": 4871,
+      "reference_weight": 5006
+    },
+    {
+      "name": "Void of the Elements",
+      "community_estimated_weight": 15,
+      "reference_weight": 17
+    },
+    {
+      "name": "Volatile Power",
+      "community_estimated_weight": 6114,
+      "reference_weight": 6365
+    },
+    {
+      "name": "Wealth and Power",
+      "community_estimated_weight": 29,
+      "reference_weight": 25
+    },
+    {
+      "name": "When Currents Blaze",
+      "community_estimated_weight": 159,
+      "reference_weight": 173
+    },
+    {
+      "name": "Who Asked",
+      "community_estimated_weight": 15,
+      "reference_weight": 20
+    }
+  ]
+}

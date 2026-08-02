@@ -150,3 +150,10 @@ export function pluginReleaseAssetUrl(repo: string, version: string, file: strin
   if (base) return `${base}/${file}`
   return `https://github.com/${repo}/releases/download/v${version}/${file}`
 }
+
+/** wraeclast.cards -- community stacked-deck drop tracker, reconciled against
+ *  the fateweaver datamine and regenerated daily. Powers Div Card Explorer
+ *  weights. Served CORS-open behind Cloudflare, so the renderer fetches it
+ *  directly rather than through the main process. */
+export const WRAECLAST_CARDS_URL = 'https://wraeclast.cards'
+export const WRAECLAST_DROP_RATES_INDEX = `${WRAECLAST_CARDS_URL}/data/drop-rates/index.json`

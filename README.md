@@ -20,7 +20,7 @@ Path of Exile's first ever fourth-party tool. An overlay to edit your filter, pr
 **PoE1 Only:**
 
 - **Dust Explorer** - Easily filter uniques to find the best ones to dust
-- **Div Card Explorer** - EV calculator for div cards on maps with live prices (s/o [Maps of Exile](https://github.com/deathbeam/maps-of-exile) and the Forbidden Library)
+- **Div Card Explorer** - EV calculator for div cards on maps with live prices (drop weights powered by [wraeclast.cards](https://wraeclast.cards); s/o [Maps of Exile](https://github.com/deathbeam/maps-of-exile) and the Forbidden Library)
 - **Socket Recolor** - Easily calculate cost of recoloring sockets on items
 
 ## Plugins

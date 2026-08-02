@@ -18,6 +18,15 @@ Scalpel includes the following third-party software and data:
 - Used for: Real-time item price data, fetched at runtime
 - Data is cached locally and refreshed every 10 minutes
 
+### wraeclast.cards
+
+- Source: https://wraeclast.cards
+- Used for: Divination card drop weights powering the Div Card Explorer's map EV
+- Community stacked-deck tracker data, reconciled against the fateweaver
+  datamine (https://github.com/navali-creations), regenerated daily
+- Bundled snapshot in `src/shared/data/economy/div-card-weights.json`, refreshed
+  at runtime from `/data/drop-rates/`
+
 ### Exiled Exchange 2 (kvan7/exiled-exchange-2)
 
 - Source: https://github.com/Kvan7/Exiled-Exchange-2
