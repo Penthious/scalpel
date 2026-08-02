@@ -385,11 +385,10 @@ export function parseItemText(text: string): PoeItem | null {
   const wingsParts = wingsLine?.split(':')[1]?.trim().split('/')
   const wingsRevealed = wingsParts ? parseInt(wingsParts[0], 10) : undefined
   const wingsTotal = wingsParts?.[1] ? parseInt(wingsParts[1], 10) : undefined
-  // Facetor's Lens: "Stored Experience: 999,627,082"
+  // Facetor's Lens: "Stored Experience: 999,627,082" (or "750 000 000" on a
+  // space-grouping client -- see parseGroupedInt)
   const storedExpLine = allLines.find((l) => l.startsWith('Stored Experience:'))
-  const storedExperience = storedExpLine
-    ? parseInt(storedExpLine.split(':')[1].trim().replace(/,/g, ''), 10)
-    : undefined
+  const storedExperience = storedExpLine ? parseGroupedInt(storedExpLine.split(':')[1]) : undefined
 
   // Equipped PoE2 gems inflate the `Level:` display line with transient bonuses
   // (Global Modifiers, Support links) that vanish when the gem is unsocketed and
@@ -420,8 +419,10 @@ export function parseItemText(text: string): PoeItem | null {
       : (extractNum(allLines, 'Level:') ?? nameGemLevel)
   const stackSizeLine = allLines.find((l) => l.startsWith('Stack Size:'))
   const stackParts = stackSizeLine?.split(':')[1]?.trim().split('/') ?? []
-  const stackSize = stackParts[0] ? parseInt(stackParts[0].replace(/,/g, ''), 10) : 1
-  const maxStackSize = stackParts[1] ? parseInt(stackParts[1].replace(/,/g, ''), 10) : undefined
+  // Same grouping-separator trap as Stored Experience: a 5000-stack currency copied
+  // from a space-grouping client reads "5 000", which parsed as 5.
+  const stackSize = stackParts[0] ? parseGroupedInt(stackParts[0]) : 1
+  const maxStackSize = stackParts[1] ? parseGroupedInt(stackParts[1]) : undefined
 
   // Requirements
   // Defenses (total computed values from the item header)
@@ -786,6 +787,15 @@ export function parseItemText(text: string): PoeItem | null {
     // in evaluation.ts corrects this in-zone.
     areaLevel: Math.max(itemLevel, endgameAreaLevel(getPoeVersion())),
   }
+}
+
+/** Parse a whole number that may carry locale thousands separators. GGG groups large
+ *  numbers differently per client language -- commas in English, spaces (including
+ *  non-breaking ones) elsewhere -- and a Facetor's Lens copied from a space-grouping
+ *  client parsed "750 000 000" as 750 (#539). These fields are always integers, so
+ *  every non-digit in the value is a separator. */
+function parseGroupedInt(text: string): number {
+  return parseInt(text.replace(/\D/g, ''), 10)
 }
 
 function extractNum(lines: string[], prefix: string): number | null {

@@ -653,6 +653,59 @@ describe('parseItemText', () => {
       expect(item.stackSize).toBe(1)
     })
 
+    it("parses a Facetor's Lens stored experience grouped with commas", () => {
+      const text = [
+        'Item Class: Stackable Currency',
+        'Rarity: Currency',
+        "Facetor's Lens",
+        '--------',
+        'Stack Size: 1/10',
+        '--------',
+        'Stored Experience: 999,627,082',
+        '--------',
+        'Adds stored experience to a gem, up to its maximum level.',
+      ].join('\n')
+
+      expect(parseItemText(text)!.storedExperience).toBe(999627082)
+    })
+
+    it.each([
+      ['plain spaces', '750 000 000'],
+      ['non-breaking spaces', '750\u00A0000\u00A0000'],
+      ['narrow non-breaking spaces', '750\u202F000\u202F000'],
+      ['periods', '750.000.000'],
+    ])('parses stored experience grouped with %s (#539)', (_label, grouped) => {
+      // GGG groups large numbers per client language. A space-grouped lens used to
+      // parse as 750 because only commas were stripped.
+      const text = [
+        'Item Class: Stackable Currency',
+        'Rarity: Currency',
+        "Facetor's Lens",
+        '--------',
+        `Stored Experience: ${grouped}`,
+        '--------',
+        'Adds stored experience to a gem, up to its maximum level.',
+      ].join('\n')
+
+      expect(parseItemText(text)!.storedExperience).toBe(750000000)
+    })
+
+    it('parses a space-grouped stack size (#539)', () => {
+      const text = [
+        'Item Class: Stackable Currency',
+        'Rarity: Currency',
+        'Chaos Orb',
+        '--------',
+        'Stack Size: 3 500/5 000',
+        '--------',
+        'Reforges the properties of an item',
+      ].join('\n')
+
+      const item = parseItemText(text)!
+      expect(item.stackSize).toBe(3500)
+      expect(item.maxStackSize).toBe(5000)
+    })
+
     it('defaults areaLevel to the endgame level for currency with no item level', () => {
       const text = [
         'Item Class: Stackable Currency',
