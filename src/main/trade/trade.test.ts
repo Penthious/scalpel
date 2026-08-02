@@ -1066,6 +1066,23 @@ describe('searchTrade filter-group dispatch', () => {
     expect(sentIds).not.toContain('explicit.stat_2828710986')
   })
 
+  it('an enabled misc.rarity chip on a rare map overrides the Maps branch nonunique default (#541)', async () => {
+    setPoeVersion(1)
+    const originatorMap = {
+      name: 'Map (Tier 12)',
+      baseType: 'Map (Tier 12)',
+      itemClass: 'Maps',
+      rarity: 'Rare',
+    }
+    const filters: StatFilter[] = [
+      { id: 'misc.rarity', text: 'Rare', type: 'misc', enabled: true, value: null, min: null, max: null },
+    ]
+    await searchTrade('Mirage', originatorMap, filters, { tradeStatus: 'any' })
+    const req = capturedRequests.find((r) => r.url.includes('/search/'))
+    const body = parseCapturedBody(req)
+    expect(body.query.filters.type_filters.filters.rarity).toEqual({ option: 'rare' })
+  })
+
   it('unidentified map implicits survive for all influence/occupied/citadel variants', async () => {
     setPoeVersion(1)
     const unidMap = {

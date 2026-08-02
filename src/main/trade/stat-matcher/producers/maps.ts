@@ -24,6 +24,7 @@ type MapItemInfo = {
   mapGold?: number
   mapMagicMonsters?: number
   mapRareMonsters?: number
+  zanaMemory?: boolean
 }
 
 /** The PoE2 trade2 "Endgame Filters" group, in display order. Whether GGG actually
@@ -76,7 +77,10 @@ export function buildMapFilters(itemInfo: MapItemInfo | undefined, advancedMods?
         value: itemInfo.mapRarity,
         min: MAP_MIN(itemInfo.mapRarity),
         max: null,
-        enabled: false,
+        // Item Rarity is noise on a regular rare map, but originator (Zana memory) maps are
+        // farmed and priced on their drop-boosting rolls, so pre-check it there (#541). Every
+        // other property chip in this block is already on by default.
+        enabled: !!itemInfo.zanaMemory,
         type: 'map',
       })
     if (itemInfo.mapPackSize)

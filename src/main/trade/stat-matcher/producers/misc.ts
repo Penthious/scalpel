@@ -18,6 +18,7 @@ type MiscItemInfo = {
   unidentifiedTier?: number
   vestigial?: boolean
   foulborn?: boolean
+  zanaMemory?: boolean
 }
 
 // Non-gem quality, item level, open prefix/suffix, memory strands, corrupted,
@@ -231,15 +232,20 @@ export function buildMiscFilters(
     })
   }
 
-  // Rarity filter for equipment (off by default - search includes all non-unique by default)
-  if (isEquipment && itemInfo.rarity !== 'Unique') {
+  // Rarity filter for equipment (off by default - search includes all non-unique by default).
+  // Originator (Zana memory) maps are farmed and priced as rares; the Maps branch in
+  // trade.ts otherwise searches `rarity: nonunique`, mixing in far cheaper magic and
+  // normal copies. Pin rarity for them (#541). Regular maps still get no rarity chip -
+  // the mechanic only matters for originator.
+  const isOriginatorRareMap = itemInfo.itemClass === 'Maps' && itemInfo.rarity === 'Rare' && !!itemInfo.zanaMemory
+  if ((isEquipment && itemInfo.rarity !== 'Unique') || isOriginatorRareMap) {
     out.push({
       id: 'misc.rarity',
       text: itemInfo.rarity,
       value: null,
       min: null,
       max: null,
-      enabled: false,
+      enabled: isOriginatorRareMap,
       type: 'misc',
     })
   }

@@ -50,6 +50,7 @@ export interface ItemInfo {
   synthesised?: boolean
   vestigial?: boolean
   foulborn?: boolean
+  zanaMemory?: boolean
   logbookFactions?: string[]
   logbookBosses?: string[]
   atzoatlRooms?: string[]

@@ -1301,6 +1301,65 @@ describe('matchItemMods', () => {
     })
   })
 
+  describe('originator (Zana memory) rare maps (#541)', () => {
+    // Originator maps are farmed and priced on their drop-boosting rolls, so Rarity
+    // pre-checks there even though it's noise on a regular rare map. Quantity, Pack
+    // Size, and the more-drops pseudo stats are already on by default and must stay so.
+    it('enables map.map_iir and keeps the other map property chips enabled on a rare originator map', () => {
+      const filters = matchItemMods(
+        [],
+        [],
+        undefined,
+        makeItemInfo({
+          itemClass: 'Maps',
+          rarity: 'Rare',
+          sockets: '',
+          zanaMemory: true,
+          mapQuantity: 65,
+          mapRarity: 39,
+          mapPackSize: 25,
+          mapMoreScarabs: 22,
+          mapMoreCurrency: 47,
+          mapMoreMaps: 35,
+        }),
+      )
+      expect(filters.find((f) => f.id === 'map.map_iir')?.enabled).toBe(true)
+      expect(filters.find((f) => f.id === 'map.map_iiq')?.enabled).toBe(true)
+      expect(filters.find((f) => f.id === 'map.map_packsize')?.enabled).toBe(true)
+      expect(filters.find((f) => f.id === 'pseudo.pseudo_map_more_scarab_drops')?.enabled).toBe(true)
+      expect(filters.find((f) => f.id === 'pseudo.pseudo_map_more_currency_drops')?.enabled).toBe(true)
+      expect(filters.find((f) => f.id === 'pseudo.pseudo_map_more_map_drops')?.enabled).toBe(true)
+    })
+
+    it('leaves map.map_iir disabled on a rare non-originator map', () => {
+      const filters = matchItemMods(
+        [],
+        [],
+        undefined,
+        makeItemInfo({ itemClass: 'Maps', rarity: 'Rare', sockets: '', mapRarity: 39 }),
+      )
+      expect(filters.find((f) => f.id === 'map.map_iir')?.enabled).toBe(false)
+    })
+
+    it('emits an enabled misc.rarity chip on a rare originator map', () => {
+      const filters = matchItemMods(
+        [],
+        [],
+        undefined,
+        makeItemInfo({ itemClass: 'Maps', rarity: 'Rare', sockets: '', zanaMemory: true }),
+      )
+      const rarityChip = filters.find((f) => f.id === 'misc.rarity')
+      expect(rarityChip).toBeDefined()
+      expect(rarityChip?.text).toBe('Rare')
+      expect(rarityChip?.enabled).toBe(true)
+    })
+
+    it('emits no misc.rarity chip on a rare non-originator map', () => {
+      const filters = matchItemMods([], [], undefined, makeItemInfo({ itemClass: 'Maps', rarity: 'Rare', sockets: '' }))
+      expect(filters.find((f) => f.id === 'misc.rarity')).toBeUndefined()
+    })
+  })
+
   describe('timeless jewel chips', () => {
     it('generates timeless jewel chips from plain text (Remembrancing)', () => {
       const filters = matchItemMods(
