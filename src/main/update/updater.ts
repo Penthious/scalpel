@@ -503,8 +503,8 @@ ipcMain.handle('install-update', () => {
   }
 
   const batPath = join(userDataDir, 'apply-update.bat')
-  // The batch runs with no console (DETACHED_PROCESS); `timeout` can exit immediately
-  // without a console, `ping` waits ~2s regardless.
+  // Give the old process ~2s to release app.asar before copying over it. `ping` is
+  // used rather than `timeout` because `timeout` aborts on redirected stdin.
   const batLines = ['@echo off', 'ping -n 3 127.0.0.1 > nul']
 
   if (isFullUpgrade) {
@@ -538,11 +538,14 @@ ipcMain.handle('install-update', () => {
 
   writeFileSync(batPath, batLines.join('\r\n'))
 
-  // Run the batch detached with no console. DETACHED_PROCESS gives the child no
-  // console window at all, so nothing flashes. A VBS wrapper used to do the hiding,
-  // but AV heuristics flag app-written VBS as dropper behavior (#448).
+  // `windowsHide` alone (CREATE_NO_WINDOW) gives cmd a real but windowless console
+  // that ping/xcopy/powershell inherit, so nothing flashes. Do NOT add `detached`:
+  // Windows ignores CREATE_NO_WINDOW when DETACHED_PROCESS is also set, and a
+  // console-less cmd makes every external command it runs allocate its own visible
+  // console window (#543). `stdio: 'ignore'` + `.unref()` already keep the batch
+  // alive past app.exit(). A VBS wrapper used to do the hiding, but AV heuristics
+  // flag app-written VBS as dropper behavior (#448).
   spawn('cmd.exe', ['/c', batPath], {
-    detached: true,
     stdio: 'ignore',
     windowsHide: true,
   }).unref()
