@@ -95,7 +95,7 @@ export function matchItemMods(
   const enchantFilters = buildEnchantFilters(itemInfo, ctx.hasLocalMods)
 
   // Socket chips (rune, white, abyssal, links)
-  const socketFilters = buildSocketFilters(itemInfo, advancedMods)
+  const socketFilters = buildSocketFilters(itemInfo, ctx.explicits, ctx.implicits)
 
   // Base type chip
   const baseTypeFilters = buildBaseTypeFilter(itemInfo)

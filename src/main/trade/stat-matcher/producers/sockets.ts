@@ -1,4 +1,3 @@
-import type { AdvancedMod } from '@shared/types'
 import type { StatFilter } from '../../trade'
 import { SKILL_GEM_CLASSES } from '@shared/poe-item'
 
@@ -12,7 +11,8 @@ type SocketItemInfo = {
 // Socket chips: rune sockets (PoE2), white sockets, abyssal sockets, links
 export function buildSocketFilters(
   itemInfo: SocketItemInfo | undefined,
-  advancedMods: AdvancedMod[] | undefined,
+  explicits: string[] = [],
+  implicits: string[] = [],
 ): StatFilter[] {
   if (!itemInfo) return []
 
@@ -79,9 +79,22 @@ export function buildSocketFilters(
   }
 
   if (a > 0) {
-    const abyssIsImplicit =
-      !advancedMods ||
-      advancedMods.some((am) => am.type === 'implicit' && am.lines.some((l) => /Abyssal Socket/i.test(l)))
+    // The chip's implicit-vs-explicit id follows where the abyssal-socket grant
+    // actually appears in the clipboard text, not advancedMods -- basic copies
+    // (no advanced mod block, chat-linked items) still carry the raw explicits[]
+    // / implicits[] lines, so this signal is available on every copy path.
+    // A suffix-granted socket ("of the Underground") is EXPLICIT; a base or
+    // unique implicit (Stygian Vise) stays IMPLICIT; an item with no abyss line
+    // at all (inherent unique socket, unidentified) keeps the implicit default.
+    // An item carrying BOTH sources (e.g. a Stygian Vise that also rolled "of the
+    // Underground") still gets a single chip whose value is the total socket
+    // count, over-constraining one of the two ids -- a known approximation, not
+    // solved here.
+    const abyssLine = /^Has \d+ Abyssal Sockets?$/i
+    const stripTag = (l: string) => l.replace(/\s*\((?:implicit|crafted|fractured)\)\s*$/i, '').trim()
+    const explicitGrantsAbyss = explicits.some((l) => abyssLine.test(stripTag(l)))
+    const implicitGrantsAbyss = implicits.some((l) => abyssLine.test(stripTag(l)))
+    const abyssIsImplicit = !(explicitGrantsAbyss && !implicitGrantsAbyss)
     out.push({
       id: `${abyssIsImplicit ? 'implicit' : 'explicit'}.stat_3527617737`,
       text: 'Abyssal Sockets',

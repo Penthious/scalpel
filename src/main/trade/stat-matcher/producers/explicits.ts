@@ -194,6 +194,13 @@ export function processExplicits(ctx: MatchContext): StatFilter[] {
   for (const mod of isGemItem || isRelic || isTablet ? [] : explicits) {
     let isCrafted = /\s*\(crafted\)\s*$/i.test(mod)
     let cleaned = mod.replace(/\s*\((?:crafted|fractured)\)\s*$/i, '').trim()
+    // Abyssal socket suffixes (e.g. "of the Underground") print "Has # Abyssal
+    // Socket(s)" as an ordinary explicit line. buildSocketFilters already owns
+    // this chip -- it derives the socket count and the implicit/explicit id from
+    // the sockets string and the raw mod lines -- so matching it here too emitted
+    // a second row on the same trade id, and toggling either one left the filter
+    // active through its twin (#549).
+    if (/^Has \d+ Abyssal Sockets?$/i.test(cleaned)) continue
     // Skip timeless jewel mods handled by the timeless chip system
     if (
       isTimelessJewel &&

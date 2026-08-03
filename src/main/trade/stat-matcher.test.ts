@@ -386,6 +386,47 @@ describe('matchItemMods', () => {
       expect(abyss[0]?.value).toBe(1)
       expect(abyss[0]?.text).toBe('Abyssal Sockets')
     })
+
+    it('suffix-granted abyssal socket ("of the Underground"): single explicit chip, no duplicate row (#549)', () => {
+      // Reported item: a rare Chiming Spirit Shield whose "Has 1 Abyssal Socket" line
+      // is the explicit suffix, not an implicit. The socket producer owns the chip;
+      // the explicit producer used to also match the line, emitting a second row on
+      // the same trade id so toggling either one did nothing.
+      const advancedMods: AdvancedMod[] = [
+        {
+          type: 'suffix',
+          name: 'of the Underground',
+          tier: 1,
+          tags: [],
+          lines: ['Has 1 Abyssal Socket'],
+          ranges: [],
+        },
+      ]
+      const filters = matchItemMods(
+        ['Has 1 Abyssal Socket'],
+        [],
+        undefined,
+        makeItemInfo({ sockets: 'W-BA', linkedSockets: 0, itemClass: 'Shields', rarity: 'Rare' }),
+        advancedMods,
+      )
+      const abyss = filters.filter((f) => f.id === 'explicit.stat_3527617737')
+      expect(abyss).toHaveLength(1)
+      expect(abyss[0]?.text).toBe('Abyssal Sockets')
+      expect(abyss[0]?.value).toBe(1)
+      expect(filters.find((f) => f.text === 'Has 1 Abyssal Socket')).toBeUndefined()
+    })
+
+    it('suffix-granted abyssal socket with no advancedMods (basic copy) still resolves to the explicit id', () => {
+      const filters = matchItemMods(
+        ['Has 1 Abyssal Socket'],
+        [],
+        undefined,
+        makeItemInfo({ sockets: 'W-BA', linkedSockets: 0, itemClass: 'Shields', rarity: 'Rare' }),
+      )
+      const abyss = filters.filter((f) => f.id === 'explicit.stat_3527617737')
+      expect(abyss).toHaveLength(1)
+      expect(filters.find((f) => f.id === 'implicit.stat_3527617737')).toBeUndefined()
+    })
   })
 
   describe('misc filters', () => {
