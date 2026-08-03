@@ -180,6 +180,15 @@ function buildPseudoMap(): void {
       /\bResistances?\b/i.test(entry.text)
     )
       continue
+    // "Nearby Enemies have -#% to <Ele> Resistance" (Redeemer "of the Conquest"
+    // and its cold/lightning/chaos twins) is an enemy debuff, not player
+    // resistance. The catalog text prints "+#%" even though the rolled value is
+    // negative, so folding it in both understated the pseudo total and filtered
+    // on resistance the item does not grant (#544). Pattern is "Enemies have"
+    // rather than a bare "Enem" -- "While a Unique Enemy is in your Presence,
+    // +#% to <Ele> Resistance" IS genuine player resistance and must keep
+    // contributing.
+    if (/\bEnemies have\b/i.test(entry.text) && /\bResistances?\b/i.test(entry.text)) continue
     for (const [pattern, pseudoId, pseudoLabel, multiplier, opts] of pseudoMappings) {
       if (pattern.test(entry.text)) {
         if (!PSEUDO_CONTRIBUTIONS[entry.id]) PSEUDO_CONTRIBUTIONS[entry.id] = []

@@ -3224,6 +3224,86 @@ describe('matchItemMods', () => {
     })
   })
 
+  describe('nearby enemies resistance excluded from resistance pseudo', () => {
+    // Redeemer "of the Conquest" and its cold/lightning/chaos twins: "Nearby
+    // Enemies have -#% to <Ele> Resistance" is an enemy debuff, not player
+    // resistance. #544: the negative roll was folding into
+    // pseudo_total_elemental_resistance, understating the total and hiding
+    // the real mod row (the pseudo replaces its source row).
+    it('nearby enemies fire resistance debuff does not subtract from Total Elemental Resistance', () => {
+      _setStatEntriesForTests([
+        {
+          id: 'explicit.stat_3914021960',
+          text: 'Nearby Enemies have #% to Fire Resistance',
+          type: 'explicit',
+        },
+        { id: 'explicit.stat_4220027924', text: '#% to Cold Resistance', type: 'explicit' },
+      ])
+      const filters = matchItemMods(
+        ['Nearby Enemies have -9% to Fire Resistance', '+36% to Cold Resistance'],
+        [],
+        undefined,
+        makeItemInfo({ rarity: 'Rare', itemClass: 'Helmets' }),
+      )
+      const pseudo = filters.find((f) => f.id === 'pseudo.pseudo_total_elemental_resistance')
+      expect(pseudo).toBeDefined()
+      // Only the +36 Cold Res counts; the -9 enemy debuff must not subtract.
+      expect(pseudo?.value).toBe(36)
+    })
+
+    it('nearby enemies resistance debuff alone emits no resistance pseudo chip', () => {
+      _setStatEntriesForTests([
+        {
+          id: 'explicit.stat_3914021960',
+          text: 'Nearby Enemies have #% to Fire Resistance',
+          type: 'explicit',
+        },
+      ])
+      const filters = matchItemMods(
+        ['Nearby Enemies have -9% to Fire Resistance'],
+        [],
+        undefined,
+        makeItemInfo({ rarity: 'Rare', itemClass: 'Helmets' }),
+      )
+      expect(filters.find((f) => f.id === 'pseudo.pseudo_total_elemental_resistance')).toBeUndefined()
+    })
+
+    it('nearby enemies chaos resistance debuff does not feed Total Chaos Resistance', () => {
+      _setStatEntriesForTests([
+        {
+          id: 'explicit.stat_1902595112',
+          text: 'Nearby Enemies have #% to Chaos Resistance',
+          type: 'explicit',
+        },
+      ])
+      const filters = matchItemMods(
+        ['Nearby Enemies have -9% to Chaos Resistance'],
+        [],
+        undefined,
+        makeItemInfo({ rarity: 'Rare', itemClass: 'Helmets' }),
+      )
+      expect(filters.find((f) => f.id === 'pseudo.pseudo_total_chaos_resistance')).toBeUndefined()
+    })
+
+    it('unique enemy presence implicit still contributes to Total Elemental Resistance', () => {
+      _setStatEntriesForTests([
+        {
+          id: 'implicit.stat_3521653836',
+          text: 'While a Unique Enemy is in your Presence, #% to Fire Resistance',
+          type: 'implicit',
+        },
+      ])
+      const filters = matchItemMods(
+        [],
+        ['While a Unique Enemy is in your Presence, +18% to Fire Resistance'],
+        undefined,
+        makeItemInfo({ rarity: 'Rare', itemClass: 'Helmets' }),
+      )
+      const pseudo = filters.find((f) => f.id === 'pseudo.pseudo_total_elemental_resistance')
+      expect(pseudo?.value).toBe(18)
+    })
+  })
+
   describe('fractured chip', () => {
     it('generates fractured chip for equipment in "any" state when no fractured mods', () => {
       const filters = matchItemMods(
