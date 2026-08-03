@@ -266,9 +266,15 @@ export function register(store: Store<AppSettings>): void {
 
   ipcMain.handle(
     'bulk-exchange',
-    async (_event, itemName: string, baseType: string, haveId?: string): Promise<BulkExchangeResult> => {
+    async (
+      _event,
+      itemName: string,
+      baseType: string,
+      haveId?: string,
+      zanaMemory?: boolean,
+    ): Promise<BulkExchangeResult> => {
       const league = getProfileBackedSetting(store, 'league')
-      const wantId = getBulkExchangeId(itemName, baseType)
+      const wantId = getBulkExchangeId(itemName, baseType, undefined, zanaMemory)
       if (!wantId) return { total: 0, listings: [], queryId: '' }
       return searchBulkExchange(league, wantId, haveId ?? 'chaos')
     },

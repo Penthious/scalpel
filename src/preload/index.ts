@@ -523,6 +523,7 @@ export const api = {
     itemName: string,
     baseType: string,
     haveId?: string,
+    zanaMemory?: boolean,
   ): Promise<{
     total: number
     listings: Array<{
@@ -537,7 +538,7 @@ export const api = {
       whisper?: string
     }>
     queryId: string
-  }> => ipcRenderer.invoke('bulk-exchange', itemName, baseType, haveId),
+  }> => ipcRenderer.invoke('bulk-exchange', itemName, baseType, haveId, zanaMemory),
   checkBulkItem: (itemName: string, baseType: string, itemClass: string, rarity?: string): Promise<boolean> =>
     ipcRenderer.invoke('check-bulk-item', itemName, baseType, itemClass, rarity),
   mapRegexTrade: (params: {

@@ -295,7 +295,7 @@ export function PriceCheck({
       const payWith =
         swap ??
         (priceInfo?.divineValue != null && priceInfo.divineValue >= 1 ? 'divine' : features.bulkBaselineCurrency)
-      const result = await window.api.bulkExchange(item.name, item.baseType, payWith)
+      const result = await window.api.bulkExchange(item.name, item.baseType, payWith, item.zanaMemory)
       setBulkListings(result.listings)
       setTotal(result.total)
       setQueryId(result.queryId)

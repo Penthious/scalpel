@@ -120,6 +120,7 @@ export function bulkExchange(
   itemName: string,
   baseType: string,
   haveId?: string,
+  zanaMemory?: boolean,
 ): Promise<{
   total: number
   listings: Array<{
@@ -135,7 +136,7 @@ export function bulkExchange(
   }>
   queryId: string
 }> {
-  return window.api.bulkExchange(itemName, baseType, haveId)
+  return window.api.bulkExchange(itemName, baseType, haveId, zanaMemory)
 }
 
 export function checkBulkItem(

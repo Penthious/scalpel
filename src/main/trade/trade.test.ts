@@ -2124,6 +2124,17 @@ describe('isBulkExchangeItem (PoE2 slug-gated routing)', () => {
     // The real currency still resolves.
     expect(getBulkExchangeId('Ancient Orb', 'Ancient Orb')).toBe('ancient-orb')
   })
+
+  it('routes a Normal Originator (Zana memory) map to the zana- exchange market, not the plain one (#545)', () => {
+    setPoeVersion(1)
+    // A plain white map keeps the stripped id -- the ordinary T16 market.
+    expect(getBulkExchangeId('Map (Tier 16)', 'Map (Tier 16)', 'Normal')).toBe('map-tier-16')
+    // A Normal Originator map is the same base plus the implicit -- it must stay
+    // on the zana- market, which is a distinct, separately-priced listing set.
+    expect(getBulkExchangeId('Map (Tier 16)', 'Map (Tier 16)', 'Normal', true)).toBe('zana-map-tier-16')
+    // A non-map id is unaffected by the flag.
+    expect(getBulkExchangeId('Divine Orb', 'Divine Orb', 'Currency', true)).toBe('divine')
+  })
 })
 
 describe('buildRegexStatGroups', () => {

@@ -1648,7 +1648,12 @@ export function buildGemTypeField(
 }
 
 /** Look up the bulk exchange ID for an item by its name or base type */
-export function getBulkExchangeId(name: string, baseType: string, rarity?: string): string | null {
+export function getBulkExchangeId(
+  name: string,
+  baseType: string,
+  rarity?: string,
+  zanaMemory?: boolean,
+): string | null {
   // Try exact name first (e.g. "Divine Orb", "Uncut Skill Gem (Level 20)"),
   // then base type. Map is picked per game: PoE1 uses the hand-maintained
   // legacy list, PoE2 uses EE2-sourced IDs.
@@ -1658,8 +1663,10 @@ export function getBulkExchangeId(name: string, baseType: string, rarity?: strin
   // so skip the name key for them -- only the base type can match.
   let id = (hasGeneratedName(rarity) ? null : bulkIdMap[name]) ?? bulkIdMap[baseType] ?? null
   if (!id || id === 'sep') return null
-  // Fix legacy zana- prefixed map IDs to current format
-  if (id.startsWith('zana-map-tier-')) {
+  // "zana-map-tier-N" and "map-tier-N" are both live exchange markets with distinct
+  // listings -- an Originator (Zana memory) map belongs on the zana- market, a plain
+  // map on the stripped one. Pick the id matching the item in hand (#545).
+  if (id.startsWith('zana-map-tier-') && !zanaMemory) {
     id = id.replace('zana-', '')
   }
   return id
