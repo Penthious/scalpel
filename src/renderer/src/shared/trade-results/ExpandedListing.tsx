@@ -29,6 +29,7 @@ function copyItemToClipboard(d: Listing['itemData'] & {}, rarity: string, btn: H
   lines.push('--------')
   if (d.chartZone) lines.push(d.chartZone)
   if (d.ilvl) lines.push(`Item Level: ${d.ilvl}`)
+  if (d.memoryStrands != null) lines.push(`Memory Strands: ${d.memoryStrands}`)
   if (d.grantedSkills?.length) {
     lines.push('--------')
     for (const gs of d.grantedSkills) lines.push(`Grants Skill: ${gs.text}`)
@@ -112,6 +113,11 @@ export function ExpandedListing({ listing: l, itemClass, itemName, itemRarity }:
           <div className="text-[10px] text-text-dim">
             {d.name !== d.baseType ? d.baseType : ''}
             {d.ilvl ? `${d.name !== d.baseType ? ' ' : ''}(iLvl ${d.ilvl})` : ''}
+          </div>
+        )}
+        {d.memoryStrands != null && (
+          <div className="text-[10px] text-text-dim">
+            Memory Strands: <span className="text-[#00e0be] font-semibold">{d.memoryStrands}</span>
           </div>
         )}
         {/* Map properties (tier, IIQ, pack size, etc.) */}

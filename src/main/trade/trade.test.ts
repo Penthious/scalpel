@@ -365,6 +365,44 @@ describe('parseFetchedListings', () => {
     expect(data.areaLevel).toBe(53)
   })
 
+  it('extracts Memory Strands from gear dropped inside a Memory (#546)', () => {
+    // Real shape from /api/trade/fetch for a memory-stranded Sapphire Ring
+    // (league Allflame). The item also carries a top-level `memoryItem: true`
+    // flag, which we don't need -- the strand count is what matters.
+    const entry: FetchEntry = {
+      id: 'f7',
+      listing: baseListing,
+      item: {
+        name: '',
+        baseType: 'Sapphire Ring',
+        typeLine: 'Sapphire Ring',
+        frameType: 0,
+        properties: [{ name: 'Memory Strands', values: [['26', 0]], type: 99 }],
+      },
+    }
+
+    const [listing] = parseFetchedListings([entry])
+    const data = listing.itemData!
+    expect(data.memoryStrands).toBe(26)
+  })
+
+  it('leaves memoryStrands undefined for an item without the property', () => {
+    const entry: FetchEntry = {
+      id: 'f8',
+      listing: baseListing,
+      item: {
+        name: '',
+        baseType: 'Sapphire Ring',
+        typeLine: 'Sapphire Ring',
+        frameType: 0,
+      },
+    }
+
+    const [listing] = parseFetchedListings([entry])
+    const data = listing.itemData!
+    expect(data.memoryStrands).toBeUndefined()
+  })
+
   // GGG changed the trade fetch response again (2026-07): the dedicated
   // fracturedMods/craftedMods/desecratedMods/mutatedMods arrays are gone and every
   // entry is folded into explicitMods, tagged via flags/domain. #512.

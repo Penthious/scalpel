@@ -31,6 +31,7 @@ export interface Listing {
     templeOpenRooms?: string[]
     templeObstructedRooms?: string[]
     storedExperience?: number
+    memoryStrands?: number
     modTiers?: Record<string, { tier: string; name: string; ranges: string }>
     grantedSkills?: Array<{ text: string; icon?: string }>
     rarity?: string

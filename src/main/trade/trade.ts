@@ -210,6 +210,7 @@ interface TradeListing {
     templeOpenRooms?: string[]
     templeObstructedRooms?: string[]
     storedExperience?: number
+    memoryStrands?: number
     modTiers?: Record<string, { tier: string; name: string; ranges: string }>
     rarity?: string
     mapProperties?: Array<{ name: string; value: string }>
@@ -1488,6 +1489,11 @@ export function parseFetchedListings(fetchedEntries: FetchEntry[]): TradeListing
             })(),
             storedExperience: r.item.properties?.find((p) => p.name.startsWith('Stored Experience'))?.values?.[0]?.[0]
               ? parseInt(r.item.properties.find((p) => p.name.startsWith('Stored Experience'))!.values[0][0], 10)
+              : undefined,
+            // Gear dropped inside a Memory carries a "Memory Strands: N" property
+            // (PoE1-only, GGG tags it type 99) -- it's the whole reason these bases sell.
+            memoryStrands: r.item.properties?.find((p) => p.name === 'Memory Strands')?.values?.[0]?.[0]
+              ? parseInt(r.item.properties.find((p) => p.name === 'Memory Strands')!.values[0][0], 10)
               : undefined,
             areaLevel: r.item.properties?.find((p) => p.name === 'Area Level')?.values?.[0]?.[0]
               ? parseInt(r.item.properties.find((p) => p.name === 'Area Level')!.values[0][0], 10)

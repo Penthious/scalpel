@@ -271,6 +271,13 @@ export function TradeListings({
                   </span>
                 )}
 
+                {l.itemData?.memoryStrands != null && (
+                  <span className="shrink-0 rounded-full bg-black/30 px-[8px] py-[2px] text-[10px] font-semibold text-[#00e0be]">
+                    {l.itemData.memoryStrands}
+                    {compact ? '' : ' Strands'}
+                  </span>
+                )}
+
                 {/* Seller + time: stacked by default, inline in Shrinkydink to save vertical space */}
                 <div className={`flex-1 min-w-0 flex ${compact ? 'items-center gap-2' : 'flex-col'}`}>
                   <span
