@@ -127,21 +127,25 @@ async function sync() {
     }
   }
 
-  // Save meta
-  fs.writeFileSync(
-    META_FILE,
-    JSON.stringify(
-      {
-        commit: latestCommit,
-        timestamp: new Date().toISOString(),
-        repo: REPO,
-      },
-      null,
-      2,
-    ),
-  )
-
+  // Save meta only when a file actually changed. Upstream commits to
+  // src/generated regularly without touching the 18 files we pull, so writing
+  // the sha unconditionally rewrote this tracked file on every dev start and
+  // left a zero-data-change diff in the working tree. The cost of not caching
+  // the checked-but-unchanged sha is re-fetching those files on the next dev
+  // start, which runs in the background and costs nothing that matters.
   if (updated > 0) {
+    fs.writeFileSync(
+      META_FILE,
+      JSON.stringify(
+        {
+          commit: latestCommit,
+          timestamp: new Date().toISOString(),
+          repo: REPO,
+        },
+        null,
+        2,
+      ),
+    )
     console.log(`[sync-regex] Updated ${updated} file(s).`)
   } else {
     console.log('[sync-regex] All files already current.')
