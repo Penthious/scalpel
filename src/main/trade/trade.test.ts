@@ -120,6 +120,7 @@ import {
   type FetchEntry,
   type StatFilter,
 } from './trade'
+import { parseItemText } from './clipboard'
 import { setPoeVersion } from '../game-state'
 import { getUniquesByBase, _setUniquesByBaseForTests } from './prices'
 import { matchItemMods, _setStatEntriesForTests } from './stat-matcher'
@@ -2142,6 +2143,44 @@ describe('isBulkExchangeItem (PoE2 slug-gated routing)', () => {
   it('does NOT route a Scrying Orb to bulk -- its bound map area carries the value (#513)', () => {
     setPoeVersion(1)
     expect(isBulkExchangeItem('Stackable Currency', 'Scrying Orb', 'Scrying Orb', 'Currency')).toBe(false)
+  })
+
+  it('does NOT route a slugless PoE1 currency to bulk -- Incursion vials have no exchange market (#550)', () => {
+    setPoeVersion(1)
+    // Driven off the real clipboard rather than hand-built arguments, so the
+    // parser's own name/baseType/rarity for a currency item is what gets routed.
+    const vial = parseItemText(
+      [
+        'Item Class: Stackable Currency',
+        'Rarity: Currency',
+        'Vial of Transcendence',
+        '--------',
+        'Stack Size: 1/10',
+        '--------',
+        'It is not our flesh, our thoughts, or our soul that limits us;',
+        'it is the distinction between them.',
+        '--------',
+        'Sacrifice this item on the Altar of Sacrifice along with any Tempered Flesh, Tempered Spirit or Tempered Mind to transform it. ',
+        '--------',
+        'Note: ~b/o 45 chaos',
+        '',
+      ].join('\n'),
+    )
+    // Pin the parsed shape: without this the routing assertion below could pass
+    // for the wrong reason (e.g. an empty itemClass never reaching the slug check).
+    expect(vial).toMatchObject({
+      itemClass: 'Stackable Currency',
+      rarity: 'Currency',
+      name: 'Vial of Transcendence',
+      baseType: 'Vial of Transcendence',
+    })
+    // GGG's static list carries no Vial entry at all, so there is no id to query
+    // with -- routing one to bulk could only ever render an empty panel.
+    expect(getBulkExchangeId(vial!.name, vial!.baseType)).toBeNull()
+    expect(isBulkExchangeItem(vial!.itemClass, vial!.name, vial!.baseType, vial!.rarity)).toBe(false)
+    // Currency that IS on the exchange keeps bulking.
+    expect(isBulkExchangeItem('Stackable Currency', 'Divine Orb', 'Divine Orb', 'Currency')).toBe(true)
+    expect(isBulkExchangeItem('Map Fragments', 'Divine Vessel', 'Divine Vessel', 'Normal')).toBe(true)
   })
 
   it('does NOT route a Vaal Aspect piece to bulk -- the exchange market is dead (#551)', () => {

@@ -1628,7 +1628,6 @@ export function parseFetchedListings(fetchedEntries: FetchEntry[]): TradeListing
 
 // ─── Bulk Exchange ──────────────────────────────────────────────────────────
 
-import { isVendorExchangeItem } from '@shared/data/trade/bulk-exchange-eligibility'
 import { getBulkExchangeIdMap } from '@shared/data/trade/bulk-exchange-ids'
 
 /** Build the `type` field of a gem trade query. Returns the discriminator shape for
@@ -1722,27 +1721,14 @@ export function isBulkExchangeItem(
   // originator implicit, tier, and rarity are real filters (#545).
   if (isMapClass && zanaMemory) return false
 
-  // PoE2 routing: an Ange-exchange item only goes through bulk if we actually
-  // have its exchange ID. Eligible-but-no-ID items (e.g. new bases not yet on
-  // the exchange) fall through to regular search so the user sees real listings
-  // as a price reference -- the AngeBanner still surfaces independently (it
-  // keys off isVendorExchangeItem), so they're still told to check Ange.
-  if (getPoeVersion() === 2 && isVendorExchangeItem(2, itemClass, baseType, _rarity)) {
-    return getBulkExchangeId(name, baseType, _rarity) != null
-  }
-
-  const bulkClasses = new Set([
-    'Currency',
-    'Stackable Currency',
-    'Map Fragments',
-    'Scarabs',
-    'Delve Stackable Socketable Currency',
-    'Harvest Seed',
-    'Delve Socketable Currency',
-    'Currency Stash Tab Items',
-  ])
-  if (bulkClasses.has(itemClass)) return true
-  // Also check if we have a bulk ID for it (catches essences, fossils, boss frags, etc.)
+  // An exchange ID is what makes bulk possible at all -- it is the only thing the
+  // /exchange endpoint accepts under `want`. Belonging to a currency-ish item class
+  // is not enough: Incursion vials are Stackable Currency but GGG lists no vial in
+  // the exchange's own item list, so routing one to bulk could only ever render an
+  // empty panel while the regular search carries a real market (#550). This also
+  // covers what the PoE2 vendor-exchange path used to gate on its own: a PoE2 base
+  // not yet on the exchange falls through to regular search so the user still sees
+  // real listings, and the AngeBanner surfaces independently in the renderer.
   return getBulkExchangeId(name, baseType, _rarity) != null
 }
 

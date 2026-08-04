@@ -37,4 +37,21 @@ describe('isVendorExchangeItem (PoE1 / Faustus)', () => {
   it('excludes Mercenary Warrants -- each sells one mercenary, nothing fungible to exchange', () => {
     expect(isVendorExchangeItem(1, 'Map Fragments', 'Mercenary Warrant', 'Normal')).toBe(false)
   })
+
+  it('excludes every Incursion vial -- Faustus does not carry them, they sell on regular trade (#550)', () => {
+    const VIALS = [
+      'Vial of Awakening',
+      'Vial of Consequence',
+      'Vial of Dominance',
+      'Vial of Fate',
+      'Vial of Sacrifice',
+      'Vial of Summoning',
+      'Vial of Transcendence',
+      'Vial of the Ghost',
+      'Vial of the Ritual',
+    ]
+    for (const vial of VIALS) {
+      expect(isVendorExchangeItem(1, 'Stackable Currency', vial, 'Currency')).toBe(false)
+    }
+  })
 })
