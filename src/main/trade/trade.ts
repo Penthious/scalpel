@@ -1673,7 +1673,13 @@ export function getBulkExchangeId(
 }
 
 /** Check if an item should use bulk exchange instead of regular trade */
-export function isBulkExchangeItem(itemClass: string, name: string, baseType: string, _rarity?: string): boolean {
+export function isBulkExchangeItem(
+  itemClass: string,
+  name: string,
+  baseType: string,
+  _rarity?: string,
+  zanaMemory?: boolean,
+): boolean {
   // Items where individual attributes matter - always regular trade
   const regularTradeClasses = new Set([
     'Divination Cards',
@@ -1701,6 +1707,12 @@ export function isBulkExchangeItem(itemClass: string, name: string, baseType: st
   // regular search regardless.
   const isMapClass = itemClass === 'Maps' || itemClass === 'Waystones'
   if (isMapClass && (_rarity === 'Magic' || _rarity === 'Rare' || _rarity === 'Unique')) return false
+  // An Originator (Zana memory) map is a separately-priced item: its exchange market
+  // only exposes a bulk ratio, and that ratio reads identically to the plain map
+  // market at the cheap end (both bottom out at 1c) -- there is no way to distinguish
+  // them on the exchange. Price it on the regular search instead, where the
+  // originator implicit, tier, and rarity are real filters (#545).
+  if (isMapClass && zanaMemory) return false
 
   // PoE2 routing: an Ange-exchange item only goes through bulk if we actually
   // have its exchange ID. Eligible-but-no-ID items (e.g. new bases not yet on

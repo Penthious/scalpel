@@ -1121,6 +1121,35 @@ describe('searchTrade filter-group dispatch', () => {
     expect(body.query.filters.type_filters.filters.rarity).toEqual({ option: 'rare' })
   })
 
+  it('a white originator map pins rarity:normal, tier 16, and the originator implicit stat (#545)', async () => {
+    setPoeVersion(1)
+    const originatorMap = {
+      name: 'Map (Tier 16)',
+      baseType: 'Map (Tier 16)',
+      itemClass: 'Maps',
+      rarity: 'Normal',
+    }
+    const filters: StatFilter[] = [
+      { id: 'misc.rarity', text: 'Normal', type: 'misc', enabled: true, value: null, min: null, max: null },
+      {
+        id: 'implicit.stat_2696470877',
+        text: "Area is Influenced by the Originator's Memories",
+        type: 'implicit',
+        enabled: true,
+        value: null,
+        min: null,
+        max: null,
+      },
+    ]
+    await searchTrade('Mirage', originatorMap, filters, { tradeStatus: 'any' })
+    const req = capturedRequests.find((r) => r.url.includes('/search/'))
+    const body = parseCapturedBody(req)
+    expect(body.query.filters.type_filters.filters.rarity).toEqual({ option: 'normal' })
+    expect(body.query.filters.map_filters?.filters.map_tier).toEqual({ min: 16, max: 16 })
+    const sentIds = body.query.stats.flatMap((g) => g.filters?.map((f) => f.id) ?? [])
+    expect(sentIds).toContain('implicit.stat_2696470877')
+  })
+
   it('unidentified map implicits survive for all influence/occupied/citadel variants', async () => {
     setPoeVersion(1)
     const unidMap = {
@@ -2134,6 +2163,19 @@ describe('isBulkExchangeItem (PoE2 slug-gated routing)', () => {
     expect(getBulkExchangeId('Map (Tier 16)', 'Map (Tier 16)', 'Normal', true)).toBe('zana-map-tier-16')
     // A non-map id is unaffected by the flag.
     expect(getBulkExchangeId('Divine Orb', 'Divine Orb', 'Currency', true)).toBe('divine')
+  })
+
+  it('does NOT route a Normal Originator (Zana memory) map to bulk at all -- regular search only', () => {
+    setPoeVersion(1)
+    // The zana- exchange market only exposes a bulk ratio that reads identically to
+    // the plain map market at the cheap end, so an Originator map of any rarity must
+    // go through regular trade, where the originator implicit/tier/rarity are real
+    // filters. The same map without the flag still bulks (plain map exchange).
+    expect(isBulkExchangeItem('Maps', 'Map (Tier 16)', 'Map (Tier 16)', 'Normal', true)).toBe(false)
+    expect(isBulkExchangeItem('Maps', 'Map (Tier 16)', 'Map (Tier 16)', 'Normal')).toBe(true)
+    // Magic/Rare originator maps already routed to regular trade before this change
+    // via the Magic/Rare/Unique gate above; the flag is a no-op for them.
+    expect(isBulkExchangeItem('Maps', 'Cursed Resolve', 'Map (Tier 16)', 'Rare', true)).toBe(false)
   })
 })
 

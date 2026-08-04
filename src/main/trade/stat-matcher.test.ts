@@ -1461,6 +1461,31 @@ describe('matchItemMods', () => {
       const filters = matchItemMods([], [], undefined, makeItemInfo({ itemClass: 'Maps', rarity: 'Rare', sockets: '' }))
       expect(filters.find((f) => f.id === 'misc.rarity')).toBeUndefined()
     })
+
+    it('emits an enabled misc.rarity chip on a Normal (white) originator map (#545)', () => {
+      // A white originator map must not be compared against far pricier magic/rare
+      // copies, so the pin applies at every rarity, not just Rare.
+      const filters = matchItemMods(
+        [],
+        [],
+        undefined,
+        makeItemInfo({ itemClass: 'Maps', rarity: 'Normal', sockets: '', zanaMemory: true }),
+      )
+      const rarityChip = filters.find((f) => f.id === 'misc.rarity')
+      expect(rarityChip).toBeDefined()
+      expect(rarityChip?.text).toBe('Normal')
+      expect(rarityChip?.enabled).toBe(true)
+    })
+
+    it('emits no misc.rarity chip on a Normal non-originator map', () => {
+      const filters = matchItemMods(
+        [],
+        [],
+        undefined,
+        makeItemInfo({ itemClass: 'Maps', rarity: 'Normal', sockets: '' }),
+      )
+      expect(filters.find((f) => f.id === 'misc.rarity')).toBeUndefined()
+    })
   })
 
   describe('timeless jewel chips', () => {

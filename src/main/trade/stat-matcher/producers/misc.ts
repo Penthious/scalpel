@@ -233,19 +233,20 @@ export function buildMiscFilters(
   }
 
   // Rarity filter for equipment (off by default - search includes all non-unique by default).
-  // Originator (Zana memory) maps are farmed and priced as rares; the Maps branch in
-  // trade.ts otherwise searches `rarity: nonunique`, mixing in far cheaper magic and
-  // normal copies. Pin rarity for them (#541). Regular maps still get no rarity chip -
+  // Originator (Zana memory) maps are priced separately from the plain map market at every
+  // rarity, and the Maps branch in trade.ts otherwise searches `rarity: nonunique`, mixing
+  // magic/rare copies into a white search and vice versa. Pin rarity for them at whatever
+  // rarity the item actually rolled (#541, #545). Regular maps still get no rarity chip -
   // the mechanic only matters for originator.
-  const isOriginatorRareMap = itemInfo.itemClass === 'Maps' && itemInfo.rarity === 'Rare' && !!itemInfo.zanaMemory
-  if ((isEquipment && itemInfo.rarity !== 'Unique') || isOriginatorRareMap) {
+  const isOriginatorMap = itemInfo.itemClass === 'Maps' && !!itemInfo.zanaMemory
+  if ((isEquipment && itemInfo.rarity !== 'Unique') || isOriginatorMap) {
     out.push({
       id: 'misc.rarity',
       text: itemInfo.rarity,
       value: null,
       min: null,
       max: null,
-      enabled: isOriginatorRareMap,
+      enabled: isOriginatorMap,
       type: 'misc',
     })
   }

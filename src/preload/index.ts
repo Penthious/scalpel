@@ -539,8 +539,13 @@ export const api = {
     }>
     queryId: string
   }> => ipcRenderer.invoke('bulk-exchange', itemName, baseType, haveId, zanaMemory),
-  checkBulkItem: (itemName: string, baseType: string, itemClass: string, rarity?: string): Promise<boolean> =>
-    ipcRenderer.invoke('check-bulk-item', itemName, baseType, itemClass, rarity),
+  checkBulkItem: (
+    itemName: string,
+    baseType: string,
+    itemClass: string,
+    rarity?: string,
+    zanaMemory?: boolean,
+  ): Promise<boolean> => ipcRenderer.invoke('check-bulk-item', itemName, baseType, itemClass, rarity, zanaMemory),
   mapRegexTrade: (params: {
     tier: number
     avoidTexts: string[]

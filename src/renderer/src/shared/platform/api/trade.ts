@@ -144,8 +144,9 @@ export function checkBulkItem(
   baseType: string,
   itemClass: string,
   rarity?: string,
+  zanaMemory?: boolean,
 ): Promise<boolean> {
-  return window.api.checkBulkItem(itemName, baseType, itemClass, rarity)
+  return window.api.checkBulkItem(itemName, baseType, itemClass, rarity, zanaMemory)
 }
 
 export function fetchMoreListings(

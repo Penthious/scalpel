@@ -282,8 +282,8 @@ export function register(store: Store<AppSettings>): void {
 
   ipcMain.handle(
     'check-bulk-item',
-    (_event, itemName: string, baseType: string, itemClass: string, rarity?: string): boolean => {
-      return isBulkExchangeItem(itemClass, itemName, baseType, rarity)
+    (_event, itemName: string, baseType: string, itemClass: string, rarity?: string, zanaMemory?: boolean): boolean => {
+      return isBulkExchangeItem(itemClass, itemName, baseType, rarity, zanaMemory)
     },
   )
 

@@ -216,8 +216,8 @@ export function PriceCheck({
 
   // Check if this is a bulk exchange item on mount
   useEffect(() => {
-    window.api.checkBulkItem(item.name, item.baseType, item.itemClass, item.rarity).then(setIsBulk)
-  }, [item.name, item.baseType, item.itemClass])
+    window.api.checkBulkItem(item.name, item.baseType, item.itemClass, item.rarity, item.zanaMemory).then(setIsBulk)
+  }, [item.name, item.baseType, item.itemClass, item.zanaMemory])
 
   // Auto-apply Base mode:
   //   - Item classes in BASE_DEFAULT_ITEM_CLASSES: always (e.g. Blueprints, Contracts)
