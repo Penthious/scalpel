@@ -122,10 +122,10 @@ export function matchItemMods(
   const atzoatlFilters = buildAtzoatlFilters(itemInfo)
 
   // Map property chips (Item Quantity, Rarity, Pack Size, More X, 8-mod corrupted)
-  const mapFilters = buildMapFilters(itemInfo, advancedMods)
+  const mapFilters = buildMapFilters(itemInfo, advancedMods, ctx.pct)
 
   // Chart zone, quantity and shape chips
-  const chartFilters = buildChartFilters(itemInfo)
+  const chartFilters = buildChartFilters(itemInfo, ctx.pct)
 
   // Scrying Orb map-area chip
   const scryingOrbFilters = buildScryingOrbFilters(itemInfo)

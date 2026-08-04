@@ -12,7 +12,7 @@ type ChartItemInfo = {
 
 // Chart chips: zone (misc.chart_zone), Item Quantity (map.map_iiq) and shape
 // (map.chart_shape). Returns an empty array for anything that is not a chart.
-export function buildChartFilters(itemInfo: ChartItemInfo | undefined): StatFilter[] {
+export function buildChartFilters(itemInfo: ChartItemInfo | undefined, pct: number): StatFilter[] {
   if (!itemInfo || itemInfo.itemClass !== 'Chart') return []
 
   const out: StatFilter[] = []
@@ -41,7 +41,7 @@ export function buildChartFilters(itemInfo: ChartItemInfo | undefined): StatFilt
       id: 'map.map_iiq',
       text: `Quantity: +${itemInfo.mapQuantity}%`,
       value: itemInfo.mapQuantity,
-      min: MAP_MIN(itemInfo.mapQuantity),
+      min: MAP_MIN(itemInfo.mapQuantity, pct),
       max: null,
       enabled: true,
       type: 'map',

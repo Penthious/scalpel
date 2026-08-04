@@ -1342,6 +1342,68 @@ describe('matchItemMods', () => {
     })
   })
 
+  describe('map property chips honour the default search percentage (#547)', () => {
+    const reportedMap = () =>
+      makeItemInfo({
+        itemClass: 'Maps',
+        rarity: 'Rare',
+        sockets: '',
+        mapQuantity: 55,
+        mapRarity: 78,
+        mapPackSize: 21,
+        mapMoreMaps: 35,
+      })
+
+    it('pins property chips to the exact roll at defaultPercent 100', () => {
+      const filters = matchItemMods([], [], undefined, reportedMap(), undefined, 100)
+
+      const quantityChip = filters.find((f) => f.id === 'map.map_iiq')!
+      const rarityChip = filters.find((f) => f.id === 'map.map_iir')!
+      const packSizeChip = filters.find((f) => f.id === 'map.map_packsize')!
+      const moreMapsChip = filters.find((f) => f.id === 'pseudo.pseudo_map_more_map_drops')!
+
+      expect(quantityChip.min).toBe(quantityChip.value)
+      expect(rarityChip.min).toBe(rarityChip.value)
+      expect(packSizeChip.min).toBe(packSizeChip.value)
+      expect(moreMapsChip.min).toBe(moreMapsChip.value)
+    })
+
+    it('applies the configured floor at defaultPercent 90', () => {
+      const filters = matchItemMods([], [], undefined, reportedMap(), undefined, 90)
+
+      expect(filters.find((f) => f.id === 'map.map_iiq')?.min).toBe(49)
+      expect(filters.find((f) => f.id === 'map.map_iir')?.min).toBe(70)
+      expect(filters.find((f) => f.id === 'map.map_packsize')?.min).toBe(18)
+      expect(filters.find((f) => f.id === 'pseudo.pseudo_map_more_map_drops')?.min).toBe(31)
+    })
+
+    it('leaves pseudo.pseudo_number_of_affix_mods pinned to the actual affix count at defaultPercent 100', () => {
+      const advancedMods: AdvancedMod[] = [
+        ...Array.from({ length: 4 }, (_, i) => ({
+          type: 'prefix' as const,
+          name: `P${i}`,
+          tier: 1,
+          tags: [],
+          lines: [`prefix ${i}`],
+          ranges: [],
+        })),
+        ...Array.from({ length: 4 }, (_, i) => ({
+          type: 'suffix' as const,
+          name: `S${i}`,
+          tier: 1,
+          tags: [],
+          lines: [`suffix ${i}`],
+          ranges: [],
+        })),
+      ]
+      const filters = matchItemMods([], [], undefined, reportedMap(), advancedMods, 100)
+
+      const chip = filters.find((f) => f.id === 'pseudo.pseudo_number_of_affix_mods')!
+      expect(chip.value).toBe(8)
+      expect(chip.min).toBe(8)
+    })
+  })
+
   describe('originator (Zana memory) rare maps (#541)', () => {
     // Originator maps are farmed and priced on their drop-boosting rolls, so Rarity
     // pre-checks there even though it's noise on a regular rare map. Quantity, Pack
