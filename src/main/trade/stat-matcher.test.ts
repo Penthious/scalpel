@@ -3407,6 +3407,136 @@ describe('matchItemMods', () => {
     })
   })
 
+  describe('passive-granting mods excluded from PoE1 pseudos', () => {
+    // "Passive Skills in Radius also grant +#% to X" (The Light of Meaning) and
+    // "Added Small Passive Skills also grant: +#% to X" (cluster jewels) push the
+    // stat onto tree passives, not onto the wearer. GGG's PoE1 pseudos exclude
+    // them -- probed live: 4517 listings carry the cluster chaos-res mod and 0 of
+    // them satisfy pseudo_total_chaos_resistance >= 1. Emitting the pseudo also
+    // suppressed the real mod row, so the search returned nothing at all.
+    let prevVersion: ReturnType<typeof getPoeVersion>
+
+    beforeEach(() => {
+      prevVersion = getPoeVersion()
+      setPoeVersion(1)
+    })
+
+    afterEach(() => {
+      setPoeVersion(prevVersion)
+    })
+
+    const RADIUS_CHAOS = {
+      id: 'explicit.stat_1812306107',
+      text: 'Passive Skills in Radius also grant +#% to Chaos Resistance',
+      type: 'explicit',
+    }
+    const RADIUS_LIFE = {
+      id: 'explicit.stat_1223932609',
+      text: 'Passive Skills in Radius also grant +# to maximum Life',
+      type: 'explicit',
+    }
+    const RADIUS_MANA = {
+      id: 'explicit.stat_3382199855',
+      text: 'Passive Skills in Radius also grant +# to maximum Mana',
+      type: 'explicit',
+    }
+    const CLUSTER_CHAOS = {
+      id: 'explicit.stat_1811604576',
+      text: 'Added Small Passive Skills also grant: +#% to Chaos Resistance',
+      type: 'explicit',
+    }
+    const jewel = () =>
+      makeItemInfo({ rarity: 'Unique', itemClass: 'Jewels', baseType: 'Prismatic Jewel', name: 'The Light of Meaning' })
+
+    it('radius chaos-res grant emits no Total Chaos Resistance pseudo', () => {
+      _setStatEntriesForTests([RADIUS_CHAOS])
+      const filters = matchItemMods(
+        ['Passive Skills in Radius also grant +5% to Chaos Resistance'],
+        [],
+        undefined,
+        jewel(),
+      )
+      expect(filters.find((f) => f.id === 'pseudo.pseudo_total_chaos_resistance')).toBeUndefined()
+    })
+
+    it('radius chaos-res grant keeps its own mod row enabled', () => {
+      _setStatEntriesForTests([RADIUS_CHAOS])
+      const filters = matchItemMods(
+        ['Passive Skills in Radius also grant +5% to Chaos Resistance'],
+        [],
+        undefined,
+        jewel(),
+      )
+      const row = filters.find((f) => f.id === RADIUS_CHAOS.id)
+      expect(row).toBeDefined()
+      expect(row?.enabled).toBe(true)
+    })
+
+    it('radius life and mana grants emit no Total Life / Total Mana pseudos', () => {
+      _setStatEntriesForTests([RADIUS_LIFE, RADIUS_MANA])
+      const filters = matchItemMods(
+        [
+          'Passive Skills in Radius also grant +5 to maximum Life',
+          'Passive Skills in Radius also grant +5 to maximum Mana',
+        ],
+        [],
+        undefined,
+        jewel(),
+      )
+      expect(filters.find((f) => f.id === 'pseudo.pseudo_total_life')).toBeUndefined()
+      expect(filters.find((f) => f.id === 'pseudo.pseudo_total_mana')).toBeUndefined()
+    })
+
+    it('cluster jewel passive grant emits no Total Chaos Resistance pseudo', () => {
+      _setStatEntriesForTests([CLUSTER_CHAOS])
+      const filters = matchItemMods(
+        ['Added Small Passive Skills also grant: +12% to Chaos Resistance'],
+        [],
+        undefined,
+        makeItemInfo({ rarity: 'Rare', itemClass: 'Jewels', baseType: 'Large Cluster Jewel' }),
+      )
+      expect(filters.find((f) => f.id === 'pseudo.pseudo_total_chaos_resistance')).toBeUndefined()
+    })
+
+    it('a real player chaos-res roll on the same jewel still feeds the pseudo', () => {
+      _setStatEntriesForTests([
+        RADIUS_CHAOS,
+        { id: 'explicit.stat_2923486259', text: '+#% to Chaos Resistance', type: 'explicit' },
+      ])
+      const filters = matchItemMods(
+        ['Passive Skills in Radius also grant +5% to Chaos Resistance', '+26% to Chaos Resistance'],
+        [],
+        undefined,
+        jewel(),
+      )
+      const pseudo = filters.find((f) => f.id === 'pseudo.pseudo_total_chaos_resistance')
+      // Only the +26 real roll counts; the radius grant must not add its 5.
+      expect(pseudo?.value).toBe(26)
+    })
+
+    it('PoE2 radius grants DO still feed the pseudo (GGG counts them there)', () => {
+      // Divergence, not an oversight: a live Time-Lost Diamond whose only chaos
+      // source is "+3% to Chaos Resistance" in radius matches trade2's
+      // pseudo_total_chaos_resistance at min 3 and drops out at min 4.
+      setPoeVersion(2)
+      _setStatEntriesForTests([
+        {
+          id: 'explicit.stat_2264240911',
+          text: 'Small Passive Skills in Radius also grant #% to Chaos Resistance',
+          type: 'explicit',
+        },
+      ])
+      const filters = matchItemMods(
+        ['Small Passive Skills in Radius also grant +3% to Chaos Resistance'],
+        [],
+        undefined,
+        makeItemInfo({ rarity: 'Unique', itemClass: 'Jewels', baseType: 'Time-Lost Diamond' }),
+      )
+      const pseudo = filters.find((f) => f.id === 'pseudo.pseudo_total_chaos_resistance')
+      expect(pseudo?.value).toBe(3)
+    })
+  })
+
   describe('fractured chip', () => {
     it('generates fractured chip for equipment in "any" state when no fractured mods', () => {
       const filters = matchItemMods(

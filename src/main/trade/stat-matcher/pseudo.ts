@@ -189,6 +189,20 @@ function buildPseudoMap(): void {
     // +#% to <Ele> Resistance" IS genuine player resistance and must keep
     // contributing.
     if (/\bEnemies have\b/i.test(entry.text) && /\bResistances?\b/i.test(entry.text)) continue
+    // PoE1: "Passive Skills in Radius also grant +#% to Chaos Resistance" (The
+    // Light of Meaning) and "Added Small Passive Skills also grant: +#% to
+    // Chaos Resistance" (cluster jewels) put the stat on tree passives, not on
+    // the wearer, so GGG leaves them out of its pseudo totals -- 4517 live
+    // listings carry the cluster chaos-res mod and none of them satisfy
+    // pseudo_total_chaos_resistance >= 1. Folding them in emitted a pseudo chip
+    // that matched nothing AND suppressed the real mod row, so the whole search
+    // came back empty. Same shape hits the life and mana grants.
+    //
+    // PoE2 is deliberately excepted: its pseudos DO count the radius grants (a
+    // Time-Lost Diamond whose only chaos source is +3% in radius satisfies
+    // trade2's pseudo_total_chaos_resistance at min 3 and drops out at min 4),
+    // so excluding them there would understate the total the site computes.
+    if (getPoeVersion() === 1 && /\bPassive Skills\b/i.test(entry.text) && /\bgrants?\b/i.test(entry.text)) continue
     for (const [pattern, pseudoId, pseudoLabel, multiplier, opts] of pseudoMappings) {
       if (pattern.test(entry.text)) {
         if (!PSEUDO_CONTRIBUTIONS[entry.id]) PSEUDO_CONTRIBUTIONS[entry.id] = []
