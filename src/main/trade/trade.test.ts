@@ -2144,6 +2144,16 @@ describe('isBulkExchangeItem (PoE2 slug-gated routing)', () => {
     expect(isBulkExchangeItem('Stackable Currency', 'Scrying Orb', 'Scrying Orb', 'Currency')).toBe(false)
   })
 
+  it('does NOT route a Vaal Aspect piece to bulk -- the exchange market is dead (#551)', () => {
+    setPoeVersion(1)
+    for (const name of ['Ambition', 'Beauty', 'Cooperation', 'Curiosity']) {
+      expect(isBulkExchangeItem('Pieces', name, 'Vaal Aspect', 'Unique')).toBe(false)
+    }
+    // The slugs themselves stay in the map -- they are real GGG exchange ids,
+    // it is the routing that must not use them.
+    expect(getBulkExchangeId('Ambition', 'Vaal Aspect')).toBe('ambition')
+  })
+
   it('does NOT route a Rare item whose generated title collides with a currency name (#501)', () => {
     setPoeVersion(1)
     // A Rare Hypnotic Eye Jewel whose randomly generated title happens to be

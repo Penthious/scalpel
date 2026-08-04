@@ -1697,6 +1697,14 @@ export function isBulkExchangeItem(
   // A Mercenary Warrant is Map Fragments, but it sells one specific mercenary --
   // build and level are the price, and there is no bulk listing to offer.
   if (baseType === MERCENARY_WARRANT_BASE_TYPE) return false
+  // The four Vaal Aspects (Ambition, Beauty, Cooperation, Curiosity) are Unique
+  // Pieces that transform when combined, not fungible stacks. GGG lists a slug
+  // for each in the Fragments exchange group, so the name map routes them to
+  // bulk -- but nobody sells them there. Measured mid-league: Cooperation had 0
+  // exchange offers against a 7-8 divine regular-search market, and Ambition had
+  // a single 20c offer against a 7-divine one. Price them on regular search,
+  // where name + base type is an exact match (#551).
+  if (baseType === 'Vaal Aspect') return false
   // Beasts are "Stackable Currency" but have rarity Rare/Unique and need regular trade
   if (itemClass === 'Stackable Currency' && (_rarity === 'Rare' || _rarity === 'Unique')) return false
   // Modified map-class items (Magic/Rare/Unique) aren't stackable, so they can't be on
