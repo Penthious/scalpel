@@ -3,6 +3,7 @@ export const CHANGELOG: { version: string; notes: string[] }[] = [
     version: '1.0.2',
     notes: [
       'The Div Card Explorer now uses live drop weights from wraeclast.cards.',
+      'Added a Scrying Orb price check to each area in the Div Card Explorer.',
       'Added a poe.re Maps import to the regex tool.',
       'Added price-check support for Mercenary Warrants.',
       'Added price-check support for Vestigial items.',
@@ -31,6 +32,15 @@ export const CHANGELOG: { version: string; notes: string[] }[] = [
       'Fixed synthesis implicits that hide their chance but keep a duration (like Intimidate for 4 seconds) failing to match.',
       'Fixed "Minions have +#% to all Elemental Resistances" counting toward your Total Elemental Resistance.',
       'Fixed Stygian Vises matching "Has 1 Socket" instead of the abyssal socket stat, which zeroed the search.',
+      'Fixed Incursion vials price-checking on the Currency Exchange.',
+      'Fixed Vaal Aspects price-checking on the Currency Exchange, where almost nobody lists them.',
+      'Fixed white originator maps price-checking as bulk currency.',
+      'Trade results now show Memory Strands on originator maps.',
+      'Fixed map property chips ignoring your search percentage and always searching at 90%.',
+      'Fixed items with an abyssal socket suffix like "of the Underground" showing two "Abyssal Sockets" lines.',
+      'Fixed "Nearby Enemies have -#% to Fire Resistance" style mods counting toward your own Total Elemental Resistance.',
+      'Fixed cluster jewels and "Passive Skills in Radius also grant" mods feeding the pseudo resistance, life and mana totals.',
+      'Fixed a console window flashing on screen during app updates.',
     ],
   },
   {
