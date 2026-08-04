@@ -286,6 +286,7 @@ export function DivCardExplorer({ onSelectItem }: Props): JSX.Element {
                     onSelectItem?.()
                   }}
                   onToggleFlag={toggleFlag}
+                  mapName={entry.map.name}
                 />
               )}
             </div>

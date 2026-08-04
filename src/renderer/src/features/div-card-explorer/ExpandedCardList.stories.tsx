@@ -62,6 +62,7 @@ export const FullList: Story = {
     cardTiers: {},
     flaggedCards: new Set(),
     hiddenCards: {},
+    mapName: 'Dunes Map',
   },
 }
 
@@ -74,6 +75,7 @@ export const WithFlaggedOutliers: Story = {
     cardTiers: {},
     flaggedCards: new Set(['The Doctor']),
     hiddenCards: {},
+    mapName: 'Dunes Map',
   },
   parameters: {
     docs: { description: { story: 'Flagged outliers tinted orange + the "N outliers excluded" header banner.' } },
@@ -89,6 +91,7 @@ export const WithHiddenCards: Story = {
     cardTiers: {},
     flaggedCards: new Set(),
     hiddenCards: { 'Anarchy’s Price': true },
+    mapName: 'Dunes Map',
   },
 }
 
@@ -101,5 +104,6 @@ export const ShortList: Story = {
     cardTiers: {},
     flaggedCards: new Set(),
     hiddenCards: {},
+    mapName: 'Dunes Map',
   },
 }

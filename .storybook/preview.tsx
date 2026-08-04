@@ -24,6 +24,16 @@ win.api.lookupBaseType ??= apiStub
 win.api.openExternal ??= apiStub
 win.api.sisterOpenPriceCheck ??= apiStub
 win.api.reorderRegexPresets ??= apiAsyncStub
+// Two channels that need real-shaped data rather than a no-op: ScryingOrbButton
+// reads the league/version off getSettings and renders the cheapest listing from
+// tradeSearch, so undefined returns would leave it stuck mid-click.
+win.api.getSettings ??= async (): Promise<unknown> => ({ activeProfile: { league: 'Standard' }, poeVersion: 1 })
+win.api.tradeSearch ??= async (): Promise<unknown> => ({
+  total: 41,
+  listings: [{ id: 'stub', price: { amount: 12, currency: 'chaos' } }],
+  queryId: 'storybook',
+  remainingIds: [],
+})
 
 /** Storybook preview config -- runs once for every story.
  *
