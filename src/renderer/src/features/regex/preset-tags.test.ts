@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { generatePresetTags } from './preset-tags'
 import { MAP_MODS, DANGER_COLORS } from '@shared/data/regex/map-mods'
+import { DEFAULT_MAP_STATE } from '@shared/data/regex/map-state'
+import { TAB_COLORS } from './mapmods-helpers'
 
 /** Pick a real mod ID from each category so danger-color assertions stay in sync with
  *  whatever the upstream data file says today. */
@@ -62,5 +64,95 @@ describe('generatePresetTags', () => {
       qualifiers: { quantity: 100 },
     })
     expect(tags.map((t) => t.source)).toEqual(['qualifier', 'avoid', 'want'])
+  })
+
+  it('emits no map-state tags when mapState is omitted or all-default', () => {
+    expect(generatePresetTags({ avoid: new Set(), want: new Set(), qualifiers: {} })).toEqual([])
+    expect(
+      generatePresetTags({ avoid: new Set(), want: new Set(), qualifiers: {}, mapState: DEFAULT_MAP_STATE }),
+    ).toEqual([])
+  })
+
+  it('emits a want-colored rarity tag for an included partial selection', () => {
+    const tags = generatePresetTags({
+      avoid: new Set(),
+      want: new Set(),
+      qualifiers: {},
+      mapState: { ...DEFAULT_MAP_STATE, rarityRare: true, rarityInclude: true },
+    })
+    expect(tags).toEqual([
+      { text: 'rare maps', color: TAB_COLORS.want, source: 'qualifier', sourceId: 'map-state-rarity' },
+    ])
+  })
+
+  it('emits an avoid-colored, negated, multi-label rarity tag for an excluded partial selection', () => {
+    const tags = generatePresetTags({
+      avoid: new Set(),
+      want: new Set(),
+      qualifiers: {},
+      mapState: { ...DEFAULT_MAP_STATE, rarityNormal: true, rarityMagic: true, rarityInclude: false },
+    })
+    expect(tags).toEqual([
+      { text: '!normal+magic maps', color: TAB_COLORS.avoid, source: 'qualifier', sourceId: 'map-state-rarity' },
+    ])
+  })
+
+  it('emits a rarity tag for all-three-excluded but not all-three-included', () => {
+    const excluded = generatePresetTags({
+      avoid: new Set(),
+      want: new Set(),
+      qualifiers: {},
+      mapState: { ...DEFAULT_MAP_STATE, rarityNormal: true, rarityMagic: true, rarityRare: true, rarityInclude: false },
+    })
+    expect(excluded).toEqual([
+      {
+        text: '!normal+magic+rare maps',
+        color: TAB_COLORS.avoid,
+        source: 'qualifier',
+        sourceId: 'map-state-rarity',
+      },
+    ])
+
+    const included = generatePresetTags({
+      avoid: new Set(),
+      want: new Set(),
+      qualifiers: {},
+      mapState: { ...DEFAULT_MAP_STATE, rarityNormal: true, rarityMagic: true, rarityRare: true, rarityInclude: true },
+    })
+    expect(included).toEqual([])
+  })
+
+  it('emits corrupted and unidentified tags with include/exclude text and coloring', () => {
+    const includeBoth = generatePresetTags({
+      avoid: new Set(),
+      want: new Set(),
+      qualifiers: {},
+      mapState: { ...DEFAULT_MAP_STATE, corrupted: 'include', unidentified: 'include' },
+    })
+    expect(includeBoth).toEqual([
+      { text: 'corrupted', color: TAB_COLORS.want, source: 'qualifier', sourceId: 'map-state-corrupted' },
+      { text: 'unid', color: TAB_COLORS.want, source: 'qualifier', sourceId: 'map-state-unidentified' },
+    ])
+
+    const excludeBoth = generatePresetTags({
+      avoid: new Set(),
+      want: new Set(),
+      qualifiers: {},
+      mapState: { ...DEFAULT_MAP_STATE, corrupted: 'exclude', unidentified: 'exclude' },
+    })
+    expect(excludeBoth).toEqual([
+      { text: '!corrupted', color: TAB_COLORS.avoid, source: 'qualifier', sourceId: 'map-state-corrupted' },
+      { text: '!unid', color: TAB_COLORS.avoid, source: 'qualifier', sourceId: 'map-state-unidentified' },
+    ])
+  })
+
+  it('places map-state tags after qualifier tags and before avoid/want tags', () => {
+    const tags = generatePresetTags({
+      avoid: new Set([firstLethalId]),
+      want: new Set([firstBeneficialId]),
+      qualifiers: { quantity: 100 },
+      mapState: { ...DEFAULT_MAP_STATE, corrupted: 'include' },
+    })
+    expect(tags.map((t) => t.sourceId)).toEqual(['quantity', 'map-state-corrupted', firstLethalId, firstBeneficialId])
   })
 })

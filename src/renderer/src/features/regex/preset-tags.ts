@@ -1,4 +1,5 @@
 import { MAP_MODS, DANGER_COLORS, type Danger } from '@shared/data/regex/map-mods'
+import type { MapStateSettings } from '@shared/data/regex/map-state'
 import { QUALIFIERS } from './Qualifiers'
 import type { RegexPresetTag } from '@shared/types'
 import { TAB_COLORS } from './mapmods-helpers'
@@ -163,11 +164,58 @@ function getModDanger(id: number): Danger | null {
   return mod ? mod.danger : null
 }
 
+/** Map-state (rarity/corrupted/unidentified) auto-tags. Rarity only emits when it's
+ *  an active constraint -- some-but-not-all rarities selected, or all three excluded;
+ *  none selected or all three included both mean "no constraint" and emit nothing. */
+function mapStateTags(mapState: MapStateSettings): RegexPresetTag[] {
+  const tags: RegexPresetTag[] = []
+
+  const selected = (
+    [
+      ['normal', mapState.rarityNormal],
+      ['magic', mapState.rarityMagic],
+      ['rare', mapState.rarityRare],
+    ] as const
+  )
+    .filter(([, on]) => on)
+    .map(([label]) => label)
+  const rarityActive = selected.length > 0 && !(selected.length === 3 && mapState.rarityInclude)
+  if (rarityActive) {
+    tags.push({
+      text: `${mapState.rarityInclude ? '' : '!'}${selected.join('+')} maps`,
+      color: mapState.rarityInclude ? TAB_COLORS.want : TAB_COLORS.avoid,
+      source: 'qualifier',
+      sourceId: 'map-state-rarity',
+    })
+  }
+
+  if (mapState.corrupted !== 'off') {
+    tags.push({
+      text: mapState.corrupted === 'include' ? 'corrupted' : '!corrupted',
+      color: mapState.corrupted === 'include' ? TAB_COLORS.want : TAB_COLORS.avoid,
+      source: 'qualifier',
+      sourceId: 'map-state-corrupted',
+    })
+  }
+
+  if (mapState.unidentified !== 'off') {
+    tags.push({
+      text: mapState.unidentified === 'include' ? 'unid' : '!unid',
+      color: mapState.unidentified === 'include' ? TAB_COLORS.want : TAB_COLORS.avoid,
+      source: 'qualifier',
+      sourceId: 'map-state-unidentified',
+    })
+  }
+
+  return tags
+}
+
 /** Generate auto-tags from the current regex state */
 export function generatePresetTags(state: {
   avoid: Set<number>
   want: Set<number>
   qualifiers: Record<string, number | null>
+  mapState?: MapStateSettings
 }): RegexPresetTag[] {
   const tags: RegexPresetTag[] = []
 
@@ -183,6 +231,9 @@ export function generatePresetTags(state: {
       })
     }
   }
+
+  // Map State tags (rarity / corrupted / unidentified)
+  if (state.mapState) tags.push(...mapStateTags(state.mapState))
 
   // Avoid tags
   for (const id of state.avoid) {

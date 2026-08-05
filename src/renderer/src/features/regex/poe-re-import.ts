@@ -1,4 +1,5 @@
 import { MAP_MODS } from '@shared/data/regex/map-mods'
+import { DEFAULT_MAP_STATE, sanitizeMapState, type MapStateSettings } from '@shared/data/regex/map-state'
 import type { RegexPreset } from '@shared/types'
 
 /** Known Scalpel Maps qualifier IDs (see Qualifiers.tsx). */
@@ -43,9 +44,12 @@ export interface PoeReMapSettings {
     scarab?: string
   }
   anyQuality?: boolean
-  rarity?: unknown
-  corrupted?: unknown
-  unidentified?: unknown
+  /** poe.re default: all three true + include true (no constraint). */
+  rarity?: { normal?: unknown; magic?: unknown; rare?: unknown; include?: unknown }
+  /** poe.re default: enabled false, include true. */
+  corrupted?: { enabled?: unknown; include?: unknown }
+  /** poe.re default: enabled false, include false. */
+  unidentified?: { enabled?: unknown; include?: unknown }
   tradeEightModOnly?: unknown
   tradeExcludeValdo?: unknown
   tradeExcludeShaperElder?: unknown
@@ -158,9 +162,6 @@ function collectUnsupported(map: PoeReMapSettings): string[] {
   if (map.anyQuality !== false && countQualityValues(map) > 1) {
     out.push('quality match-any (Scalpel requires all of them)')
   }
-  if (map.rarity != null) out.push('map rarity include/exclude')
-  if (map.corrupted != null) out.push('corrupted filter')
-  if (map.unidentified != null) out.push('unidentified filter')
   if (map.tradeEightModOnly != null) out.push('8-mod trade filter')
   if (map.tradeExcludeValdo != null) out.push('exclude Valdo maps')
   if (map.tradeExcludeShaperElder != null) out.push('exclude Shaper/Elder maps')
@@ -175,6 +176,44 @@ function countQualityValues(map: PoeReMapSettings): number {
   const q = map.quality
   if (!q) return 0
   return [q.regular, q.currency, q.divination, q.rarity, q.packSize, q.scarab].filter((v) => parseMin(v) != null).length
+}
+
+/** Delta exports omit unchanged fields, so an absent `rarity` object means poe.re's
+ *  own default (all three true + include) -- which, like Scalpel's none+include
+ *  default, emits no constraint, so we simply keep DEFAULT_MAP_STATE's rarity fields
+ *  untouched in that case. When present, missing subfields fall back to poe.re's
+ *  per-subfield default (true) rather than DEFAULT_MAP_STATE's (false). */
+function mapPoeReRarity(rarity: PoeReMapSettings['rarity']): Partial<MapStateSettings> {
+  if (rarity == null || typeof rarity !== 'object') return {}
+  return {
+    rarityNormal: rarity.normal !== undefined ? !!rarity.normal : true,
+    rarityMagic: rarity.magic !== undefined ? !!rarity.magic : true,
+    rarityRare: rarity.rare !== undefined ? !!rarity.rare : true,
+    rarityInclude: rarity.include !== undefined ? !!rarity.include : true,
+  }
+}
+
+/** Shared corrupted/unidentified mapping: absent object or `enabled: false` -> 'off'.
+ *  `defaultInclude` is poe.re's per-filter default for a missing `include` subfield
+ *  (true for corrupted, false for unidentified -- see PoeReMapSettings). */
+function mapPoeReTriState(
+  raw: { enabled?: unknown; include?: unknown } | undefined,
+  defaultInclude: boolean,
+): 'off' | 'include' | 'exclude' {
+  if (raw == null || typeof raw !== 'object') return 'off'
+  const enabled = raw.enabled !== undefined ? !!raw.enabled : false
+  if (!enabled) return 'off'
+  const include = raw.include !== undefined ? !!raw.include : defaultInclude
+  return include ? 'include' : 'exclude'
+}
+
+function mapPoeReMapState(map: PoeReMapSettings): MapStateSettings {
+  return sanitizeMapState({
+    ...DEFAULT_MAP_STATE,
+    ...mapPoeReRarity(map.rarity),
+    corrupted: mapPoeReTriState(map.corrupted, true),
+    unidentified: mapPoeReTriState(map.unidentified, false),
+  })
 }
 
 function filterKnownIds(ids: unknown): { kept: number[]; unknown: number[] } {
@@ -229,6 +268,7 @@ export function mapPoeReToMapsPreset(
   const wantMode: 'any' | 'all' = map.allGoodMods === false ? 'any' : 'all'
   const nightmare = map.displayNightmareMods !== false
   const profileName = opts?.profileName ?? null
+  const mapState = mapPoeReMapState(map)
 
   const name =
     profileName?.trim() && profileName.trim().toLowerCase() !== 'default' ? profileName.trim() : 'Imported from poe.re'
@@ -242,6 +282,7 @@ export function mapPoeReToMapsPreset(
     wantMode,
     qualifiers,
     nightmare,
+    mapState,
   }
 
   return {

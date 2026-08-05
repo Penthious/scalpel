@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { MAP_MODS } from '@shared/data/regex/map-mods'
+import { DEFAULT_MAP_STATE } from '@shared/data/regex/map-state'
 import { decodePoeReExport, extractPoeReMapSettings, poeReExportToMapsPreset } from './poe-re-import'
 
 const NIGHTMARE_ID = MAP_MODS.find((m) => m.nightmare)!.id
@@ -129,5 +130,54 @@ describe('poeReExportToMapsPreset', () => {
       encodePoeRe({ map: { quality: { regular: '20', scarab: '12' }, anyQuality: false } }),
     )
     expect(allOf.unsupported).toEqual([])
+  })
+})
+
+describe('poeReExportToMapsPreset: mapState', () => {
+  it('maps a rarity object into the four rarity fields', () => {
+    const encoded = encodePoeRe({
+      map: { rarity: { normal: false, magic: false, rare: true, include: true } },
+    })
+    const result = poeReExportToMapsPreset(encoded)
+    expect(result.preset.mapState).toEqual({
+      rarityNormal: false,
+      rarityMagic: false,
+      rarityRare: true,
+      rarityInclude: true,
+      corrupted: 'off',
+      unidentified: 'off',
+    })
+  })
+
+  it('maps corrupted enabled+exclude to the exclude tri-state', () => {
+    const encoded = encodePoeRe({ map: { corrupted: { enabled: true, include: false } } })
+    const result = poeReExportToMapsPreset(encoded)
+    expect(result.preset.mapState?.corrupted).toBe('exclude')
+  })
+
+  it('maps unidentified enabled with an absent include to exclude (poe.re default)', () => {
+    const encoded = encodePoeRe({ map: { unidentified: { enabled: true } } })
+    const result = poeReExportToMapsPreset(encoded)
+    expect(result.preset.mapState?.unidentified).toBe('exclude')
+  })
+
+  it('defaults to DEFAULT_MAP_STATE when rarity/corrupted/unidentified are all absent', () => {
+    const encoded = encodePoeRe({ map: { badIds: [-2050206104] } })
+    const result = poeReExportToMapsPreset(encoded)
+    expect(result.preset.mapState).toEqual(DEFAULT_MAP_STATE)
+  })
+
+  it('no longer flags rarity/corrupted/unidentified as unsupported', () => {
+    const encoded = encodePoeRe({
+      map: {
+        rarity: { rare: true },
+        corrupted: { enabled: true },
+        unidentified: { enabled: true },
+      },
+    })
+    const result = poeReExportToMapsPreset(encoded)
+    expect(result.unsupported).not.toContain('map rarity include/exclude')
+    expect(result.unsupported).not.toContain('corrupted filter')
+    expect(result.unsupported).not.toContain('unidentified filter')
   })
 })

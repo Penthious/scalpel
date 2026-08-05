@@ -29,4 +29,5 @@ export interface RegexPreset {
   flaskIgnoreEffectTiers?: boolean
   itemCrafting?: import('../data/regex/items-state').ItemsState
   beast?: import('../data/regex/beast-state').BeastState
+  mapState?: import('../data/regex/map-state').MapStateSettings
 }
