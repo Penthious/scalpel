@@ -4889,6 +4889,130 @@ describe('matchModToStat (Forbidden Shako indexable_support routing)', () => {
   })
 })
 
+describe('Forbidden Shako double-Decay: indexable-support rows are not sum-merged (#552)', () => {
+  // The trade index keeps each indexable-support instance separate: a search on
+  // indexable_support_92 with min=36 over all of Standard returns 0 items, so a
+  // double-Decay Shako's two lines are never combined server-side. Summing them
+  // into one Level-34 row (the old mergeDuplicateStats behavior) searched only
+  // items that rolled a single Level-34 Decay -- the wrong items, wrong price.
+  function seedDecayEntries() {
+    _setStatEntriesForTests([
+      { id: 'explicit.indexable_support_92', text: 'Socketed Gems are Supported by Level # Decay', type: 'explicit' },
+      { id: 'explicit.stat_388696990', text: 'Socketed Gems are Supported by Level # Decay', type: 'explicit' },
+    ])
+  }
+
+  it('double Decay: both rows survive unmerged, only the higher roll stays enabled', () => {
+    seedDecayEntries()
+    const advancedMods: AdvancedMod[] = [
+      {
+        type: 'prefix',
+        name: '',
+        tier: 0,
+        tags: ['Gem'],
+        lines: [
+          'Socketed Gems are Supported by Level 4(1-10) Decay(Greater Multiple Projectiles-Hallow) - Unscalable Value',
+        ],
+        ranges: [],
+        randomSupport: true,
+      },
+      {
+        type: 'prefix',
+        name: '',
+        tier: 0,
+        tags: ['Gem'],
+        lines: [
+          'Socketed Gems are Supported by Level 30(25-35) Decay(Greater Multiple Projectiles-Hallow) - Unscalable Value',
+        ],
+        ranges: [],
+        randomSupport: true,
+      },
+    ]
+    const filters = matchItemMods(
+      ['Socketed Gems are Supported by Level 4 Decay', 'Socketed Gems are Supported by Level 30 Decay'],
+      [],
+      undefined,
+      makeItemInfo({ itemClass: 'Helmets', rarity: 'Unique', baseType: 'Great Crown', itemLevel: 85 }),
+      advancedMods,
+    )
+    const decayRows = filters.filter((f) => f.id === 'explicit.indexable_support_92')
+    expect(decayRows).toHaveLength(2)
+    const highRow = decayRows.find((r) => r.value === 30)
+    const lowRow = decayRows.find((r) => r.value === 4)
+    expect(highRow).toBeDefined()
+    expect(lowRow).toBeDefined()
+    expect(highRow?.min).toBe(30)
+    expect(highRow?.max).toBe(30)
+    expect(highRow?.enabled).toBe(true)
+    expect(lowRow?.min).toBe(4)
+    expect(lowRow?.max).toBe(4)
+    expect(lowRow?.enabled).toBe(false)
+  })
+})
+
+describe('basic-copy Shako Decay routing by item identity (#552)', () => {
+  // Basic copies (chat-linked items) carry no advanced-mod block, so randomSupport
+  // is never flagged from a roll bracket. Forbidden Shako / Replica Forbidden Shako
+  // are the only PoE1 items with indexable supports, so their support lines route
+  // to the indexable family by item identity instead.
+  function seedDecayEntries() {
+    _setStatEntriesForTests([
+      { id: 'explicit.indexable_support_92', text: 'Socketed Gems are Supported by Level # Decay', type: 'explicit' },
+      { id: 'explicit.stat_388696990', text: 'Socketed Gems are Supported by Level # Decay', type: 'explicit' },
+    ])
+  }
+
+  it('basic-copy Forbidden Shako routes to indexable_support_92', () => {
+    seedDecayEntries()
+    const filters = matchItemMods(
+      ['Socketed Gems are Supported by Level 30 Decay'],
+      [],
+      undefined,
+      makeItemInfo({ itemClass: 'Helmets', rarity: 'Unique', baseType: 'Great Crown' }),
+    )
+    const chip = filters.find((f) => f.text.includes('Decay'))
+    expect(chip).toBeDefined()
+    expect(chip?.id).toBe('explicit.indexable_support_92')
+  })
+
+  it('control: Hungry Loop (Unset Ring) basic copy stays on the regular stat family', () => {
+    seedDecayEntries()
+    const filters = matchItemMods(
+      ['Socketed Gems are Supported by Level 20 Decay'],
+      [],
+      undefined,
+      makeItemInfo({ itemClass: 'Rings', rarity: 'Unique', baseType: 'Unset Ring' }),
+    )
+    const chip = filters.find((f) => f.text.includes('Decay'))
+    expect(chip).toBeDefined()
+    expect(chip?.id).toBe('explicit.stat_388696990')
+  })
+
+  it("control: rare Conqueror's Helmet basic copy stays on the regular stat family", () => {
+    _setStatEntriesForTests([
+      {
+        id: 'explicit.stat_2388360415',
+        text: 'Socketed Gems are Supported by Level # Endurance Charge on Melee Stun',
+        type: 'explicit',
+      },
+      {
+        id: 'explicit.indexable_support_98',
+        text: 'Socketed Gems are Supported by Level # Endurance Charge on Melee Stun',
+        type: 'explicit',
+      },
+    ])
+    const filters = matchItemMods(
+      ['Socketed Gems are Supported by Level 20 Endurance Charge on Melee Stun'],
+      [],
+      undefined,
+      makeItemInfo({ itemClass: 'Helmets', rarity: 'Rare', baseType: "Conqueror's Helmet" }),
+    )
+    const chip = filters.find((f) => f.text.includes('Endurance Charge on Melee Stun'))
+    expect(chip).toBeDefined()
+    expect(chip?.id).toBe('explicit.stat_2388360415')
+  })
+})
+
 describe('PoE2 Damage-as-Extra summary pseudos (end to end)', () => {
   const ELE_ID = 'pseudo.pseudo_damage_as_extra_elemental'
   const ELE_CHAOS_ID = 'pseudo.pseudo_damage_as_extra_elemental_chaos'

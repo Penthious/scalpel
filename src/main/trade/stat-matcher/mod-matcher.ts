@@ -34,7 +34,7 @@ function isMinMaxRangeStat(statText: string): boolean {
  *  default behavior excludes the indexable family (so regular items match correctly);
  *  callers that know they're looking at a randomized-support mod pass
  *  preferIndexableSupport=true to flip the filter. */
-const INDEXABLE_SUPPORT_RE = /^[a-z]+\.indexable_support_\d+/
+export const INDEXABLE_SUPPORT_RE = /^[a-z]+\.indexable_support_\d+/
 
 // Result cache for matchModToStat, keyed on the full argument tuple. Invalidation
 // rides on the statEntries array reference swap (same idiom as statTextById in

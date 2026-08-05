@@ -11,7 +11,7 @@ import { computeValueBounds } from '../bounds'
 import { isDefenseMod, isLocalMod, isLowPriority } from '../classification'
 import { QUALIFIER_BY_ITEM_CLASS } from '../item-classes'
 import type { MatchContext } from '../context'
-import { matchModToStat } from '../mod-matcher'
+import { INDEXABLE_SUPPORT_RE, matchModToStat } from '../mod-matcher'
 import { accumulatePseudo, PSEUDO_CONTRIBUTIONS, type PseudoContribution } from '../pseudo'
 
 // Gem-level gear mods are discrete brackets where +2 listings are far pricier
@@ -84,6 +84,23 @@ function mergeDuplicateStats(rows: StatFilter[], pct: number): StatFilter[] {
     const first = group[0]
     if (group.length === 1) {
       result.push(first)
+      continue
+    }
+    // Forbidden Shako / Replica Forbidden Shako can roll the same randomized support
+    // in both of their support slots (e.g. Level 4 + Level 30 Decay). The trade index
+    // keeps each indexable-support instance separate -- a search on indexable_support_92
+    // with min=36 over all of Standard returns 0 items -- so summing them into one
+    // Level-34 row (as the generic merge below does) searched only items that rolled a
+    // single Level-34 Decay, the wrong items at the wrong price (#552). Emit every row
+    // unmerged; only the highest roll (the price driver) keeps its computed enabled
+    // state, the rest surface disabled since we can't prove the trade API accepts two
+    // filters on the same id in one group.
+    if (INDEXABLE_SUPPORT_RE.test(first.id)) {
+      let best = group[0]
+      for (const row of group) {
+        if ((row.value ?? -Infinity) > (best.value ?? -Infinity)) best = row
+      }
+      for (const row of group) result.push(row === best ? row : { ...row, enabled: false })
       continue
     }
     // Sum values, recompute min/max from the summed value rather than the partial mins
@@ -227,6 +244,18 @@ export function processExplicits(ctx: MatchContext): StatFilter[] {
       if (advMod?.foulborn) isFoulborn = true
       if (advMod?.crafted) isCrafted = true
       if (advMod?.randomSupport) isRandomSupport = true
+    }
+    // Basic copies (e.g. chat-linked items) carry no advanced-mod data, so the roll
+    // bracket can never flag a randomized support here. The only PoE1 items with
+    // indexable supports are Forbidden Shako / Replica Forbidden Shako, both unique
+    // Great Crowns, so route their support lines by item identity instead (#552).
+    if (
+      !isRandomSupport &&
+      itemInfo?.rarity === 'Unique' &&
+      itemInfo?.baseType === 'Great Crown' &&
+      SOCKETED_SUPPORT_LEVEL_MOD.test(cleaned)
+    ) {
+      isRandomSupport = true
     }
     const useLocal = hasLocalMods && isLocalMod(cleaned, isWeapon)
     // Trade stats that share display text across item categories carry a trailing
