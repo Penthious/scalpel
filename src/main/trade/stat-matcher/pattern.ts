@@ -1,5 +1,14 @@
+// Compiled-pattern caches, keyed by input text. text -> RegExp is a pure
+// function so cached entries never go stale (no invalidation needed), and the
+// cached instances are safe to share across callers because neither pattern
+// uses the `g` flag (no `lastIndex` state to stomp on).
+const PATTERN_CACHE = new Map<string, RegExp>()
+const RELAXED_PATTERN_CACHE = new Map<string, RegExp>()
+
 // Build regex patterns from stat text: "+# to maximum Life" -> /^\+(\d+(?:\.\d+)?) to maximum Life$/
 function statTextToPattern(text: string): RegExp {
+  const cached = PATTERN_CACHE.get(text)
+  if (cached) return cached
   // Normalize whitespace (including `\n` between multi-line stat parts) to a single
   // space before escaping, so a two-line crafted mod like
   //   "Trigger a Socketed Spell ... Cooldown\nSpells Triggered this way ..."
@@ -7,7 +16,9 @@ function statTextToPattern(text: string): RegExp {
   // Callers also normalize their input text to a single space before `.match(pattern)`.
   const normalized = text.replace(/\s+/g, ' ')
   const escaped = normalized.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/#/g, '(.+?)')
-  return new RegExp(`^${escaped}$`, 'i')
+  const pattern = new RegExp(`^${escaped}$`, 'i')
+  PATTERN_CACHE.set(text, pattern)
+  return pattern
 }
 
 /** Validates a `(.+?)` capture as a numeric value worth parsing. Allows an
@@ -21,6 +32,8 @@ const NUMERIC_CAPTURE = /^[+-]?\d+(?:\.\d+)?$/
  *  Used as fallback when exact matching fails -- handles cases where
  *  trade API has a fixed number but the item text has a different value. */
 function statTextToRelaxedPattern(text: string): RegExp {
+  const cached = RELAXED_PATTERN_CACHE.get(text)
+  if (cached) return cached
   // Same whitespace normalization as statTextToPattern -- see that function for details.
   const normalized = text.replace(/\s+/g, ' ')
   let escaped = normalized.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/#/g, '(.+?)')
@@ -28,7 +41,9 @@ function statTextToRelaxedPattern(text: string): RegExp {
   // Using (.+?) here let "Has 1 Socket" match "Has 1 Abyssal Socket" by swallowing
   // "1 Abyssal" -- wrong trade id for Stygian Vise and zero results.
   escaped = escaped.replace(/\d+(?:\\\.\d+)?/g, '(\\d+(?:\\.\\d+)?)')
-  return new RegExp(`^${escaped}$`, 'i')
+  const pattern = new RegExp(`^${escaped}$`, 'i')
+  RELAXED_PATTERN_CACHE.set(text, pattern)
+  return pattern
 }
 
 export { NUMERIC_CAPTURE, statTextToPattern, statTextToRelaxedPattern }

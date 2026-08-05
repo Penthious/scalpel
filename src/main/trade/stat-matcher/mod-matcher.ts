@@ -36,6 +36,16 @@ function isMinMaxRangeStat(statText: string): boolean {
  *  preferIndexableSupport=true to flip the filter. */
 const INDEXABLE_SUPPORT_RE = /^[a-z]+\.indexable_support_\d+/
 
+// Result cache for matchModToStat, keyed on the full argument tuple. Invalidation
+// rides on the statEntries array reference swap (same idiom as statTextById in
+// stats-cache.ts) -- stats refetch, invalidateStatsCache(), and
+// _setStatEntriesForTests all replace the array, which this detects below.
+let matchResultCache = new Map<
+  string,
+  { statId: string; value: number | null; option?: number; aggregated?: boolean } | null
+>()
+let matchResultCacheEntries: StatEntry[] | null = null
+
 export function matchModToStat(
   modText: string,
   preferLocal = false,
@@ -43,14 +53,37 @@ export function matchModToStat(
   preferIndexableSupport = false,
   preferQualifier: string | null = null,
 ): { statId: string; value: number | null; option?: number; aggregated?: boolean } | null {
+  const currentEntries = getStatEntries()
+  if (currentEntries !== matchResultCacheEntries) {
+    matchResultCache = new Map()
+    matchResultCacheEntries = currentEntries
+  }
+  const cacheKey = [
+    modType,
+    preferLocal ? '1' : '0',
+    preferIndexableSupport ? '1' : '0',
+    preferQualifier ?? '',
+    modText,
+  ].join('\0')
+  // A stored null means "no match" - get() returning undefined is the only miss signal.
+  const cached = matchResultCache.get(cacheKey)
+  if (cached !== undefined) return cached ? { ...cached } : null
+
   // Check direct mappings first (for mods with completely different trade API wording)
   const directKey = modText.toLowerCase().trim()
-  if (DIRECT_MOD_MAPPINGS[directKey]) return DIRECT_MOD_MAPPINGS[directKey]
+  if (DIRECT_MOD_MAPPINGS[directKey]) {
+    const direct = DIRECT_MOD_MAPPINGS[directKey]
+    matchResultCache.set(cacheKey, { ...direct })
+    // Copy on return too - handing out the live table entry would let a caller
+    // mutation corrupt the shared static mapping for the process lifetime.
+    return { ...direct }
+  }
 
   const result = _matchModToStat(modText, preferLocal, modType, preferIndexableSupport, preferQualifier)
   if (result && STAT_ID_REMAPS[result.statId]) {
     result.statId = STAT_ID_REMAPS[result.statId]
   }
+  matchResultCache.set(cacheKey, result ? { ...result } : null)
   return result
 }
 
