@@ -1280,6 +1280,21 @@ export async function searchTrade(
     }
   }
 
+  // Plain originator (Zana memory) maps: NOT the Elder influence implicit so the comps
+  // are other plain 16.5s, not the far pricier Elder Guardian copies (#556). Only reached
+  // when the chip is present, which the producer does solely for non-Elder originator maps.
+  // The catalog id is flattened (`implicit.stat_1792283443|2`) and must ship bare -- pairing
+  // a `|N` id with value.option returns zero listings.
+  const excludeElderChip = statFilters.find((f) => f.id === 'misc.exclude_elder')
+  if (excludeElderChip?.enabled) {
+    const elderStat = matchModToStat('Area is influenced by The Elder', false, 'implicit')
+    if (elderStat) {
+      statGroups.push({ type: 'not', filters: [{ id: elderStat.statId, value: {} }] })
+    } else {
+      recordMainBreadcrumb('trade: Exclude Elder enabled but the Elder map implicit is not in the stats catalog')
+    }
+  }
+
   // Unenchanted Heist Blueprints: NOT `# Enchant Modifiers` so comps exclude
   // Enchanted Armaments / other enchanted listings. Honors the Exclude Enchanted chip.
   const excludeEnchantChip = statFilters.find((f) => f.id === 'misc.exclude_enchanted')

@@ -52,7 +52,9 @@ vi.mock('electron', () => ({
   // the way APT/EE2 do. Tests don't exercise the value, just need it to exist.
   // `on` covers the before-quit listener windowing/index.ts registers at module
   // scope (pulled in transitively via overlay.ts).
-  app: { userAgentFallback: 'Scalpel-Test/1.0', on: vi.fn() },
+  // `isReady` is what diagnostics.ts gates on before touching userData; returning
+  // false makes recordMainBreadcrumb a no-op instead of a crash on the error paths.
+  app: { userAgentFallback: 'Scalpel-Test/1.0', on: vi.fn(), isReady: () => false },
   net: {
     request: vi.fn((opts: { url: string; method: string }) => {
       const entry = { url: opts.url, method: opts.method } as {
@@ -3113,6 +3115,100 @@ describe('searchTrade unenchanted Blueprint NOT Enchant Modifiers', () => {
 
   it('omits the not group when the chip is absent (enchanted default)', async () => {
     await searchTrade('Mirage', blueprintItem, wingsChips, {
+      tradeStatus: 'any',
+      tradePriceOption: 'chaos_divine',
+    })
+    const req = capturedRequests.find((r) => r.url.includes('/search/'))
+    const body = parseCapturedBody(req)
+    expect(body.query.stats.find((g) => g.type === 'not')).toBeUndefined()
+  })
+})
+
+describe('searchTrade plain originator map NOT Elder influence (#556)', () => {
+  const mapItem = {
+    name: '',
+    baseType: 'Map (Tier 16)',
+    itemClass: 'Maps',
+    rarity: 'Rare',
+    zanaMemory: true,
+  }
+
+  const originatorChip: StatFilter = {
+    id: 'implicit.stat_2696470877',
+    text: "Area is Influenced by the Originator's Memories",
+    value: null,
+    min: null,
+    max: null,
+    enabled: true,
+    type: 'implicit',
+  }
+
+  const excludeOn: StatFilter = {
+    id: 'misc.exclude_elder',
+    text: 'Exclude Elder',
+    value: null,
+    min: null,
+    max: null,
+    enabled: true,
+    type: 'misc',
+  }
+
+  const excludeOff: StatFilter = { ...excludeOn, enabled: false }
+
+  beforeEach(() => {
+    capturedRequests.length = 0
+    _resetRateLimitsForTests()
+    setPoeVersion(1)
+    // The real catalog flattens this stat: the option is baked into the id and the
+    // entry carries no option group. Seeded verbatim so the assertions below prove
+    // the id ships bare (a `|N` id paired with value.option matches nothing).
+    _setStatEntriesForTests([
+      { id: 'implicit.stat_1792283443|2', text: 'Area is influenced by The Elder', type: 'implicit' },
+    ])
+  })
+
+  it('injects a not group with the bare Elder implicit id when Exclude Elder is on', async () => {
+    await searchTrade('Mirage', mapItem, [originatorChip, excludeOn], {
+      tradeStatus: 'any',
+      tradePriceOption: 'chaos_divine',
+    })
+    const req = capturedRequests.find((r) => r.url.includes('/search/'))
+    const body = parseCapturedBody(req)
+    const notGroup = body.query.stats.find((g) => g.type === 'not')
+    expect(notGroup).toBeDefined()
+    expect(notGroup?.filters).toEqual([{ id: 'implicit.stat_1792283443|2', value: {} }])
+    // The originator implicit still has to reach the and group -- the exclusion narrows
+    // the originator market, it does not replace it.
+    const andGroup = body.query.stats.find((g) => g.type === 'and')
+    expect(andGroup?.filters).toEqual([{ id: 'implicit.stat_2696470877', value: {} }])
+    // Chip must not leak into misc_filters
+    const misc = (body.query.filters as { misc_filters?: CapturedTradeFilterGroup }).misc_filters
+    expect(misc?.filters.exclude_elder).toBeUndefined()
+  })
+
+  it('omits the not group when Exclude Elder is off', async () => {
+    await searchTrade('Mirage', mapItem, [originatorChip, excludeOff], {
+      tradeStatus: 'any',
+      tradePriceOption: 'chaos_divine',
+    })
+    const req = capturedRequests.find((r) => r.url.includes('/search/'))
+    const body = parseCapturedBody(req)
+    expect(body.query.stats.find((g) => g.type === 'not')).toBeUndefined()
+  })
+
+  it('omits the not group when the chip is absent (Elder map, or a plain map)', async () => {
+    await searchTrade('Mirage', mapItem, [originatorChip], {
+      tradeStatus: 'any',
+      tradePriceOption: 'chaos_divine',
+    })
+    const req = capturedRequests.find((r) => r.url.includes('/search/'))
+    const body = parseCapturedBody(req)
+    expect(body.query.stats.find((g) => g.type === 'not')).toBeUndefined()
+  })
+
+  it('breadcrumbs instead of emitting a broken group when the stat is missing from the catalog', async () => {
+    _setStatEntriesForTests([])
+    await searchTrade('Mirage', mapItem, [originatorChip, excludeOn], {
       tradeStatus: 'any',
       tradePriceOption: 'chaos_divine',
     })

@@ -33,6 +33,7 @@ export const CHIP_COLORS: Record<string, string> = {
   'misc.mirrored': '#8787FE',
   'misc.identified': '#ffb74d',
   'misc.exclude_enchanted': '#81c784',
+  'misc.exclude_elder': '#81c784',
 }
 
 export const TERNARY_CHIP_IDS = new Set([

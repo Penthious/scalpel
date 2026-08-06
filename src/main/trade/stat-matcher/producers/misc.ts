@@ -251,6 +251,23 @@ export function buildMiscFilters(
     })
   }
 
+  // An Elder-influenced originator map is a different item from a plain one: it carries an
+  // Elder Guardian and prices on its own market (probed 2026-08-06, Allflame T16 rare: elder
+  // median ~1 divine against ~15c for plain, and 2 of the 20 cheapest plain-search comps were
+  // underpriced elder copies). When the item IS elder the implicit chip already pins it, so
+  // this chip only exists on maps that are not (#556).
+  if (isOriginatorMap && !(itemInfo.influence ?? []).includes('Elder')) {
+    out.push({
+      id: 'misc.exclude_elder',
+      text: 'Exclude Elder',
+      value: null,
+      min: null,
+      max: null,
+      enabled: true,
+      type: 'misc',
+    })
+  }
+
   if (itemInfo.mirrored || (isEquipment && itemInfo.rarity !== 'Unique')) {
     out.push({
       id: 'misc.mirrored',

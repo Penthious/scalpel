@@ -1488,6 +1488,48 @@ describe('matchItemMods', () => {
     })
   })
 
+  describe('Exclude Elder on originator maps (#556)', () => {
+    it('emits an enabled misc.exclude_elder chip on a plain originator map', () => {
+      const filters = matchItemMods(
+        [],
+        [],
+        undefined,
+        makeItemInfo({ itemClass: 'Maps', rarity: 'Rare', sockets: '', zanaMemory: true }),
+      )
+      const chip = filters.find((f) => f.id === 'misc.exclude_elder')
+      expect(chip).toBeDefined()
+      expect(chip?.text).toBe('Exclude Elder')
+      expect(chip?.enabled).toBe(true)
+    })
+
+    it('emits no chip when the originator map is itself Elder-influenced', () => {
+      // The Elder implicit is its own chip on that item, so the search is already
+      // pinned to Elder copies -- excluding them would return nothing.
+      const filters = matchItemMods(
+        [],
+        [],
+        undefined,
+        makeItemInfo({ itemClass: 'Maps', rarity: 'Rare', sockets: '', zanaMemory: true, influence: ['Elder'] }),
+      )
+      expect(filters.find((f) => f.id === 'misc.exclude_elder')).toBeUndefined()
+    })
+
+    it('emits no chip on a non-originator map', () => {
+      const filters = matchItemMods([], [], undefined, makeItemInfo({ itemClass: 'Maps', rarity: 'Rare', sockets: '' }))
+      expect(filters.find((f) => f.id === 'misc.exclude_elder')).toBeUndefined()
+    })
+
+    it('emits the chip on a white originator map too', () => {
+      const filters = matchItemMods(
+        [],
+        [],
+        undefined,
+        makeItemInfo({ itemClass: 'Maps', rarity: 'Normal', sockets: '', zanaMemory: true }),
+      )
+      expect(filters.find((f) => f.id === 'misc.exclude_elder')?.enabled).toBe(true)
+    })
+  })
+
   describe('timeless jewel chips', () => {
     it('generates timeless jewel chips from plain text (Remembrancing)', () => {
       const filters = matchItemMods(
