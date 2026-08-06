@@ -674,7 +674,7 @@ export function parseItemText(text: string): PoeItem | null {
     }
   }
 
-  // Parse advanced mod data if available (Ctrl+Alt+C format)
+  // Parse advanced mod data if available (advanced copy format)
   const advancedMods = parseAdvancedMods(text)
 
   // If advanced mods are available, rebuild implicits and explicits from them
@@ -986,8 +986,8 @@ function parseModSections(sections: string[], explicits: string[], implicits: st
       for (let li = 0; li < modLines.length; li++) {
         explicits.push(modLines[li])
         // A mod too long for the item panel wraps onto the next line. A basic
-        // (Ctrl+C) copy has no advanced-mod headers to group the halves, so offer
-        // the pair joined as well. Two tells: the continuation starts lowercase
+        // copy has no advanced-mod headers to group the halves, so offer the
+        // pair joined as well. Two tells: the continuation starts lowercase
         // (most real mod lines start with a capital, a digit or a sign), or the
         // previous line ends on a dangling function word. The leftover half-line
         // rows are dropped downstream by dropFragmentDuplicates.
@@ -1000,7 +1000,7 @@ function parseModSections(sections: string[], explicits: string[], implicits: st
 }
 
 /**
- * Parse advanced mod info from Ctrl+Alt+C clipboard format.
+ * Parse advanced mod info from the advanced-copy clipboard format.
  * Looks for lines like: { Prefix Modifier "Hummingbird's" (Tier: 1) -- Defences, Evasion }
  * followed by mod text lines like: 41(39-42)% increased Evasion and Energy Shield
  */

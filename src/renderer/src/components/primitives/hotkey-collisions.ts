@@ -114,8 +114,10 @@ export function narrowScopeForCrossGameConflict(
   return undefined
 }
 
-/** Hotkeys PoE itself uses - warn (don't block) when bound. */
-export const POE_PROTECTED_HOTKEYS = new Set(['CommandOrControl+F', 'CommandOrControl+Alt+C'])
+/** Hotkeys PoE itself uses - warn (don't block) when bound. Ctrl+C matters twice
+ *  over: it is PoE's item copy *and* the keystroke Scalpel injects to read the
+ *  item under the cursor (#560). */
+export const POE_PROTECTED_HOTKEYS = new Set(['CommandOrControl+F', 'CommandOrControl+C', 'CommandOrControl+Alt+C'])
 
 /** Build a tryHotkey guard shared by Settings tabs and the regex tool. Returns
  *  false (and shows an error) on a hard collision; true otherwise, warning on a

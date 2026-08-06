@@ -20,7 +20,7 @@ export function buildTimelessFilters(
   let allLeaders: string[] = []
 
   if (advancedMods) {
-    // Advanced mod format (Ctrl+Alt+C): "Carved to glorify 5972(2000-10000) new faithful converted by High Templar Dominus(Avarius-Maxarius)"
+    // Advanced mod format: "Carved to glorify 5972(2000-10000) new faithful converted by High Templar Dominus(Avarius-Maxarius)"
     const timelessMod = advancedMods.find((am) => am.lines.some((l) => /Passives in radius are Conquered/i.test(l)))
     if (timelessMod) {
       const leaderLine = timelessMod.lines.find((l) => /\d/.test(l))

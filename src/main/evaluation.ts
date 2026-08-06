@@ -18,6 +18,7 @@ import { getCurrentFilter } from './filter-state'
 import { getPoeVersion } from './game-state'
 import { sendCtrlCToPoE } from './hotkeys'
 import { focusGameWindow, getOverlayWindow, showOverlay } from './overlay'
+import { advancedCopyTracker } from './trade/advanced-copy'
 import { readItemFromClipboard } from './trade/clipboard'
 import {
   getUniquesByBase,
@@ -336,8 +337,18 @@ export async function preloadPriceCheck(item: PoeItem, store: Store<AppSettings>
 let hotkeyProcessing = false
 let consecutiveClipboardFailures = 0
 
+/** Poll the clipboard for a parseable item, giving PoE `tries` x 50ms to land it. */
+async function pollClipboardForItem(tries: number): Promise<PoeItem | null> {
+  for (let i = 0; i < tries; i++) {
+    const item = readItemFromClipboard()
+    if (item) return item
+    await new Promise((r) => setTimeout(r, 50))
+  }
+  return null
+}
+
 /**
- * Capture an item from PoE's clipboard. Sends Ctrl+Alt+C, polls for content,
+ * Capture an item from PoE's clipboard. Sends Ctrl+C, polls for content,
  * falls back to windowed mode if needed. Returns the parsed item or null.
  *
  * The user's prior clipboard contents are stashed on entry and restored on exit
@@ -359,28 +370,29 @@ async function captureItemFromClipboard(
   // Hotkeys are also valid while a gameplay overlay owns focus. Hand input
   // back to PoE before copying so that path is as immediate as game focus.
   if (!OverlayController.targetHasFocus) focusGameWindow()
+  const withAlt = advancedCopyTracker.needsAlt()
   clipboard.clear()
-  await sendCtrlCToPoE()
+  await sendCtrlCToPoE({ withAlt })
 
-  // Poll for clipboard content
-  let item: PoeItem | null = null
-  for (let i = 0; i < 3; i++) {
-    item = readItemFromClipboard()
-    if (item) break
-    await new Promise((r) => setTimeout(r, 50))
-  }
+  let item = await pollClipboardForItem(3)
 
   // Fallback for windowed mode
   if (!item) {
     clipboard.clear()
     focusGameWindow()
     await new Promise((r) => setTimeout(r, 50))
-    await sendCtrlCToPoE()
-    for (let i = 0; i < 10; i++) {
-      item = readItemFromClipboard()
-      if (item) break
-      await new Promise((r) => setTimeout(r, 50))
-    }
+    await sendCtrlCToPoE({ withAlt })
+    item = await pollClipboardForItem(10)
+  }
+
+  // A modded item that came back without advanced-mod headers means this client
+  // still wants Alt held to emit the advanced description. Confirm with a second
+  // copy before latching -- see advanced-copy.ts. Costs nothing once both games
+  // honour a plain Ctrl+C (#560), since the probe never fires.
+  if (item && advancedCopyTracker.shouldProbe(item)) {
+    clipboard.clear()
+    await sendCtrlCToPoE({ withAlt: true })
+    item = advancedCopyTracker.recordProbe(await pollClipboardForItem(3)) ?? item
   }
 
   restoreClip()

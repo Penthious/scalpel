@@ -1552,7 +1552,7 @@ describe('parseItemText', () => {
   })
 
   // ---------------------------------------------------------------------------
-  // Advanced mods (Ctrl+Alt+C format)
+  // Advanced mods (advanced copy format)
   // ---------------------------------------------------------------------------
 
   describe('advanced mods', () => {

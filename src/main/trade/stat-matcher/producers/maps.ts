@@ -184,7 +184,7 @@ export function buildMapFilters(
   // `min`, so the user can scrub the minimum down to broaden the search. Default-on only at 8
   // (full rolls); lower counts are present but disabled so the user can opt in.
   // Implicits are excluded from the count - they are not affixes.
-  // Requires an advanced-mode clipboard copy (Ctrl+Alt+C) so that advancedMods carries
+  // Requires an advanced-mode clipboard copy so that advancedMods carries
   // type 'prefix' | 'suffix' labels; a basic copy leaves advancedMods empty and emits no chip.
   // Covers both PoE1 Maps and PoE2 Waystones - trade2 indexing of this pseudo stat for
   // waystones was probe-confirmed (no remote-allowlist gating needed).

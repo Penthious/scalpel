@@ -168,7 +168,7 @@ describe('postProcessMageblood (via matchItemMods end-to-end)', () => {
     expect(filters.some((f) => f.type === 'mageblood-dup')).toBe(false)
   })
 
-  // End-to-end from the exact reported advanced (Ctrl+Alt+C) clipboard: proves the
+  // End-to-end from the exact reported advanced clipboard: proves the
   // real path (em-dash header parsing, "(Amethyst-Topaz) -- Unscalable Value" cleanup,
   // advanced-block routing into explicits) yields the collapsed chips + Duplicates: 1.
   it('parses the reported advanced clipboard end-to-end -> 3 Legacies, dup N=1', () => {

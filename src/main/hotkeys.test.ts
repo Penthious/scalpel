@@ -70,7 +70,7 @@ vi.mock('electron-overlay-window', () => ({
 }))
 
 vi.mock('uiohook-napi', () => {
-  const UiohookKey = { Escape: 1 }
+  const UiohookKey = { Escape: 1, Ctrl: 2, Alt: 3, Shift: 4, ShiftRight: 5, C: 6 }
   const uIOhook = {
     on: (event: string, handler: (e: unknown) => void) => {
       ;(uiohookState.listeners[event] ??= []).push(handler)
@@ -464,5 +464,49 @@ describe('scoped hotkey refresh', () => {
 
     expect(handler).not.toHaveBeenCalled()
     expect(uIOhook.keyToggle).not.toHaveBeenCalled()
+  })
+})
+
+describe('sendCtrlCToPoE', () => {
+  /** Keys this call toggled down, in order. */
+  async function toggledDownKeys(opts?: { withAlt?: boolean }): Promise<number[]> {
+    const hotkeys = await loadHotkeys(() => {})
+    const { uIOhook, UiohookKey } = await import('uiohook-napi')
+    vi.mocked(uIOhook.keyToggle).mockClear()
+    vi.mocked(uIOhook.keyTap).mockClear()
+
+    await hotkeys.sendCtrlCToPoE(opts)
+
+    expect(uIOhook.keyTap).toHaveBeenCalledWith(UiohookKey.C)
+    return vi
+      .mocked(uIOhook.keyToggle)
+      .mock.calls.filter((c) => c[1] === 'down')
+      .map((c) => c[0] as number)
+  }
+
+  // Both games emit the advanced item description for a plain Ctrl+C now (#560),
+  // so Alt - PoE's "show advanced item descriptions" modifier - is not injected.
+  it('sends a bare Ctrl+C by default', async () => {
+    const { UiohookKey } = await import('uiohook-napi')
+    expect(await toggledDownKeys()).toEqual([UiohookKey.Ctrl])
+  })
+
+  it('adds Alt only when asked, for a client that still needs it', async () => {
+    const { UiohookKey } = await import('uiohook-napi')
+    expect(await toggledDownKeys({ withAlt: true })).toEqual([UiohookKey.Ctrl, UiohookKey.Alt])
+  })
+
+  it('releases every modifier it pressed', async () => {
+    const hotkeys = await loadHotkeys(() => {})
+    const { uIOhook, UiohookKey } = await import('uiohook-napi')
+    vi.mocked(uIOhook.keyToggle).mockClear()
+
+    await hotkeys.sendCtrlCToPoE({ withAlt: true })
+
+    const ups = vi
+      .mocked(uIOhook.keyToggle)
+      .mock.calls.filter((c) => c[1] === 'up')
+      .map((c) => c[0] as number)
+    expect(ups).toEqual([UiohookKey.Alt, UiohookKey.Ctrl])
   })
 })

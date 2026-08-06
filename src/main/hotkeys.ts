@@ -13,6 +13,7 @@ import {
 } from './diagnostics'
 import { getPoeVersion } from './game-state'
 import { focusGameWindow, isTypingInOverlay, setOverlayVisibilityListener } from './overlay'
+import { advancedCopyTracker } from './trade/advanced-copy'
 import { hideFocusedOrAnyVisibleSecondaryOverlay, isAnyScalpelBrowserWindowFocused } from './windowing'
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -83,8 +84,8 @@ function matchesCombo(
  *  game, and the game keeps moving until it sees a keyup. Inject a keyup for the
  *  non-modifier key the instant the hotkey fires so movement stops immediately.
  *  Modifiers are left held - they don't move the character, they're tracked by
- *  heldModifiers, and the follow-up Ctrl+Alt+C copy relies on them. Mirrors
- *  Exiled-Exchange-2's keepModKeys release. */
+ *  heldModifiers, and the follow-up copy relies on them. Mirrors Exiled-
+ *  Exchange-2's keepModKeys release. */
 function releaseHotkeyKey(combo: KeyCombo | null): void {
   if (!combo) return
   uIOhook.keyToggle(combo.keycode, 'up')
@@ -762,17 +763,24 @@ export async function sendItemFilterCommand(filterName: string, currentFilter?: 
 // ─── Ctrl+C sender ───────────────────────────────────────────────────────────
 
 /**
- * Send Ctrl+Alt+C to PoE via uiohook (OS-level SendInput).
- * Releases any modifier keys the user is holding from their hotkey combo
- * so PoE receives a clean Ctrl+Alt+C.
+ * Send Ctrl+C to PoE via uiohook (OS-level SendInput).
+ *
+ * Both games now emit the advanced item description for a plain Ctrl+C, so Alt
+ * (PoE's "show advanced item descriptions" modifier) is no longer held (#560).
+ * `withAlt` restores the legacy Ctrl+Alt+C for a client that still needs it --
+ * see the advanced-copy tracker, which decides when that is.
+ *
+ * A user who *holds* Alt as part of their own hotkey is left alone either way:
+ * the game seeing Ctrl+Alt+C copies the same advanced text, so there is nothing
+ * to fight.
  */
-export async function sendCtrlCToPoE(): Promise<void> {
+export async function sendCtrlCToPoE(opts?: { withAlt?: boolean }): Promise<void> {
   injecting = true
 
   // Instead of releasing all user modifiers (racy to restore), piggyback on
-  // whatever the user already holds and only add what's missing for Ctrl+Alt+C.
+  // whatever the user already holds and only add what's missing.
   const needCtrl = !heldModifiers.ctrl
-  const needAlt = !heldModifiers.alt
+  const needAlt = opts?.withAlt === true && !heldModifiers.alt
 
   // Temporarily release Shift if held. PoE2 ignores the copy when Shift is still
   // down at the moment C is tapped -- most visibly on equipped items, which
@@ -793,11 +801,12 @@ export async function sendCtrlCToPoE(): Promise<void> {
   uIOhook.keyTap(UiohookKey.C)
 
   // PoE2 drops modifier keyup events when they fire too soon after the C tap,
-  // leaving the in-game advanced tooltip stuck "Alt-pinned" on the item (the
-  // symptom shows up most when the overlay closes via click-outside, where no
-  // focus round-trip resyncs PoE's view of held modifiers). Hold the modifiers
-  // ~10ms before releasing so PoE registers them in order. Same root cause and
-  // fix as Exiled-Exchange-2 issue #124.
+  // leaving PoE's view of held modifiers out of sync -- on the Alt path that
+  // showed up as the in-game advanced tooltip stuck "Alt-pinned" on the item
+  // (most visible when the overlay closes via click-outside, where no focus
+  // round-trip resyncs it). Hold the modifiers ~10ms before releasing so PoE
+  // registers them in order. Same root cause and fix as Exiled-Exchange-2
+  // issue #124.
   await new Promise<void>((resolve) => {
     setTimeout(() => {
       if (needAlt) uIOhook.keyToggle(UiohookKey.Alt, 'up')
@@ -834,6 +843,8 @@ function getHotkeyDiagnostics(): Record<string, unknown> {
     failedScopedRegistrations,
     stashScrollEnabled,
     stashScrollModifier,
+    // 'alt' means this client only yields advanced item text with Alt held (#560).
+    advancedCopyState: advancedCopyTracker.state(),
     lastHookStartError,
     lastHookStopError,
   }
