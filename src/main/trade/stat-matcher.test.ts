@@ -4581,12 +4581,12 @@ describe('matchModToStat (PoE2 stat text without leading sign)', () => {
     expect(result?.value).toBe(2)
   })
 
-  it('rejects non-numeric captures', () => {
+  it('rejects a match whose # captured a word instead of a number', () => {
+    // A `#` always stands for a number, so a word in the capture means the
+    // `(.+?)` only matched by swallowing text this stat has no claim to (#558).
     _setStatEntriesForTests([{ id: 'explicit.stat_q', text: 'Causes # additional Effects', type: 'explicit' }])
-    const result = matchModToStat('Causes random additional Effects')
-    // "random" isn't numeric -- value stays null even though the pattern matches
-    expect(result).not.toBeNull()
-    expect(result?.value).toBeNull()
+    expect(matchModToStat('Causes random additional Effects')).toBeNull()
+    expect(matchModToStat('Causes 3 additional Effects')?.value).toBe(3)
   })
 
   it('matches "an additional <Noun>" clipboard text against "# additional <Noun>s" trade stat', () => {
@@ -5790,6 +5790,83 @@ describe('multi-line stat sharing an affix block with a third line (#559)', () =
     const filters = matchItemMods(WRAPPED_THREE_LINE, [], undefined, makeItemInfo({ rarity: 'Unique' }))
     expect(filters.filter((f) => f.id === LOOKALIKE.id)).toHaveLength(0)
     expect(filters.filter((f) => f.type === 'explicit')).toHaveLength(1)
+  })
+})
+
+describe('a `#` capture that swallowed words is not a match (#558)', () => {
+  // "Citaqualotl's" is one prefix holding two independent stats. The joined
+  // two-line candidate matched "#% chance to deal Double Damage" -- the PLAYER's
+  // chance, an unrelated stat -- because the `(.+?)` standing in for `#` ate the
+  // whole first line. The row carried no value, and its id matched nothing else
+  // on the item, so dropFragmentDuplicates could not recognise it as an artifact
+  // and it surfaced as a third, enabled row next to the two correct ones.
+  const MINION_DAMAGE = { id: 'explicit.stat_1589917703', text: 'Minions deal #% increased Damage', type: 'explicit' }
+  const MINION_DOUBLE = {
+    id: 'explicit.stat_755922799',
+    text: 'Minions have #% chance to deal Double Damage',
+    type: 'explicit',
+  }
+  const PLAYER_DOUBLE = { id: 'explicit.stat_1172810729', text: '#% chance to deal Double Damage', type: 'explicit' }
+
+  const ADV: AdvancedMod[] = [
+    {
+      type: 'prefix',
+      name: "Citaqualotl's",
+      tier: 0,
+      tags: ['Damage', 'Minion'],
+      lines: ['61(50-66)% increased Damage', 'Minions have 5% chance to deal Double Damage'],
+      ranges: [{ value: 61, min: 50, max: 66 }],
+    },
+  ]
+
+  const EXPLICITS = [
+    'Minions deal 61% increased Damage',
+    'Minions have 5% chance to deal Double Damage',
+    'Minions deal 61% increased Damage\nMinions have 5% chance to deal Double Damage',
+  ]
+
+  it('does not resolve the joined hybrid block to an unrelated stat', () => {
+    _setStatEntriesForTests([MINION_DAMAGE, MINION_DOUBLE, PLAYER_DOUBLE])
+    expect(matchModToStat('Minions deal 61% increased Damage\nMinions have 5% chance to deal Double Damage')).toBeNull()
+  })
+
+  it('emits only the two real rows for the hybrid prefix', () => {
+    _setStatEntriesForTests([MINION_DAMAGE, MINION_DOUBLE, PLAYER_DOUBLE])
+    const filters = matchItemMods(
+      EXPLICITS,
+      [],
+      undefined,
+      makeItemInfo({ rarity: 'Rare', itemClass: 'Wands', baseType: 'Convoking Wand', itemLevel: 86 }),
+      ADV,
+    )
+    expect(filters.filter((f) => f.id === PLAYER_DOUBLE.id)).toHaveLength(0)
+    const explicits = filters.filter((f) => f.type === 'explicit')
+    expect(explicits.map((f) => f.id)).toEqual([MINION_DAMAGE.id, MINION_DOUBLE.id])
+    expect(explicits[0].value).toBe(61)
+    expect(explicits[1].value).toBe(5)
+  })
+
+  it('still matches a stat whose # captures a real number', () => {
+    _setStatEntriesForTests([MINION_DAMAGE, MINION_DOUBLE, PLAYER_DOUBLE])
+    expect(matchModToStat('5% chance to deal Double Damage')).toMatchObject({
+      statId: PLAYER_DOUBLE.id,
+      value: 5,
+    })
+  })
+
+  it('still matches an option stat whose # captures option text', () => {
+    _setStatEntriesForTests([
+      {
+        id: 'explicit.stat_option',
+        text: 'Map contains #’s Citadel',
+        type: 'explicit',
+        option: { options: [{ id: 3, text: 'Kamasa' }] },
+      },
+    ])
+    expect(matchModToStat('Map contains Kamasa’s Citadel')).toMatchObject({
+      statId: 'explicit.stat_option',
+      option: 3,
+    })
   })
 })
 
