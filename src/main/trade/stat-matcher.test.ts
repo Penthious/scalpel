@@ -1126,7 +1126,7 @@ describe('matchItemMods', () => {
 
       const rarityChip = filters.find((f) => f.id === 'map.map_iir')!
       expect(rarityChip.value).toBe(50)
-      expect(rarityChip.enabled).toBe(false) // rarity is disabled by default
+      expect(rarityChip.enabled).toBe(true) // #561 - on by default like the other yield chips
 
       const packSizeChip = filters.find((f) => f.id === 'map.map_packsize')!
       expect(packSizeChip.value).toBe(30)
@@ -1405,9 +1405,9 @@ describe('matchItemMods', () => {
   })
 
   describe('originator (Zana memory) rare maps (#541)', () => {
-    // Originator maps are farmed and priced on their drop-boosting rolls, so Rarity
-    // pre-checks there even though it's noise on a regular rare map. Quantity, Pack
-    // Size, and the more-drops pseudo stats are already on by default and must stay so.
+    // Every property chip on a rare map defaults on (Rarity included since #561); what
+    // originator adds on top is the misc.rarity pin, so the search is not compared against
+    // the plain map market at another rarity.
     it('enables map.map_iir and keeps the other map property chips enabled on a rare originator map', () => {
       const filters = matchItemMods(
         [],
@@ -1434,14 +1434,14 @@ describe('matchItemMods', () => {
       expect(filters.find((f) => f.id === 'pseudo.pseudo_map_more_map_drops')?.enabled).toBe(true)
     })
 
-    it('leaves map.map_iir disabled on a rare non-originator map', () => {
+    it('enables map.map_iir on a rare non-originator map too (#561)', () => {
       const filters = matchItemMods(
         [],
         [],
         undefined,
         makeItemInfo({ itemClass: 'Maps', rarity: 'Rare', sockets: '', mapRarity: 39 }),
       )
-      expect(filters.find((f) => f.id === 'map.map_iir')?.enabled).toBe(false)
+      expect(filters.find((f) => f.id === 'map.map_iir')?.enabled).toBe(true)
     })
 
     it('emits an enabled misc.rarity chip on a rare originator map', () => {

@@ -25,7 +25,6 @@ type MapItemInfo = {
   mapGold?: number
   mapMagicMonsters?: number
   mapRareMonsters?: number
-  zanaMemory?: boolean
 }
 
 /** The PoE2 trade2 "Endgame Filters" group, in display order. Whether GGG actually
@@ -82,10 +81,11 @@ export function buildMapFilters(
         value: itemInfo.mapRarity,
         min: MAP_MIN(itemInfo.mapRarity, pct),
         max: null,
-        // Item Rarity is noise on a regular rare map, but originator (Zana memory) maps are
-        // farmed and priced on their drop-boosting rolls, so pre-check it there (#541). Every
-        // other property chip in this block is already on by default.
-        enabled: !!itemInfo.zanaMemory,
+        // On by default like every other property chip in this block, and like the PoE2
+        // waystone Rarity chip (#561). It used to be originator-only (#541) on the theory
+        // that Item Rarity is noise on a regular map; users price on it either way, and the
+        // chip is now learnable so anyone who disagrees can toggle it off and have that stick.
+        enabled: true,
         type: 'map',
       })
     if (itemInfo.mapPackSize)

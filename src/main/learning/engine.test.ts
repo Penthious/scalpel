@@ -46,6 +46,14 @@ describe('captureObservation + computeLearnedDecisions round trip', () => {
     expect(computeLearnedDecisions([chip('explicit.coldres', 'explicit', true)], item, 'off', store, 2000)).toEqual({})
   })
 
+  it('learns a map property chip the user repeatedly turns off (#561)', () => {
+    const store = newStore()
+    const item = defaultPoeItem({ rarity: 'Rare', itemClass: 'Maps' })
+    for (let i = 0; i < 3; i++) captureObservation(item, [chip('map.map_iir', 'map', false)], store, 1000 + i)
+    const decisions = computeLearnedDecisions([chip('map.map_iir', 'map', true)], item, 'eager', store, 2000)
+    expect(decisions['map.map_iir']).toBe(false)
+  })
+
   it('ignores non-learnable chips', () => {
     const store = newStore()
     const item = defaultPoeItem({ rarity: 'Rare', itemClass: 'Boots', evasion: 300 })

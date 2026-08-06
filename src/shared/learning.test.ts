@@ -18,4 +18,8 @@ describe('isLearnable', () => {
   it('accepts granted-skill chips (issue #478)', () => {
     expect(isLearnable({ type: 'skill' })).toBe(true)
   })
+
+  it('accepts map/waystone property chips (issue #561)', () => {
+    expect(isLearnable({ type: 'map' })).toBe(true)
+  })
 })
