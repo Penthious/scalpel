@@ -1788,6 +1788,37 @@ describe('parseItemText', () => {
       expect(item.explicits).toContain('Passives granting Fire Resistance\nalso grant increased Maximum Life')
     })
 
+    it('pushes intermediate contiguous joins for 3+ line mods (#559)', () => {
+      // "Tacati's" pairs a two-line stat ("Trigger a Socketed Spell ... Cooldown" +
+      // "Spells Triggered this way ...", one trade stat) with a third independent
+      // line. Neither the single lines nor the whole-block join matches that stat,
+      // so the 2-line prefix run has to be emitted too.
+      const text = [
+        'Item Class: Sceptres',
+        'Rarity: Rare',
+        'Phoenix Roar',
+        'Void Sceptre',
+        '--------',
+        'Item Level: 86',
+        '--------',
+        '{ Prefix Modifier "Tacati\'s" — Damage, Caster, Gem }',
+        'Trigger a Socketed Spell on Using a Skill, with a 4 second Cooldown',
+        'Spells Triggered this way have 150% more Cost',
+        '70(70-74)% increased Spell Damage',
+      ].join('\n')
+
+      const item = parseItemText(text)!
+      expect(item.explicits).toContain(
+        'Trigger a Socketed Spell on Using a Skill, with a 4 second Cooldown\nSpells Triggered this way have 150% more Cost',
+      )
+      expect(item.explicits).toContain('Spells Triggered this way have 150% more Cost\n70% increased Spell Damage')
+      // Individual lines and the whole-block join are still emitted.
+      expect(item.explicits).toContain('70% increased Spell Damage')
+      expect(item.explicits).toContain(
+        'Trigger a Socketed Spell on Using a Skill, with a 4 second Cooldown\nSpells Triggered this way have 150% more Cost\n70% increased Spell Damage',
+      )
+    })
+
     it('handles hybrid mods (socketed gem + bonus under one header)', () => {
       const text = [
         'Item Class: Helmets',

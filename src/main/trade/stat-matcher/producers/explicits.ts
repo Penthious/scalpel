@@ -157,16 +157,23 @@ function mergeDuplicateStats(rows: StatFilter[], pct: number): StatFilter[] {
  *  real stat, in which case the joined row is the correct single stat. */
 export function dropFragmentDuplicates(rows: StatFilter[]): StatFilter[] {
   const idsWithValue = new Set(rows.filter((r) => r.value != null).map((r) => r.id))
-  // Physical lines of any row that survived as a "\n"-joined multi-line mod. A
-  // fragment can match a DIFFERENT (longer) stat id than the joined row via the
-  // substring fallback, so the same-id check above misses it -- but its text is
-  // always verbatim one of the joined row's lines.
+  // Every proper sub-run of the physical lines of any row that survived as a
+  // "\n"-joined multi-line mod. A fragment can match a DIFFERENT (longer) stat id
+  // than the joined row via the substring fallback, so the same-id check above
+  // misses it -- but its text is always verbatim a contiguous run of the joined
+  // row's lines. Runs (not just single lines) because clipboard.ts offers every
+  // contiguous run of an advanced-mod block as a match candidate, so a two-line
+  // fragment of a three-line stat is just as much an artifact as a one-line one.
   const joinedSegments = new Set<string>()
   for (const r of rows) {
     if (!r.text?.includes('\n')) continue
-    for (const seg of r.text.split('\n')) {
-      const trimmed = seg.trim()
-      if (trimmed) joinedSegments.add(trimmed)
+    const lines = r.text.split('\n').map((l) => l.trim())
+    for (let start = 0; start < lines.length; start++) {
+      for (let end = start + 1; end <= lines.length; end++) {
+        if (end - start === lines.length) continue // the whole row, not a fragment
+        const run = lines.slice(start, end).join('\n')
+        if (run) joinedSegments.add(run)
+      }
     }
   }
   return rows.filter(

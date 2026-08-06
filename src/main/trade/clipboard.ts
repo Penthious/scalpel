@@ -687,16 +687,23 @@ export function parseItemText(text: string): PoeItem | null {
         .filter((l) => !l.startsWith('(')) // Skip parenthetical descriptions
         .map(cleanAdvancedModLine)
         .filter(Boolean)
-      // For multi-line mods: push both the joined version (for genuine multi-line stats like
-      // "Passives granting Fire Resistance...\nalso grant increased Maximum Life...") AND
-      // individual lines (for hybrid mods that have two independent stats under one affix header).
-      // The stat matcher picks the best match by text length, so the right one wins.
-      if (am.type === 'implicit') {
-        for (const line of stripped) implicits.push(line)
-        if (stripped.length > 1) implicits.push(stripped.join('\n'))
-      } else {
-        for (const line of stripped) explicits.push(line)
-        if (stripped.length > 1) explicits.push(stripped.join('\n'))
+      // For multi-line mods: push the individual lines (for hybrid mods that have two
+      // independent stats under one affix header) AND every contiguous run of two or
+      // more lines. The whole-block run covers genuine multi-line stats ("Passives
+      // granting Fire Resistance...\nalso grant increased Maximum Life..."); the
+      // shorter runs cover a block that mixes the two shapes -- e.g. the "Tacati's"
+      // prefix, whose two-line trigger stat sits above an independent "increased
+      // Spell Damage" line, so neither a single line nor the whole block matches it
+      // and the mod disappeared entirely (#559). The stat matcher picks the best match
+      // by text length; dropFragmentDuplicates then discards every run that only
+      // resolved through the loose substring fallbacks, so the extra candidates cannot
+      // surface as duplicate rows.
+      const target = am.type === 'implicit' ? implicits : explicits
+      for (const line of stripped) target.push(line)
+      for (let start = 0; start < stripped.length; start++) {
+        for (let end = start + 2; end <= stripped.length; end++) {
+          target.push(stripped.slice(start, end).join('\n'))
+        }
       }
     }
   }

@@ -5667,6 +5667,132 @@ describe('Elder hybrid socketed-support search values', () => {
   })
 })
 
+describe('multi-line stat sharing an affix block with a third line (#559)', () => {
+  // "Tacati's" is one prefix whose block holds TWO trade stats: a stat that itself
+  // spans two clipboard lines (the trigger + its "more Cost" rider) and an
+  // independent "increased Spell Damage" line. Neither the single lines nor the
+  // whole-block join matches the two-line stat, so it used to vanish entirely --
+  // and its fragment rows were dropped as duplicates of the (bogus) whole-block
+  // match against the Spell Damage stat.
+  const TRIGGER = {
+    id: 'explicit.stat_1582781759',
+    text: 'Trigger a Socketed Spell on Using a Skill, with a # second Cooldown\nSpells Triggered this way have 150% more Cost',
+    type: 'explicit',
+  }
+  const SPELL_DAMAGE = { id: 'explicit.stat_2974417149', text: '#% increased Spell Damage', type: 'explicit' }
+  // The bench-craft twin the trailing "more Cost" fragment resolves to on its own.
+  const CRAFT_TRIGGER = {
+    id: 'explicit.stat_3079007202',
+    text: '#% chance to Trigger a Socketed Spell on Using a Skill, with a 8 second Cooldown\nSpells Triggered this way have 150% more Cost',
+    type: 'explicit',
+  }
+
+  const ADV: AdvancedMod[] = [
+    {
+      type: 'prefix',
+      name: "Tacati's",
+      tier: 0,
+      tags: ['Damage', 'Caster', 'Gem'],
+      lines: [
+        'Trigger a Socketed Spell on Using a Skill, with a 4 second Cooldown',
+        'Spells Triggered this way have 150% more Cost',
+        '70(70-74)% increased Spell Damage',
+      ],
+      ranges: [{ value: 70, min: 70, max: 74 }],
+    },
+  ]
+
+  const EXPLICITS = [
+    'Trigger a Socketed Spell on Using a Skill, with a 4 second Cooldown',
+    'Spells Triggered this way have 150% more Cost',
+    '70% increased Spell Damage',
+    'Trigger a Socketed Spell on Using a Skill, with a 4 second Cooldown\nSpells Triggered this way have 150% more Cost',
+    'Spells Triggered this way have 150% more Cost\n70% increased Spell Damage',
+    'Trigger a Socketed Spell on Using a Skill, with a 4 second Cooldown\nSpells Triggered this way have 150% more Cost\n70% increased Spell Damage',
+  ]
+
+  // A single stat wrapped over three clipboard lines, as clipboard.ts now offers it:
+  // the three lines, then every contiguous run of two or more.
+  const WRAPPED_THREE_LINE = [
+    'Enemies take 17% increased Damage for each Elemental',
+    'Ailment type among your Ailments',
+    'on them',
+    'Enemies take 17% increased Damage for each Elemental\nAilment type among your Ailments',
+    'Enemies take 17% increased Damage for each Elemental\nAilment type among your Ailments\non them',
+    'Ailment type among your Ailments\non them',
+  ]
+
+  it('emits the two-line trigger stat and the independent Spell Damage stat', () => {
+    _setStatEntriesForTests([TRIGGER, SPELL_DAMAGE, CRAFT_TRIGGER])
+    const filters = matchItemMods(
+      EXPLICITS,
+      [],
+      undefined,
+      makeItemInfo({ rarity: 'Rare', itemClass: 'Sceptres', baseType: 'Void Sceptre', itemLevel: 86 }),
+      ADV,
+    )
+
+    const trigger = filters.filter((f) => f.id === TRIGGER.id)
+    expect(trigger).toHaveLength(1)
+    expect(trigger[0].value).toBe(4)
+    expect(trigger[0].enabled).toBe(true)
+
+    const spellDamage = filters.filter((f) => f.id === SPELL_DAMAGE.id)
+    expect(spellDamage).toHaveLength(1)
+    expect(spellDamage[0].value).toBe(70)
+  })
+
+  it('drops the fragment rows the loose fallbacks produce from the single lines', () => {
+    _setStatEntriesForTests([TRIGGER, SPELL_DAMAGE, CRAFT_TRIGGER])
+    const filters = matchItemMods(
+      EXPLICITS,
+      [],
+      undefined,
+      makeItemInfo({ rarity: 'Rare', itemClass: 'Sceptres', baseType: 'Void Sceptre', itemLevel: 86 }),
+      ADV,
+    )
+    expect(filters.filter((f) => f.id === CRAFT_TRIGGER.id)).toHaveLength(0)
+    expect(filters.filter((f) => f.type === 'explicit')).toHaveLength(2)
+  })
+
+  it('still collapses a stat that wraps across all three lines of its block', () => {
+    // Guard against the new intermediate joins surfacing as extra rows when the
+    // whole block really is a single stat.
+    const WRAPPED = {
+      id: 'explicit.stat_wrapped',
+      text: 'Enemies take #% increased Damage for each Elemental Ailment type among your Ailments on them',
+      type: 'explicit',
+    }
+    _setStatEntriesForTests([WRAPPED])
+    const filters = matchItemMods(WRAPPED_THREE_LINE, [], undefined, makeItemInfo({ rarity: 'Unique' }))
+    const rows = filters.filter((f) => f.type === 'explicit')
+    expect(rows).toHaveLength(1)
+    expect(rows[0].id).toBe(WRAPPED.id)
+    expect(rows[0].value).toBe(17)
+  })
+
+  it('drops an intermediate run that resolves to a different stat id via the substring fallback', () => {
+    // The middle+last run of a three-line wrapped stat is a suffix of an unrelated
+    // (longer) stat text, so the substring fallback resolves it to that other id
+    // with a null value. It is a fragment of the joined row just like a single
+    // line is, so it must not surface as its own row.
+    const WRAPPED = {
+      id: 'explicit.stat_wrapped',
+      text: 'Enemies take #% increased Damage for each Elemental Ailment type among your Ailments on them',
+      type: 'explicit',
+    }
+    const LOOKALIKE = {
+      id: 'explicit.stat_lookalike',
+      text: '#% of Physical Damage from Hits taken as Chaos Damage for each Ailment type among your Ailments on them',
+      type: 'explicit',
+    }
+    _setStatEntriesForTests([WRAPPED, LOOKALIKE])
+    const filters = matchItemMods(WRAPPED_THREE_LINE, [], undefined, makeItemInfo({ rarity: 'Unique' }))
+    expect(filters.filter((f) => f.id === LOOKALIKE.id)).toHaveLength(0)
+    expect(filters.filter((f) => f.type === 'explicit')).toHaveLength(1)
+  })
+})
+
 describe('detrimental negative rolls default off', () => {
   const CAST = { id: 'explicit.stat_cast', text: '#% increased Cast Speed', type: 'explicit' }
   const RARITY = { id: 'explicit.stat_rarity', text: '#% increased Rarity of Items found', type: 'explicit' }
