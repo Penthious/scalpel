@@ -261,19 +261,75 @@ function applyAnchorBounds(state: OverlayState): void {
 // within snap range of the default. Mirrors how the main overlay only updates
 // snap state inside its drag-bound mousemove handler.
 let leftMouseHeld = false
+/** Safety clear for the shared snap-ghost canvas. Windows sometimes never
+ *  fires 'moved' after a title-bar drag release; without this the dashed ghost
+ *  can stick over the game until restart. */
+let snapGhostSafetyTimer: ReturnType<typeof setTimeout> | null = null
+
+function cancelSnapGhostSafetyClear(): void {
+  if (snapGhostSafetyTimer == null) return
+  clearTimeout(snapGhostSafetyTimer)
+  snapGhostSafetyTimer = null
+}
+
+/** Commit a pending snap: clear the ghost, move the window onto its snap
+ *  target, persist. Persisting explicitly (rather than letting the next 'moved'
+ *  do it) is required because the synthetic 'moved' Windows fires from a
+ *  setBounds-inside-a-moved-handler doesn't reliably arrive. Shared by the
+ *  'moved' handler and the mouseup safety-clear so the two can't diverge. */
+function commitSnap(state: OverlayState): void {
+  state.snapGhostActive = false
+  setSnapGhost(null)
+  if (!state.win || state.win.isDestroyed()) return
+  const target = snapTargetFor(state, state.win.getBounds())
+  if (!target) return
+  setBoundsProgrammatic(state, target)
+  persistBounds(state)
+}
+
+/** If 'moved' never arrived after mouseup, commit any pending snap (same as
+ *  the moved handler) or just clear the visual ghost. */
+function runSnapGhostSafetyClear(): void {
+  snapGhostSafetyTimer = null
+  // mousedown cancels this timer, so a button still held at fire time means a
+  // native event went missing - which is the exact failure this fallback
+  // exists for. Re-arm instead of bailing, or the ghost stays stuck forever.
+  // The next real mouseup replaces the timer, so this can't outlive the drag.
+  if (leftMouseHeld) {
+    scheduleSnapGhostSafetyClear()
+    return
+  }
+  for (const state of overlays.values()) {
+    if (!state.snapGhostActive) continue
+    commitSnap(state)
+  }
+}
+
+function scheduleSnapGhostSafetyClear(): void {
+  cancelSnapGhostSafetyClear()
+  snapGhostSafetyTimer = setTimeout(runSnapGhostSafetyClear, 300)
+}
+
 uIOhook.on(
   'mousedown',
   guardNativeListener('mousedown-snap', (e) => {
-    if (e.button === 1) leftMouseHeld = true
+    if (e.button === 1) {
+      leftMouseHeld = true
+      cancelSnapGhostSafetyClear()
+    }
   }),
 )
 uIOhook.on(
   'mouseup',
   guardNativeListener('mouseup-snap', (e) => {
-    if (e.button === 1) leftMouseHeld = false
-    // Don't clear snapGhostActive here - the gridWin 'moved' event fires
-    // *after* this mouseup and needs the flag set to know whether to commit
-    // the snap. Clearing it here would silently break the snap.
+    if (e.button === 1) {
+      leftMouseHeld = false
+      // Don't clear snapGhostActive here - the gridWin 'moved' event fires
+      // *after* this mouseup and needs the flag set to know whether to commit
+      // the snap. Clearing it here would silently break the snap. Schedule a
+      // fallback in case 'moved' never arrives.
+      scheduleSnapGhostSafetyClear()
+    }
   }),
 )
 
@@ -430,18 +486,11 @@ function wireWindowEvents(state: OverlayState, win: BrowserWindow): void {
   })
   win.on('moved', () => {
     if (state.inProgrammaticMove) return
+    cancelSnapGhostSafetyClear()
     if (state.snapGhostActive) {
-      // Snap will commit: skip persisting the user's pre-snap drop position
-      // and persist the snapped position once after setBounds. The synthetic
-      // 'moved' Windows fires from setBounds-inside-a-moved-handler doesn't
-      // reliably arrive on Windows, so we have to persist explicitly.
-      state.snapGhostActive = false
-      setSnapGhost(null)
-      const target = snapTargetFor(state, win.getBounds())
-      if (target) {
-        setBoundsProgrammatic(state, target)
-        persistBounds(state)
-      }
+      // Snap will commit: skip persisting the user's pre-snap drop position,
+      // commitSnap persists the snapped one instead.
+      commitSnap(state)
     } else {
       persistBounds(state)
       setSnapGhost(null)
