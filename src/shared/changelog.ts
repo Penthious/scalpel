@@ -50,7 +50,8 @@ export const CHANGELOG: { version: string; notes: string[] }[] = [
       'Fixed Forbidden Shako rolling the same support twice merging into one combined level.',
       'Fixed unenchanted Heist Blueprints price-checking against Enchanted Armaments.',
       'Fixed the dashed snap placeholder sometimes staying stuck over the game after dragging a panel.',
-      'Fixed updates downloading and then never installing, so you restarted onto the same version and got asked to update again; the brief console window during an update is back for now, hiding it was what broke this.',
+      'Fixed updates downloading and then never installing, so you restarted onto the same version and got asked to update again.',
+      'Fixed a console window flashing on screen during app updates.',
     ],
   },
   {
