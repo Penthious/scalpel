@@ -3,11 +3,21 @@ const fs = require('node:fs')
 const path = require('node:path')
 const crypto = require('node:crypto')
 
+// Optional overrides, used only by scripts/update-smoke.mjs, which needs two throwaway
+// asars (a pretend "old" install and the "new" release) built from one compiled tree.
+// With no flags passed this behaves exactly as release CI invokes it.
+const argOf = (flag) => {
+  const hit = process.argv.find((a) => a.startsWith(`--${flag}=`))
+  return hit ? hit.slice(flag.length + 3) : null
+}
+
 const projectRoot = path.join(__dirname, '..')
 const outDir = path.join(projectRoot, 'out')
 const distDir = path.join(projectRoot, 'dist')
 const tempAppDir = path.join(distDir, '.asar-staging')
-const version = require('../package.json').version
+const version = argOf('version') ?? require('../package.json').version
+const nameOverride = argOf('name')
+const outOverride = argOf('out')
 
 // Native modules -- included in ASAR but .node binaries are unpacked
 const NATIVE_MODULES = ['electron-overlay-window', 'uiohook-napi']
@@ -67,6 +77,10 @@ const pkgData = JSON.parse(fs.readFileSync(path.join(projectRoot, 'package.json'
 delete pkgData.repository
 delete pkgData.build
 delete pkgData.devDependencies
+// `version` is what app.getVersion() reports and what the updater compares against;
+// `name` decides the userData directory, so the smoke run can isolate its profile.
+pkgData.version = version
+if (nameOverride) pkgData.name = nameOverride
 fs.writeFileSync(path.join(tempAppDir, 'package.json'), JSON.stringify(pkgData, null, 2))
 
 // Copy only production node_modules (preserving nested structure)
@@ -117,7 +131,7 @@ function pruneDir(dir) {
 pruneDir(nodeModulesDest)
 
 // Create output directory
-const versionDir = path.join(distDir, `v${version}`)
+const versionDir = outOverride ? path.resolve(outOverride) : path.join(distDir, `v${version}`)
 if (!fs.existsSync(versionDir)) fs.mkdirSync(versionDir, { recursive: true })
 
 // Pack the asar (unpack .node native binaries so they can be loaded at runtime)
@@ -198,5 +212,5 @@ asar
     console.log(`Packed app.asar (${(size / 1024 / 1024).toFixed(1)} MB)`)
     console.log(`SHA512: ${sha512}`)
     console.log(`Manifest: ${manifestPath}`)
-    console.log(`\nArtifacts in dist/v${version}/`)
+    console.log(`\nArtifacts in ${path.relative(projectRoot, versionDir)}/`)
   })
