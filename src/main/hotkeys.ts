@@ -601,46 +601,58 @@ function pasteToPoEChat(text: string, submit: boolean): Promise<void> {
   const restoreClip = snapshotClipboard()
   injecting = true
 
-  // Focus PoE so keystrokes reach the game (only if it doesn't already have focus)
-  if (!OverlayController.targetHasFocus) focusGameWindow()
+  // Injection is native (uiohook SendInput) and focusing the game reaches into
+  // a window that may already be gone, so both can throw. Without this, a throw
+  // would strand `chatLocked` true and silently kill every later chat command,
+  // filter reload and filter switch for the rest of the session (#562).
+  try {
+    // Focus PoE so keystrokes reach the game (only if it doesn't already have focus)
+    if (!OverlayController.targetHasFocus) focusGameWindow()
 
-  // All keystrokes fire synchronously so the chat window
-  // opens and closes in a single frame, preventing visible flash
-  if (text.startsWith(PLACEHOLDER_LAST)) {
-    // Ctrl+Enter pre-fills @<lastwhisperer> in the chat input; paste body after
-    text = text.slice(`${PLACEHOLDER_LAST} `.length)
-    clipboard.writeText(text)
-    uIOhook.keyToggle(UiohookKey.Ctrl, 'down')
-    uIOhook.keyTap(UiohookKey.Enter)
-    uIOhook.keyToggle(UiohookKey.Ctrl, 'up')
-  } else if (text.endsWith(PLACEHOLDER_LAST)) {
-    // Ctrl+Enter pre-fills @CharName at position 0; Home x2 then Delete strips the @
-    text = text.slice(0, -PLACEHOLDER_LAST.length)
-    clipboard.writeText(text)
-    uIOhook.keyToggle(UiohookKey.Ctrl, 'down')
-    uIOhook.keyTap(UiohookKey.Enter)
-    uIOhook.keyToggle(UiohookKey.Ctrl, 'up')
-    uIOhook.keyTap(UiohookKey.Home)
-    // press twice to focus input when using controller
-    uIOhook.keyTap(UiohookKey.Home)
-    uIOhook.keyTap(UiohookKey.Delete)
-  } else {
-    clipboard.writeText(text)
-    uIOhook.keyTap(UiohookKey.Enter)
-    // PoE auto-clears the input when the text starts with a chat-prefix char
-    if (!AUTO_CLEAR.includes(text[0])) {
+    // All keystrokes fire synchronously so the chat window
+    // opens and closes in a single frame, preventing visible flash
+    if (text.startsWith(PLACEHOLDER_LAST)) {
+      // Ctrl+Enter pre-fills @<lastwhisperer> in the chat input; paste body after
+      text = text.slice(`${PLACEHOLDER_LAST} `.length)
+      clipboard.writeText(text)
       uIOhook.keyToggle(UiohookKey.Ctrl, 'down')
-      uIOhook.keyTap(UiohookKey.A)
+      uIOhook.keyTap(UiohookKey.Enter)
       uIOhook.keyToggle(UiohookKey.Ctrl, 'up')
+    } else if (text.endsWith(PLACEHOLDER_LAST)) {
+      // Ctrl+Enter pre-fills @CharName at position 0; Home x2 then Delete strips the @
+      text = text.slice(0, -PLACEHOLDER_LAST.length)
+      clipboard.writeText(text)
+      uIOhook.keyToggle(UiohookKey.Ctrl, 'down')
+      uIOhook.keyTap(UiohookKey.Enter)
+      uIOhook.keyToggle(UiohookKey.Ctrl, 'up')
+      uIOhook.keyTap(UiohookKey.Home)
+      // press twice to focus input when using controller
+      uIOhook.keyTap(UiohookKey.Home)
+      uIOhook.keyTap(UiohookKey.Delete)
+    } else {
+      clipboard.writeText(text)
+      uIOhook.keyTap(UiohookKey.Enter)
+      // PoE auto-clears the input when the text starts with a chat-prefix char
+      if (!AUTO_CLEAR.includes(text[0])) {
+        uIOhook.keyToggle(UiohookKey.Ctrl, 'down')
+        uIOhook.keyTap(UiohookKey.A)
+        uIOhook.keyToggle(UiohookKey.Ctrl, 'up')
+      }
     }
-  }
 
-  uIOhook.keyToggle(UiohookKey.Ctrl, 'down')
-  uIOhook.keyTap(UiohookKey.V)
-  uIOhook.keyToggle(UiohookKey.Ctrl, 'up')
+    uIOhook.keyToggle(UiohookKey.Ctrl, 'down')
+    uIOhook.keyTap(UiohookKey.V)
+    uIOhook.keyToggle(UiohookKey.Ctrl, 'up')
 
-  if (submit) {
-    uIOhook.keyTap(UiohookKey.Enter)
+    if (submit) {
+      uIOhook.keyTap(UiohookKey.Enter)
+    }
+  } catch (e) {
+    restoreClip()
+    chatLocked = false
+    injecting = false
+    recordMainDiagnostic('chat-paste', e)
+    throw e
   }
 
   // Restore clipboard and re-register hotkeys after paste completes

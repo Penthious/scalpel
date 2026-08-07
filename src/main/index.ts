@@ -323,13 +323,19 @@ app.whenReady().then(() => {
   }
   const pasteRegexToSearch = (regex: string): void => {
     const restoreClip = snapshotClipboard()
-    clipboard.writeText(regex)
-    uIOhook.keyToggle(UiohookKey.Ctrl, 'down')
-    uIOhook.keyTap(UiohookKey.F)
-    uIOhook.keyToggle(UiohookKey.Ctrl, 'up')
-    uIOhook.keyToggle(UiohookKey.Ctrl, 'down')
-    uIOhook.keyTap(UiohookKey.V)
-    uIOhook.keyToggle(UiohookKey.Ctrl, 'up')
+    try {
+      clipboard.writeText(regex)
+      uIOhook.keyToggle(UiohookKey.Ctrl, 'down')
+      uIOhook.keyTap(UiohookKey.F)
+      uIOhook.keyToggle(UiohookKey.Ctrl, 'up')
+      uIOhook.keyToggle(UiohookKey.Ctrl, 'down')
+      uIOhook.keyTap(UiohookKey.V)
+      uIOhook.keyToggle(UiohookKey.Ctrl, 'up')
+    } catch (e) {
+      // A leaked borrow holds the user's clipboard until the watchdog fires.
+      restoreClip()
+      throw e
+    }
     setTimeout(restoreClip, 100)
   }
 

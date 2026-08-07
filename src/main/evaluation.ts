@@ -367,35 +367,42 @@ async function captureItemFromClipboard(
   const showOverlayFlag = opts?.showOverlay ?? true
   const restoreClip = snapshotClipboard()
 
-  // Hotkeys are also valid while a gameplay overlay owns focus. Hand input
-  // back to PoE before copying so that path is as immediate as game focus.
-  if (!OverlayController.targetHasFocus) focusGameWindow()
-  const withAlt = advancedCopyTracker.needsAlt()
-  clipboard.clear()
-  await sendCtrlCToPoE({ withAlt })
-
-  let item = await pollClipboardForItem(3)
-
-  // Fallback for windowed mode
-  if (!item) {
+  let item: PoeItem | null = null
+  // Focusing the game and injecting keys are both native calls that can throw.
+  // The clipboard is borrowed (and cleared) by then, so hand it back on the way
+  // out no matter how we leave - a leaked borrow holds the user's content
+  // hostage and blocks any overlapping flow's restore too (#562).
+  try {
+    // Hotkeys are also valid while a gameplay overlay owns focus. Hand input
+    // back to PoE before copying so that path is as immediate as game focus.
+    if (!OverlayController.targetHasFocus) focusGameWindow()
+    const withAlt = advancedCopyTracker.needsAlt()
     clipboard.clear()
-    focusGameWindow()
-    await new Promise((r) => setTimeout(r, 50))
     await sendCtrlCToPoE({ withAlt })
-    item = await pollClipboardForItem(10)
-  }
 
-  // A modded item that came back without advanced-mod headers means this client
-  // still wants Alt held to emit the advanced description. Confirm with a second
-  // copy before latching -- see advanced-copy.ts. Costs nothing once both games
-  // honour a plain Ctrl+C (#560), since the probe never fires.
-  if (item && advancedCopyTracker.shouldProbe(item)) {
-    clipboard.clear()
-    await sendCtrlCToPoE({ withAlt: true })
-    item = advancedCopyTracker.recordProbe(await pollClipboardForItem(3)) ?? item
-  }
+    item = await pollClipboardForItem(3)
 
-  restoreClip()
+    // Fallback for windowed mode
+    if (!item) {
+      clipboard.clear()
+      focusGameWindow()
+      await new Promise((r) => setTimeout(r, 50))
+      await sendCtrlCToPoE({ withAlt })
+      item = await pollClipboardForItem(10)
+    }
+
+    // A modded item that came back without advanced-mod headers means this client
+    // still wants Alt held to emit the advanced description. Confirm with a second
+    // copy before latching -- see advanced-copy.ts. Costs nothing once both games
+    // honour a plain Ctrl+C (#560), since the probe never fires.
+    if (item && advancedCopyTracker.shouldProbe(item)) {
+      clipboard.clear()
+      await sendCtrlCToPoE({ withAlt: true })
+      item = advancedCopyTracker.recordProbe(await pollClipboardForItem(3)) ?? item
+    }
+  } finally {
+    restoreClip()
+  }
 
   if (!item) {
     consecutiveClipboardFailures++

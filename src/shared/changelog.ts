@@ -52,6 +52,7 @@ export const CHANGELOG: { version: string; notes: string[] }[] = [
       'Fixed the dashed snap placeholder sometimes staying stuck over the game after dragging a panel.',
       'Fixed updates downloading and then never installing, so you restarted onto the same version and got asked to update again.',
       'Fixed a console window flashing on screen during app updates.',
+      'Fixed your clipboard being left holding an /itemfilter command when a price check overlapped a filter reload or an update check.',
     ],
   },
   {
