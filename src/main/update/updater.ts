@@ -465,6 +465,27 @@ ipcMain.on('save-overlay-state', (_event, state: Record<string, unknown>) => {
   }
 })
 
+/** Whether the applier has to replace resources/app.asar.unpacked. The asar is packed
+ *  with `unpack: '*.node'`, so that tree holds native binaries and nothing else: it is
+ *  stale only when a native module version actually moved (or the install is missing it).
+ *  Answering "no" is what keeps a normal update free of xcopy, and so free of a console
+ *  flash (#543). Errs toward copying whenever it cannot tell. */
+function unpackedNeedsReplacing(destDir: string, pendingManifestPath: string): boolean {
+  if (!existsSync(destDir)) return true
+  try {
+    const pending: InstallManifest = JSON.parse(readFileSync(pendingManifestPath, 'utf8'))
+    const local = readLocalManifest()
+    if (!local) return true
+    const names = new Set([...Object.keys(pending.nativeModules ?? {}), ...Object.keys(local.nativeModules ?? {})])
+    for (const name of names) {
+      if (pending.nativeModules?.[name] !== local.nativeModules?.[name]) return true
+    }
+    return false
+  } catch {
+    return true
+  }
+}
+
 ipcMain.handle('install-update', () => {
   if (IS_DEV) return
   const stagingDir = getStagingDir()
@@ -503,35 +524,65 @@ ipcMain.handle('install-update', () => {
   }
 
   const batPath = join(userDataDir, 'apply-update.bat')
-  // Give the old process ~2s to release app.asar before copying over it. `ping` is
-  // used rather than `timeout` because `timeout` aborts on redirected stdin.
-  const batLines = ['@echo off', 'ping -n 3 127.0.0.1 > nul']
+  // Every line below must be a cmd BUILT-IN (copy, move, rmdir, start, del, if, for,
+  // set, goto). The batch runs detached and therefore has no console of its own, so any
+  // external executable it launches allocates its own visible one and flashes on screen
+  // (#543). `ping`/`timeout`/`xcopy`/`robocopy`/`powershell` are all disqualified for
+  // that reason alone; updater.test.ts enforces this. See buildApplyScript's tests.
+  const batLines = ['@echo off', 'setlocal enableextensions']
+
+  // The old process still has app.asar mapped when this starts, so the first copy
+  // attempts fail with a sharing violation. Retry until it releases rather than sleeping
+  // a fixed two seconds: it is both faster on a quick machine and survives a slow one.
+  // `for /l ... do rem` is a built-in spin, used purely to pace the retries.
+  const retryCopy = (src: string, dest: string, label: string): string[] => [
+    `set /a ${label}=0`,
+    `:${label}_retry`,
+    `copy /y "${src}" "${dest}" >nul 2>&1`,
+    `if not errorlevel 1 goto ${label}_done`,
+    `set /a ${label}+=1`,
+    `if %${label}% geq 600 goto giveup`,
+    'for /l %%i in (1,1,120000) do rem',
+    `goto ${label}_retry`,
+    `:${label}_done`,
+  ]
 
   if (isFullUpgrade) {
-    // Full Electron upgrade: extract the zip over the install directory, then copy asar.
-    // The zip contains electron.exe which needs to be renamed to match the installed exe name.
+    // Full Electron upgrade. This path still shells out to powershell and so still
+    // flashes; it is rare (electron bumps only) and the smoke test does not cover it
+    // yet, so it keeps the command that is known to work rather than an untested
+    // rewrite. Make it silent only once the smoke exercises this branch.
     const electronExe = join(installDir, 'electron.exe')
     batLines.push(
       `powershell -NoProfile -Command "Expand-Archive -Path '${electronZip}' -DestinationPath '${installDir}' -Force"`,
-      `if exist "${electronExe}" (move /y "${electronExe}" "${exePath}")`,
-      `copy /y "${fullUpgradeAsar}" "${asarPath}"`,
+      `if exist "${electronExe}" (move /y "${electronExe}" "${exePath}" >nul)`,
+      ...retryCopy(fullUpgradeAsar, asarPath, 'asar'),
     )
   } else {
-    // Asar-only update
-    batLines.push(`copy /y "${asarNew}" "${asarPath}"`)
+    batLines.push(...retryCopy(asarNew, asarPath, 'asar'))
   }
 
-  // Copy unpacked native modules if present
-  if (existsSync(asarUnpackedSrc)) {
+  // The unpacked tree is nothing but .node binaries, so it only needs replacing when a
+  // native module version actually moved. Skipping it otherwise is what leaves the
+  // common update with no external command at all. When it IS needed this uses xcopy,
+  // which flashes once but is the proven, copy-before-delete option; a built-in
+  // rmdir-then-move would leave the install with no native modules if it failed midway.
+  if (existsSync(asarUnpackedSrc) && unpackedNeedsReplacing(asarUnpackedDest, pendingManifest)) {
     batLines.push(`xcopy /y /e /i "${asarUnpackedSrc}" "${asarUnpackedDest}"`)
   }
   // Update manifest
   if (existsSync(pendingManifest)) {
-    batLines.push(`copy /y "${pendingManifest}" "${join(userDataDir, 'install-manifest.json')}"`)
+    batLines.push(`copy /y "${pendingManifest}" "${join(userDataDir, 'install-manifest.json')}" >nul`)
   }
   // Clean up staging, relaunch, self-delete
   batLines.push(
     `rmdir /s /q "${stagingDir}"`,
+    `start "" "${isFullUpgrade ? join(installDir, 'Scalpel.exe') : exePath}"`,
+    `del "%~f0"`,
+    'goto :eof',
+    // Copy never succeeded. Leave staging intact so the next launch can retry, and get
+    // the user back into a running app rather than stranding them on a dead install.
+    ':giveup',
     `start "" "${isFullUpgrade ? join(installDir, 'Scalpel.exe') : exePath}"`,
     `del "%~f0"`,
   )
