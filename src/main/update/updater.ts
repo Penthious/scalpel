@@ -538,14 +538,20 @@ ipcMain.handle('install-update', () => {
 
   writeFileSync(batPath, batLines.join('\r\n'))
 
-  // `windowsHide` alone (CREATE_NO_WINDOW) gives cmd a real but windowless console
-  // that ping/xcopy/powershell inherit, so nothing flashes. Do NOT add `detached`:
-  // Windows ignores CREATE_NO_WINDOW when DETACHED_PROCESS is also set, and a
-  // console-less cmd makes every external command it runs allocate its own visible
-  // console window (#543). `stdio: 'ignore'` + `.unref()` already keep the batch
-  // alive past app.exit(). A VBS wrapper used to do the hiding, but AV heuristics
-  // flag app-written VBS as dropper behavior (#448).
+  // `detached: true` is load-bearing and must never be removed. libuv assigns every
+  // non-detached child on Windows to a global job object created with
+  // JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE, so `app.exit(0)` below closes that handle and
+  // Windows kills the batch instantly -- measured: it dies before its first line, so no
+  // update ever applies and the user relaunches on the old version. `.unref()` only
+  // drops the child from our event loop; it does nothing for process lifetime.
+  // UV_PROCESS_DETACHED is the only flag that makes libuv skip the job assignment.
+  // The cost is #543: DETACHED_PROCESS makes Windows ignore CREATE_NO_WINDOW, so the
+  // external commands the batch runs (ping/xcopy/powershell) each flash a console
+  // window. A console flash is an acceptable cost; an update that never lands is not.
+  // A VBS wrapper used to do the hiding, but AV heuristics flag app-written VBS as
+  // dropper behavior (#448).
   spawn('cmd.exe', ['/c', batPath], {
+    detached: true,
     stdio: 'ignore',
     windowsHide: true,
   }).unref()
