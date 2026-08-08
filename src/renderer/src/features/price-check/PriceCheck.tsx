@@ -345,8 +345,12 @@ export function PriceCheck({
       // Rune rows stay above the fold even when unchecked: a socketed rune is an intrinsic,
       // visible part of the item (like the trade site shows it), and a resistance rune folds
       // into a pseudo, so its own chip is off by default yet should still be seen.
+      // Same for a Forbidden Shako's randomized supports. When both slots roll the SAME
+      // support only the higher one can be searched (two filters on one indexable id
+      // match nothing), so the twin arrives disabled -- but it is still a mod printed on
+      // the item, and hiding it reads as the price checker having lost it (#564).
       filters.forEach((f, i) => {
-        if (f.type === 'rune') enabledIndices.add(i)
+        if (f.type === 'rune' || f.randomSupport) enabledIndices.add(i)
       })
       setCollapsedVisibleIndices(enabledIndices)
     }

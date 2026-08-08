@@ -161,6 +161,28 @@ describe('applyBaseModeToFilters', () => {
     expect(result.find((r) => r.id === 'mageblood-duplicates')?.enabled).toBe(true)
   })
 
+  it("keeps a Forbidden Shako's randomized supports exactly as the producer left them (#564)", () => {
+    // A Shako's price IS its two rolled supports; Base mode dropping them prices a GG
+    // Shako like a vendor one. The producer owns the pair's state: the higher of two
+    // same-support rolls searchable, its twin off (two filters on one indexable id
+    // match nothing on trade).
+    const input = [
+      f({ id: 'explicit.indexable_support_30', type: 'explicit', randomSupport: true, enabled: true, value: 31 }),
+      f({ id: 'explicit.indexable_support_30', type: 'explicit', randomSupport: true, enabled: false, value: 8 }),
+      f({ id: 'explicit.stat_attributes', type: 'explicit', enabled: true, value: 26 }),
+    ]
+    const result = applyBaseModeToFilters(input, 'Unique', false)
+    expect(result[0].enabled).toBe(true)
+    expect(result[1].enabled).toBe(false)
+    expect(result[2].enabled).toBe(false)
+  })
+
+  it('does not special-case randomized supports on non-uniques', () => {
+    const input = [f({ id: 'explicit.indexable_support_30', type: 'explicit', randomSupport: true, enabled: true })]
+    const result = applyBaseModeToFilters(input, 'Rare', false)
+    expect(result[0].enabled).toBe(false)
+  })
+
   it('enables a perfect-or-over-rolled unique explicit pinned to the exact roll', () => {
     // perfectRoll covers both perfect and over-rolled; pin min to the actual value.
     const input = [

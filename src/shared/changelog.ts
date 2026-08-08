@@ -55,6 +55,7 @@ export const CHANGELOG: { version: string; notes: string[] }[] = [
       'Fixed a console window flashing on screen during app updates.',
       'Fixed your clipboard being left holding an /itemfilter command when a price check overlapped a filter reload or an update check.',
       "Fixed the regex tool's Maps, Waystones and Tablets searches ignoring your buyout currency unless it was the default pair.",
+      'Fixed Forbidden Shako price checks throwing away the supports it rolled, so a Shako priced like any other Shako; the better support is now searched by default and the other one stays on screen.',
     ],
   },
   {

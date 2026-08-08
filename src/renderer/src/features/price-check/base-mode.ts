@@ -78,6 +78,12 @@ export function applyBaseModeToFilters(
     // (incl. beneficial-negative max) are already set by the producer, so only flip enabled.
     if (opts.keepExplicits && f.type === 'explicit') return { ...f, enabled: true }
     if (isUnique && f.foulborn) return { ...f, enabled: true }
+    // Forbidden Shako-style randomized supports: which supports the item rolled, and at
+    // what level, IS what the item sells for -- a Base search that drops them prices a
+    // GG Shako like a vendor one. The producer already decided their state (the higher
+    // of two same-support rolls on, its twin off, since the trade index matches nothing
+    // when both are searched), so keep it rather than force-enabling (#564).
+    if (isUnique && f.randomSupport) return f
     // Uniques: a mod at or above its best possible roll (perfect, or over-rolled by
     // Vaal/corruption) is what makes this copy worth more, so enable it by default pinned
     // to that exact roll -- the search then finds equally-good-or-better copies. A learned

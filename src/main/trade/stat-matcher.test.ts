@@ -5029,12 +5029,150 @@ describe('Forbidden Shako double-Decay: indexable-support rows are not sum-merge
     const lowRow = decayRows.find((r) => r.value === 4)
     expect(highRow).toBeDefined()
     expect(lowRow).toBeDefined()
+    // Open-ended min, not a min=max pin: a Shako's support level rolls, so the search
+    // wants equal-or-better copies (#564).
     expect(highRow?.min).toBe(30)
-    expect(highRow?.max).toBe(30)
+    expect(highRow?.max).toBeNull()
     expect(highRow?.enabled).toBe(true)
     expect(lowRow?.min).toBe(4)
-    expect(lowRow?.max).toBe(4)
+    expect(lowRow?.max).toBeNull()
     expect(lowRow?.enabled).toBe(false)
+  })
+})
+
+describe('Forbidden Shako randomized supports are price-defining rows (#564)', () => {
+  // A Shako is priced on WHICH supports it rolled and how high, so its support rows
+  // carry `randomSupport` (Base mode keeps them, see base-mode.test.ts) and search an
+  // open-ended min instead of the Elder-hybrid Level-N pin.
+  const PC_ON_CRIT = 'explicit.indexable_support_30'
+  function seedPowerCharge() {
+    _setStatEntriesForTests([
+      // Live PoE1 catalog: the indexable twin carries the current gem name while the
+      // craftable stat_* twin still says "Strike", so a Shako support that misses the
+      // indexable family matches NOTHING and the row vanishes entirely.
+      { id: PC_ON_CRIT, text: 'Socketed Gems are Supported by Level # Power Charge On Critical', type: 'explicit' },
+      {
+        id: 'explicit.stat_4015918489',
+        text: 'Socketed Gems are Supported by Level # Power Charge On Critical Strike',
+        type: 'explicit',
+      },
+    ])
+  }
+
+  it('flags the row and searches min-only, keeping the rolled bracket', () => {
+    seedPowerCharge()
+    const advancedMods: AdvancedMod[] = [
+      {
+        type: 'prefix',
+        name: '',
+        tier: 0,
+        tags: ['Gem'],
+        lines: [
+          'Socketed Gems are Supported by Level 8(1-10) Power Charge On Critical(Greater Multiple Projectiles-Hallow) - Unscalable Value',
+        ],
+        ranges: [{ value: 8, min: 1, max: 10 }],
+        randomSupport: true,
+      },
+    ]
+    const filters = matchItemMods(
+      ['Socketed Gems are Supported by Level 8 Power Charge On Critical'],
+      [],
+      undefined,
+      makeItemInfo({ itemClass: 'Helmets', rarity: 'Unique', baseType: 'Great Crown', itemLevel: 85 }),
+      advancedMods,
+    )
+    const chip = filters.find((f) => f.id === PC_ON_CRIT)
+    expect(chip).toBeDefined()
+    expect(chip?.randomSupport).toBe(true)
+    expect(chip?.enabled).toBe(true)
+    expect(chip?.min).toBe(8)
+    expect(chip?.max).toBeNull()
+    // The level rolls, so it is not a fixed value -- the row shows its own bracket.
+    expect(chip?.fixedRoll).toBeUndefined()
+    expect(chip?.modRange).toEqual({ min: 1, max: 10 })
+  })
+
+  it('a maxed roll counts as perfect', () => {
+    seedPowerCharge()
+    const advancedMods: AdvancedMod[] = [
+      {
+        type: 'prefix',
+        name: '',
+        tier: 0,
+        tags: ['Gem'],
+        lines: ['Socketed Gems are Supported by Level 35(25-35) Power Charge On Critical - Unscalable Value'],
+        ranges: [{ value: 35, min: 25, max: 35 }],
+        randomSupport: true,
+      },
+    ]
+    const filters = matchItemMods(
+      ['Socketed Gems are Supported by Level 35 Power Charge On Critical'],
+      [],
+      undefined,
+      makeItemInfo({ itemClass: 'Helmets', rarity: 'Unique', baseType: 'Great Crown', itemLevel: 85 }),
+      advancedMods,
+    )
+    expect(filters.find((f) => f.id === PC_ON_CRIT)?.perfectRoll).toBe(true)
+  })
+
+  it('basic copy (no advanced mods) still flags the row', () => {
+    seedPowerCharge()
+    const filters = matchItemMods(
+      ['Socketed Gems are Supported by Level 30 Power Charge On Critical'],
+      [],
+      undefined,
+      makeItemInfo({ itemClass: 'Helmets', rarity: 'Unique', baseType: 'Great Crown' }),
+    )
+    const chip = filters.find((f) => f.id === PC_ON_CRIT)
+    expect(chip?.randomSupport).toBe(true)
+    expect(chip?.min).toBe(30)
+    expect(chip?.max).toBeNull()
+  })
+
+  it('two different supports: only the higher-rolled one is on by default', () => {
+    // The slots roll 1-10 and 25-35, so the high one is what the Shako sells on.
+    // Searching both at once matches essentially nothing (live probe: "Power Charge
+    // On Critical >= 8 AND Fork >= 31" returns 0 on Allflame, each alone returns hits).
+    _setStatEntriesForTests([
+      { id: PC_ON_CRIT, text: 'Socketed Gems are Supported by Level # Power Charge On Critical', type: 'explicit' },
+      { id: 'explicit.indexable_support_80', text: 'Socketed Gems are Supported by Level # Fork', type: 'explicit' },
+    ])
+    const filters = matchItemMods(
+      [
+        'Socketed Gems are Supported by Level 8 Power Charge On Critical',
+        'Socketed Gems are Supported by Level 31 Fork',
+      ],
+      [],
+      undefined,
+      makeItemInfo({ itemClass: 'Helmets', rarity: 'Unique', baseType: 'Great Crown' }),
+    )
+    const low = filters.find((f) => f.id === PC_ON_CRIT)
+    const high = filters.find((f) => f.id === 'explicit.indexable_support_80')
+    expect(low?.enabled).toBe(false)
+    expect(high?.enabled).toBe(true)
+    // Both rows survive and stay flagged -- the losing one is a tick away, not gone.
+    expect(low?.randomSupport).toBe(true)
+    expect(high?.randomSupport).toBe(true)
+  })
+
+  it('control: an Elder hybrid fixed support level keeps its exact pin and no flag', () => {
+    _setStatEntriesForTests([
+      {
+        id: 'explicit.stat_elder_burn',
+        text: 'Socketed Gems are Supported by Level # Burning Damage',
+        type: 'explicit',
+      },
+    ])
+    const filters = matchItemMods(
+      ['Socketed Gems are Supported by Level 20 Burning Damage'],
+      [],
+      undefined,
+      makeItemInfo({ itemClass: 'Helmets', rarity: 'Rare', baseType: "Conqueror's Helmet" }),
+    )
+    const chip = filters.find((f) => f.id === 'explicit.stat_elder_burn')
+    expect(chip?.randomSupport).toBeUndefined()
+    expect(chip?.min).toBe(20)
+    expect(chip?.max).toBe(20)
   })
 })
 

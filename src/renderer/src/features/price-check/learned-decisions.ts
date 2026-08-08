@@ -1,3 +1,4 @@
+import { isLearnable } from '@shared/learning'
 import type { StatFilter } from './types'
 
 /**
@@ -10,6 +11,10 @@ import type { StatFilter } from './types'
  */
 export function applyLearnedDecisions(filters: StatFilter[], decisions: Record<string, boolean> = {}): StatFilter[] {
   return filters.map((f) => {
+    // Rows the engine can't learn are also immune to a decision left behind by an
+    // older build -- a Shako's two support rows can share one stat id, so applying a
+    // by-id decision to both would resurrect the twin the producer left off (#564).
+    if (!isLearnable(f)) return f
     if (!(f.id in decisions)) return f
     const want = decisions[f.id]
     if (want === f.enabled) return f

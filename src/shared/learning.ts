@@ -22,6 +22,12 @@ export const LEARNABLE_TYPES = new Set([
   'mercenary',
 ])
 
-export function isLearnable(f: { type: string }): boolean {
+export function isLearnable(f: { type: string; randomSupport?: boolean }): boolean {
+  // Forbidden Shako's randomized supports are excluded: both of its support rows can
+  // share one stat id (same support in both slots), and a decision is keyed by id, so
+  // learning "on" would enable the twin the producer deliberately left off - a pair of
+  // filters on one indexable id matches nothing on trade. There is no standing
+  // preference to learn here either; which support rolled is per-item luck (#564).
+  if (f.randomSupport) return false
   return LEARNABLE_TYPES.has(f.type)
 }

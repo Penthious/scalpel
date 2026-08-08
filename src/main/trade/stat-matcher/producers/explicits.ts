@@ -93,8 +93,9 @@ function mergeDuplicateStats(rows: StatFilter[], pct: number): StatFilter[] {
     // Level-34 row (as the generic merge below does) searched only items that rolled a
     // single Level-34 Decay, the wrong items at the wrong price (#552). Emit every row
     // unmerged; only the highest roll (the price driver) keeps its computed enabled
-    // state, the rest surface disabled since we can't prove the trade API accepts two
-    // filters on the same id in one group.
+    // state, the rest surface disabled -- two filters on the same indexable id in one
+    // group match nothing (probe: indexable_support_30 with {1-10} AND {25-35} returns
+    // 0 on Standard while each bound alone returns hundreds).
     if (INDEXABLE_SUPPORT_RE.test(first.id)) {
       let best = group[0]
       for (const row of group) {
@@ -180,6 +181,20 @@ export function dropFragmentDuplicates(rows: StatFilter[]): StatFilter[] {
     (r) =>
       r.value != null || r.option != null || (!idsWithValue.has(r.id) && !joinedSegments.has(r.text?.trim() ?? '')),
   )
+}
+
+/** Leave only the highest-rolled Forbidden Shako support enabled by default.
+ *  Its two support slots roll on different brackets (1-10 and 25-35), so the high one
+ *  is what the item sells on; searching both at once is what a listing almost never
+ *  matches -- live probe on Allflame: "Power Charge On Critical >= 8 AND Fork >= 31"
+ *  returns 0 while each alone returns results. The losing rows stay visible (and
+ *  tickable) so the pair is still one click away. */
+function onlyBestRandomSupport(rows: StatFilter[]): StatFilter[] {
+  const supports = rows.filter((r) => r.randomSupport)
+  if (supports.length < 2) return rows
+  let best = supports[0]
+  for (const row of supports) if ((row.value ?? -Infinity) > (best.value ?? -Infinity)) best = row
+  return rows.map((r) => (r.randomSupport && r !== best ? { ...r, enabled: false } : r))
 }
 
 export function processExplicits(ctx: MatchContext): StatFilter[] {
@@ -358,7 +373,16 @@ export function processExplicits(ctx: MatchContext): StatFilter[] {
           // search min=14 via 90% floor). Also ignore a coincidental value match
           // (Level 16 + 16% Area Damage sharing the same AdvancedMod.ranges entry).
           if (SOCKETED_SUPPORT_LEVEL_MOD.test(cleaned)) {
-            isFixedValue = true
+            // ...but a Forbidden Shako support level genuinely rolls (1-10 in one slot,
+            // 25-35 in the other), so keep its own bracket for the range display and the
+            // perfect-roll check below. Tier / ladder data still stays off: the block has
+            // no companion stat and a unique has no tier ladder to scrub (#564).
+            if (isRandomSupport) {
+              if (normRange && normRange.min !== normRange.max)
+                matchedRange = { min: normRange.min, max: normRange.max }
+            } else {
+              isFixedValue = true
+            }
           } else {
             if (advMod.tier > 0) matchedTier = advMod.tier
             if (normRange && normRange.min !== normRange.max) matchedRange = { min: normRange.min, max: normRange.max }
@@ -468,9 +492,12 @@ export function processExplicits(ctx: MatchContext): StatFilter[] {
       }
       // Same pin for "Socketed Gems are Supported by Level N …" (Elder hybrids etc.).
       // Support level is discrete/fixed; T1 companion widening must not rewrite it.
+      // Exception: a Forbidden Shako support level ROLLS, and the level is what the
+      // Shako is priced on, so search it open-ended (min = the rolled level) -- pinning
+      // min=max to one of 35 possible levels on BOTH support rows returns nothing (#564).
       if (SOCKETED_SUPPORT_LEVEL_MOD.test(cleaned) && matched.value != null) {
         minValue = matched.value
-        maxValue = matched.value
+        maxValue = isRandomSupport ? null : matched.value
       }
       const structurallyOff =
         craftedForTrade ||
@@ -520,6 +547,7 @@ export function processExplicits(ctx: MatchContext): StatFilter[] {
         tierLadder,
         tierQualityMult: advModMult,
         fixedRoll: isFixedValue || undefined,
+        randomSupport: (isRandomSupport && INDEXABLE_SUPPORT_RE.test(matched.statId)) || undefined,
       })
       // Defer attribute contributions (Str -> Life, Int -> Mana) until post-loop so we
       // can check whether their target pseudo has a real contributor on this item.
@@ -563,5 +591,5 @@ export function processExplicits(ctx: MatchContext): StatFilter[] {
     if (!d.forced && d.contributions.some((c) => !c.keepSourceRow)) d.row.enabled = false
   }
 
-  return mergeDuplicateStats(dropFragmentDuplicates(out), pct)
+  return onlyBestRandomSupport(mergeDuplicateStats(dropFragmentDuplicates(out), pct))
 }

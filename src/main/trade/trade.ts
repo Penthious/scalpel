@@ -318,6 +318,11 @@ export interface StatFilter {
   /** True when this mod has a fixed (non-rolled) value: advanced-mod range has min === max,
    *  or no ranges at all. Fixed mods are excluded from direction/bound math in overrides. */
   fixedRoll?: boolean
+  /** True for a Forbidden Shako-style randomized support row (matched into the
+   *  `indexable_support_*` family). Which supports the item rolled -- and how high --
+   *  IS the item's price, so Base mode must keep the producer's enabled state instead
+   *  of blanket-disabling it like an ordinary unique explicit (#564). */
+  randomSupport?: boolean
 }
 
 /** Build a trade `{ min?, max? }` value object from a filter, dropping bounds
