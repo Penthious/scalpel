@@ -19,6 +19,7 @@ import divCardsData from '@shared/data/economy/div-cards.json'
 import baseToUniques from '@shared/data/items/unique-info.json'
 import { ItemChip } from './ItemChip'
 import { IconGlow } from '../shared/IconGlow'
+import { VestigialChip } from '../shared/VestigialChip'
 import mapFrameIcon from '../assets/other/map-frame.png'
 const divCardInfoMap = new Map(
   (divCardsData as Array<{ name: string; reward: string; stack: number }>).map((c) => [
@@ -365,6 +366,7 @@ export function ItemSummary({
               <span className="font-semibold">Synthesised</span>
             </InfoChip>
           )}
+          <VestigialChip item={item} />
           {item.influence.map((inf) => (
             <InfoChip key={inf} icon={INFLUENCE_ICONS_BY_NAME[inf]} color="#c8a96e">
               <span className="font-semibold">{inf}</span>
