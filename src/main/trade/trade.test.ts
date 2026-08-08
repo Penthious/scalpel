@@ -31,6 +31,7 @@ interface CapturedTradeBody {
       weapon_filters: CapturedTradeFilterGroup
       map_filters?: CapturedTradeFilterGroup
       misc_filters?: CapturedTradeFilterGroup
+      trade_filters?: CapturedTradeFilterGroup
     }
     name?: string
     stats: Array<CapturedTradeStatGroup>
@@ -2364,6 +2365,46 @@ describe('searchWaystonesByRegex', () => {
     expect(body.query.filters.type_filters.filters.category).toEqual({ option: 'map.waystone' })
     expect(body.query.filters.map_filters?.filters.map_tier).toEqual({ min: 14, max: 14 })
     expect(body.query.filters.misc_filters?.filters.corrupted).toEqual({ option: 'true' })
+  })
+
+  // The regex builders used to send the price filter only for the exalted/divine
+  // pair, silently ignoring every other buyout currency the user picked.
+  it.each(['mirror', 'chaos', 'annul'])('sends the %s buyout currency', async (option) => {
+    await searchWaystonesByRegex(
+      'Standard',
+      14,
+      [],
+      [],
+      'any',
+      {},
+      {},
+      { corrupted: false, uncorrupted: false, delirious: false, anyPack: false },
+      { packSize: null, monsterEffectiveness: null, monsterRarity: null, itemRarity: null, dropChance: null },
+      'any',
+      option,
+      true,
+    )
+    const body = parseCapturedBody(capturedRequests.find((r) => r.url.includes('/search/')))
+    expect(body.query.filters.trade_filters?.filters.price).toEqual({ min: null, max: null, option })
+  })
+
+  it('omits the price filter for the equivalent pseudo-option', async () => {
+    await searchWaystonesByRegex(
+      'Standard',
+      14,
+      [],
+      [],
+      'any',
+      {},
+      {},
+      { corrupted: false, uncorrupted: false, delirious: false, anyPack: false },
+      { packSize: null, monsterEffectiveness: null, monsterRarity: null, itemRarity: null, dropChance: null },
+      'any',
+      'exalted_equivalent',
+      true,
+    )
+    const body = parseCapturedBody(capturedRequests.find((r) => r.url.includes('/search/')))
+    expect(body.query.filters.trade_filters?.filters.price).toBeUndefined()
   })
 
   it('matches the exact waystone stat, not a tablet-scoped fuzzy match', async () => {

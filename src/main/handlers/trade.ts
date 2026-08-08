@@ -3,6 +3,7 @@ import type Store from 'electron-store'
 import { getTradeUrls, POE_WEBSITE } from '@shared/endpoints'
 import type { AppSettings, AuthResult } from '@shared/types'
 import { getPoeVersion } from '../game-state'
+import { normalizePriceOption } from '@shared/trade-price-options'
 import { getProfileBackedSetting } from '../profiles/profile-settings'
 import type { BulkExchangeResult, StatFilter, TradeResult } from '../trade/trade'
 import {
@@ -249,7 +250,10 @@ export function register(store: Store<AppSettings>): void {
       // Per-search overrides from the price-check Settings chip take priority over the
       // persisted global settings.
       const status = searchOptions?.statusOption ?? store.get('tradeStatus') ?? 'available'
-      const price = searchOptions?.priceOption ?? getProfileBackedSetting(store, 'tradePriceOption') ?? 'chaos_divine'
+      const price = normalizePriceOption(
+        searchOptions?.priceOption ?? getProfileBackedSetting(store, 'tradePriceOption'),
+        getPoeVersion(),
+      )
       const collapse = store.get('tradeCollapseListings') ?? true
       // Only spend a login check when the search would carry a Weighted Sum group
       // (the trade API rejects those for anonymous users). Most searches skip it.
@@ -368,7 +372,7 @@ export function register(store: Store<AppSettings>): void {
     ) => {
       const league = getProfileBackedSetting(store, 'league')
       const tradeStatus = store.get('tradeStatus') ?? 'available'
-      const tradePriceOption = getProfileBackedSetting(store, 'tradePriceOption') ?? 'chaos_divine'
+      const tradePriceOption = normalizePriceOption(getProfileBackedSetting(store, 'tradePriceOption'), getPoeVersion())
       const collapse = store.get('tradeCollapseListings') ?? true
       const result = await searchMapsByRegex(
         league,
@@ -416,7 +420,7 @@ export function register(store: Store<AppSettings>): void {
     ) => {
       const league = getProfileBackedSetting(store, 'league')
       const tradeStatus = store.get('tradeStatus') ?? 'available'
-      const tradePriceOption = getProfileBackedSetting(store, 'tradePriceOption') ?? 'chaos_divine'
+      const tradePriceOption = normalizePriceOption(getProfileBackedSetting(store, 'tradePriceOption'), getPoeVersion())
       const collapse = store.get('tradeCollapseListings') ?? true
       const result = await searchWaystonesByRegex(
         league,
@@ -451,7 +455,7 @@ export function register(store: Store<AppSettings>): void {
     ) => {
       const league = getProfileBackedSetting(store, 'league')
       const tradeStatus = store.get('tradeStatus') ?? 'available'
-      const tradePriceOption = getProfileBackedSetting(store, 'tradePriceOption') ?? 'chaos_divine'
+      const tradePriceOption = normalizePriceOption(getProfileBackedSetting(store, 'tradePriceOption'), getPoeVersion())
       const collapse = store.get('tradeCollapseListings') ?? true
       const result = await searchTabletsByRegex(
         league,

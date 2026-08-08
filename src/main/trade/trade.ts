@@ -2145,7 +2145,10 @@ export async function searchMapsByRegex(
       trade_filters: {
         disabled: false,
         filters: {
-          ...(tradePriceOption === dialect.priceDivinePair
+          // Same rule as the main search: send the buyout currency for every
+          // option except the "equivalent" pseudo-option, which isn't a valid
+          // API value and has to leave the price filter off entirely.
+          ...(tradePriceOption !== dialect.priceEquivalent
             ? { price: { min: null, max: null, option: tradePriceOption } }
             : {}),
           ...(collapseListings ? { collapse: { option: 'true' } } : {}),
@@ -2288,7 +2291,10 @@ export async function searchWaystonesByRegex(
       trade_filters: {
         disabled: false,
         filters: {
-          ...(tradePriceOption === dialect.priceDivinePair
+          // Same rule as the main search: send the buyout currency for every
+          // option except the "equivalent" pseudo-option, which isn't a valid
+          // API value and has to leave the price filter off entirely.
+          ...(tradePriceOption !== dialect.priceEquivalent
             ? { price: { min: null, max: null, option: tradePriceOption } }
             : {}),
           ...(collapseListings ? { collapse: { option: 'true' } } : {}),
@@ -2388,7 +2394,10 @@ export async function searchTabletsByRegex(
       trade_filters: {
         disabled: false,
         filters: {
-          ...(tradePriceOption === dialect.priceDivinePair
+          // Same rule as the main search: send the buyout currency for every
+          // option except the "equivalent" pseudo-option, which isn't a valid
+          // API value and has to leave the price filter off entirely.
+          ...(tradePriceOption !== dialect.priceEquivalent
             ? { price: { min: null, max: null, option: tradePriceOption } }
             : {}),
           ...(collapseListings ? { collapse: { option: 'true' } } : {}),

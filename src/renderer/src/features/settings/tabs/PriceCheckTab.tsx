@@ -5,6 +5,7 @@ import {
   ADAPTIVE_MODE_OPTIONS,
   LISTED_TIME_OPTIONS,
   getPriceOptions,
+  normalizePriceOption,
   RESULTS_VIEW_OPTIONS,
   STATUS_OPTIONS,
 } from '@renderer/shared/trade-settings'
@@ -57,9 +58,7 @@ export function PriceCheckTab({ settings, update, updateProfile, tryHotkey }: Pr
         />
         <SettingSelectBox
           label={m.settings_pc_buyout_currency()}
-          value={
-            settings.activeProfile?.tradePriceOption ?? (settings.poeVersion === 2 ? 'exalted_divine' : 'chaos_divine')
-          }
+          value={normalizePriceOption(settings.activeProfile?.tradePriceOption, settings.poeVersion ?? 1)}
           options={getPriceOptions(settings.poeVersion ?? 1)}
           onChange={(v) => updateProfile('tradePriceOption', v)}
         />

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { getCurrencyShortLabel, CURRENCY_SHORT_LABELS, formatPriceTooltip } from './currency-short-labels'
 import { getCurrencyIconMap } from './currency-icons'
+import { TRADE_PRICE_OPTIONS } from '@shared/trade-price-options'
 
 describe('getCurrencyShortLabel', () => {
   it('returns short labels for common currencies', () => {
@@ -32,6 +33,20 @@ describe('getCurrencyShortLabel', () => {
     const keys = Object.keys(getCurrencyIconMap(2))
     const missing = keys.filter((k) => !(k in CURRENCY_SHORT_LABELS))
     expect(missing).toEqual([])
+  })
+})
+
+describe('buyout currency coverage', () => {
+  // Every currency the buyout dropdown offers can also come back as a listing
+  // price, so each one needs an icon and a short label or the results list
+  // renders a raw trade id. The underscored values (`chaos_divine`,
+  // `chaos_equivalent`, and their PoE2 twins) are aggregate UI modes -- listings
+  // under them report a concrete currency, so they never reach the icon map.
+  it.each([1, 2] as const)('has an icon and a short label for every PoE%i buyout option', (version) => {
+    const icons = getCurrencyIconMap(version)
+    const ids = TRADE_PRICE_OPTIONS[version].map((o) => o.value).filter((v) => !v.includes('_'))
+    expect(ids.filter((id) => !(id in icons))).toEqual([])
+    expect(ids.filter((id) => !(id in CURRENCY_SHORT_LABELS))).toEqual([])
   })
 })
 

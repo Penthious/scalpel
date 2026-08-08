@@ -9,6 +9,8 @@ import type {
   RegexPreset,
   RuntimeSettings,
 } from '@shared/types'
+import { defaultPriceOption } from '@shared/trade-price-options'
+import { getPoeVersion } from '../game-state'
 import { getProfileStore, type ProfileStore } from './store'
 
 export type ProfileChangedSetting =
@@ -76,7 +78,7 @@ export function getProfileBackedSetting<K extends ProfileSettingKey>(
   if (active) return active[key]
   if (key === 'cheatSheets')
     return { globalHotkey: '', categories: [], pinned: false } as unknown as ProfileSettingValue<K>
-  if (key === 'tradePriceOption') return 'chaos_divine' as unknown as ProfileSettingValue<K>
+  if (key === 'tradePriceOption') return defaultPriceOption(getPoeVersion()) as unknown as ProfileSettingValue<K>
   return '' as unknown as ProfileSettingValue<K>
 }
 

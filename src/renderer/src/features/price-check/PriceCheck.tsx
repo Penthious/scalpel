@@ -40,7 +40,14 @@ import {
 import { applyLearnedDecisions } from './learned-decisions'
 import { toggleFilterAt } from './toggle-filter'
 import type { ListedTime, PriceOption, ResultsView, StatusOption } from './search-settings'
-import { LISTED_TIME_OPTIONS, getPriceOptions, primaryCurrencySwap, STATUS_OPTIONS } from './search-settings'
+import {
+  LISTED_TIME_OPTIONS,
+  getPriceOptions,
+  defaultPriceOption,
+  normalizePriceOption,
+  primaryCurrencySwap,
+  STATUS_OPTIONS,
+} from './search-settings'
 import { SearchSettingDropdown } from './SearchSettingDropdown'
 import { zebraRowBg, stripIpcErrorWrapper } from '../../shared/utils'
 import { useAuth } from '../../shared/use-auth'
@@ -196,7 +203,7 @@ export function PriceCheck({
   // user's global settings once they load; left blank for "listed" ("any time").
   const [showSettings, setShowSettings] = useState(false)
   const [listedTime, setListedTime] = useState<ListedTime>('')
-  const [priceOption, setPriceOption] = useState<PriceOption>('chaos_divine')
+  const [priceOption, setPriceOption] = useState<PriceOption>(() => defaultPriceOption(poeVersion))
   const [statusOption, setStatusOption] = useState<StatusOption>('available')
   const [resultsView, setResultsView] = useState<ResultsView>('default')
 
@@ -245,7 +252,11 @@ export function PriceCheck({
       // sees a real exchange rate (PoE1: chaos<->divine, PoE2: exalted<->divine).
       const crossCurrency = primaryCurrencySwap(item.name, poeVersion)
       if (crossCurrency) setPriceOption(crossCurrency)
-      else if (s.activeProfile?.tradePriceOption) setPriceOption(s.activeProfile.tradePriceOption as PriceOption)
+      // normalize: the two games' currency lists barely overlap, so a value
+      // carried over from the other game (or a retired catalog entry) has to
+      // fall back rather than silently ship a dead option id to the API.
+      else if (s.activeProfile?.tradePriceOption)
+        setPriceOption(normalizePriceOption(s.activeProfile.tradePriceOption, poeVersion))
       if (s.tradeStatus) setStatusOption(s.tradeStatus as StatusOption)
       if (s.tradeDefaultListedTime !== undefined) setListedTime(s.tradeDefaultListedTime as ListedTime)
       if (s.tradeResultsView) setResultsView(s.tradeResultsView)

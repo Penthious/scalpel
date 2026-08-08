@@ -1,3 +1,5 @@
+import { renderSelectOptions } from '@renderer/shared/select-options'
+
 /**
  * Settings-row dropdown styled to match the other `.setting-box` rows (hotkey, trade site
  * login, etc.). Renders a label, the currently-selected value, a "Change" button, and a
@@ -11,7 +13,7 @@ export function SettingSelectBox<T extends string>({
 }: {
   label: string
   value: T
-  options: ReadonlyArray<{ value: T; label: string }>
+  options: ReadonlyArray<{ value: T; label: string; group?: string }>
   onChange: (v: T) => void
 }): JSX.Element {
   const current = options.find((o) => o.value === value) ?? options[0]
@@ -39,11 +41,7 @@ export function SettingSelectBox<T extends string>({
           onChange={(e) => onChange(e.target.value as T)}
           className="absolute inset-0 opacity-0 cursor-pointer"
         >
-          {options.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
+          {renderSelectOptions(options)}
         </select>
       </div>
     </section>

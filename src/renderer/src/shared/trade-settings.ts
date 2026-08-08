@@ -1,5 +1,7 @@
 import type { AdaptiveMode } from '@shared/types'
+import { TRADE_PRICE_OPTIONS, type TradePriceOption, type TradePriceOptionEntry } from '@shared/trade-price-options'
 export type { AdaptiveMode }
+export { defaultPriceOption, normalizePriceOption } from '@shared/trade-price-options'
 
 export type ListedTime =
   | ''
@@ -26,32 +28,14 @@ export const LISTED_TIME_OPTIONS: Array<{ value: ListedTime; label: string }> = 
   { value: '2months', label: 'Past 2 months' },
 ]
 
-export type PriceOption =
-  | 'chaos_divine'
-  | 'chaos_equivalent'
-  | 'chaos'
-  | 'divine'
-  | 'exalted_divine'
-  | 'exalted_equivalent'
-  | 'exalted'
+/** Alias of the shared contract type -- the catalog in @shared is the single
+ *  source of truth for both the option list and the persisted value. */
+export type PriceOption = TradePriceOption
 
-const PRICE_OPTIONS_POE1: Array<{ value: PriceOption; label: string }> = [
-  { value: 'chaos_divine', label: 'Chaos or Divine' },
-  { value: 'chaos_equivalent', label: 'Chaos equivalent' },
-  { value: 'chaos', label: 'Chaos only' },
-  { value: 'divine', label: 'Divine only' },
-]
-
-const PRICE_OPTIONS_POE2: Array<{ value: PriceOption; label: string }> = [
-  { value: 'exalted_divine', label: 'Exalted or Divine' },
-  { value: 'exalted_equivalent', label: 'Exalted equivalent' },
-  { value: 'exalted', label: 'Exalted only' },
-  { value: 'divine', label: 'Divine only' },
-  { value: 'chaos', label: 'Chaos only' },
-]
-
-export function getPriceOptions(version: 1 | 2): Array<{ value: PriceOption; label: string }> {
-  return version === 2 ? PRICE_OPTIONS_POE2 : PRICE_OPTIONS_POE1
+/** The full buyout-currency list GGG offers for this game: the commonly-used
+ *  options first, then the rest under an "Other currencies" `<optgroup>`. */
+export function getPriceOptions(version: 1 | 2): ReadonlyArray<TradePriceOptionEntry> {
+  return TRADE_PRICE_OPTIONS[version]
 }
 
 const PRIMARY_CURRENCY_SWAPS: Record<1 | 2, Record<string, PriceOption>> = {

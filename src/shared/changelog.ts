@@ -16,6 +16,7 @@ export const CHANGELOG: { version: string; notes: string[] }[] = [
       'Plugin developers can now reload an unpacked plugin in place from the Developer tab, no app restart.',
       'Added a "Restart now" button to the Developer settings section (s/o cccarv82!).',
       'Added a Beasts tab to the PoE1 regex tool.',
+      'Buyout price can now be set to any currency the trade site offers, not just the chaos/divine pair.',
       "Refreshed the PoE2 regex tool's tablet mod data.",
       "Refreshed the PoE1 regex tool's vendor map mod and beast data.",
       'Refreshed the item tier data.',
@@ -53,6 +54,7 @@ export const CHANGELOG: { version: string; notes: string[] }[] = [
       'Fixed updates downloading and then never installing, so you restarted onto the same version and got asked to update again.',
       'Fixed a console window flashing on screen during app updates.',
       'Fixed your clipboard being left holding an /itemfilter command when a price check overlapped a filter reload or an update check.',
+      "Fixed the regex tool's Maps, Waystones and Tablets searches ignoring your buyout currency unless it was the default pair.",
     ],
   },
   {

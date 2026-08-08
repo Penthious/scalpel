@@ -12,6 +12,9 @@ function buildCurrencyIcons(icons: Record<string, string>): Record<string, strin
     ['alt', 'Orb of Alteration'],
     ['mirror', 'Mirror of Kalandra'],
     ['chrom', 'Chromatic Orb'],
+    // GGG's own id in trade_filters.price.option and in listing prices is
+    // "chrome"; "chrom" above is the short form the fetch layer also emits.
+    ['chrome', 'Chromatic Orb'],
     ['blessed', 'Blessed Orb'],
     ['fusing', 'Orb of Fusing'],
     ['jewellers', "Jeweller's Orb"],

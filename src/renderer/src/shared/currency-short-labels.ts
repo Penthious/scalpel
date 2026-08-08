@@ -15,6 +15,7 @@ export const CURRENCY_SHORT_LABELS: Record<string, string> = {
   alt: 'alt',
   mirror: 'mirror',
   chrom: 'chrom',
+  chrome: 'chrom',
   blessed: 'blessed',
   fusing: 'fuse',
   jewellers: 'jeweller',
