@@ -38,6 +38,7 @@ import {
   shouldIncludeImplicitsInBase,
 } from './base-mode'
 import { applyLearnedDecisions } from './learned-decisions'
+import { toggleFilterAt } from './toggle-filter'
 import type { ListedTime, PriceOption, ResultsView, StatusOption } from './search-settings'
 import { LISTED_TIME_OPTIONS, getPriceOptions, primaryCurrencySwap, STATUS_OPTIONS } from './search-settings'
 import { SearchSettingDropdown } from './SearchSettingDropdown'
@@ -75,6 +76,10 @@ export function PriceCheck({
   // (Weighted Sum, e.g. added elemental damage on PoE2). Each drives an in-row
   // login tip under the matching filter.
   const [loginRequiredPseudoIds, setLoginRequiredPseudoIds] = useState<string[]>([])
+  // Ids of Mercenary Warrant support rows the last search had to send unscoped:
+  // pinning a support to its skill needs a `mercenary` stat group, and an
+  // anonymous query only fits one. They still filtered, just item-wide.
+  const [loginRequiredMercenaryIds, setLoginRequiredMercenaryIds] = useState<string[]>([])
   // Rate-limit state comes from main already merged across all policies we've seen. The
   // RateLimitBar handles decay + blending; we just store the latest snapshot here.
   const [rateLimitTiers, setRateLimitTiers] = useState<
@@ -358,6 +363,7 @@ export function PriceCheck({
       queryIdRef.current = result.queryId
       setRemainingIds(result.remainingIds ?? [])
       setLoginRequiredPseudoIds(result.loginRequiredPseudoIds ?? [])
+      setLoginRequiredMercenaryIds(result.loginRequiredMercenaryIds ?? [])
     } catch (e) {
       setError(stripIpcErrorWrapper(e instanceof Error ? e.message : 'Search failed'))
     }
@@ -400,28 +406,7 @@ export function PriceCheck({
   }, [selectedUnique, isBulk, settingsLoaded])
 
   const toggleFilter = (idx: number): void => {
-    setFilters((prev) => {
-      const target = prev[idx]
-      // Ternary and minmax chips are driven via chipState through the FilterChip's onChange path;
-      // toggling them via this binary path would silently desync state.
-      if (TERNARY_CHIP_IDS.has(target.id) || MINMAX_CHIP_IDS.has(target.id)) return prev
-      const toggling = !target.enabled
-      return prev.map((f, i) => {
-        if (i === idx) {
-          if (toggling && f.type === 'timeless') return { ...f, enabled: true }
-          return { ...f, enabled: toggling }
-        }
-        // Timeless chips are mutually exclusive: enabling one disables the other
-        if (f.type === 'timeless' && target.type === 'timeless' && toggling) {
-          return { ...f, enabled: false }
-        }
-        // Auto-flip the Fractured chip to "yes" when a fractured-mod row is toggled on
-        if (f.id === 'misc.fractured' && target.type === 'fractured' && toggling) {
-          return { ...f, chipState: 'yes' }
-        }
-        return f
-      })
-    })
+    setFilters((prev) => toggleFilterAt(prev, idx))
   }
 
   const updateFilterMin = (idx: number, val: string): void => {
@@ -773,6 +758,24 @@ export function PriceCheck({
                             Log in
                           </span>{' '}
                           to add this pseudo to your search
+                        </DismissibleTip>
+                      </div>
+                    )}
+                    {/* This support searched item-wide instead of on its own skill:
+                        the scoped form is a `mercenary` stat group, and anonymous
+                        queries only fit one. Shown once, on the first such row. */}
+                    {loginRequiredMercenaryIds[0] === f.id && (
+                      <div className="px-3 pt-2 pb-2" style={{ background: zebraRowBg(rowIdx) }}>
+                        <DismissibleTip id="mercenary-support-login" dismissible={false}>
+                          <span
+                            className="font-bold underline cursor-pointer"
+                            onClick={() => {
+                              login().then(() => doSearch())
+                            }}
+                          >
+                            Log in
+                          </span>{' '}
+                          to match supports on the skill they sit on, not anywhere on the mercenary
                         </DismissibleTip>
                       </div>
                     )}

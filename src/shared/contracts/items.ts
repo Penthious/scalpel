@@ -170,6 +170,20 @@ export interface PoeItem {
   /** Mercenary level a Mercenary Warrant sells, capped at 83. Indexes as
    *  misc_filters.ilvl on trade, not as area level. */
   mercenaryLevel?: number
+  /** Skill blocks printed on a Mercenary Warrant, in clipboard order. The
+   *  mercenary's kit is what actually sets a warrant's price, and every skill
+   *  and every support-at-tier is its own presence-only trade stat id
+   *  (mercenary.skill_* / mercenary.support_*, matched by text). */
+  mercenarySkills?: MercenarySkill[]
+}
+
+/** One skill on a Mercenary Warrant's mercenary plus the supports linked to it.
+ *  `supports` keeps the clipboard's own wording, tier included -- e.g.
+ *  "Greater Critical Chance (Tier: 3)" -- because the tier is part of the
+ *  support's trade identity, not a value on it. */
+export interface MercenarySkill {
+  name: string
+  supports: string[]
 }
 
 export interface Zone {

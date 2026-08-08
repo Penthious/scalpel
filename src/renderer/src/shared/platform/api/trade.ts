@@ -112,6 +112,7 @@ export function tradeSearch(
   queryId: string
   remainingIds: string[]
   loginRequiredPseudoIds?: string[]
+  loginRequiredMercenaryIds?: string[]
 }> {
   return window.api.tradeSearch(item, statFilters, searchOptions)
 }

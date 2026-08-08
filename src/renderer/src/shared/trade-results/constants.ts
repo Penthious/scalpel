@@ -36,6 +36,7 @@ export const MOD_COLORS: Record<string, string> = {
   rune: '#a8e6cf',
   skill: '#a8e6cf',
   map: '#80cbc4',
+  mercenary: '#a8e6cf',
   explicit: '#8787FE',
   tierPrefix: '#ec7676',
   tierSuffix: '#7aaff1',

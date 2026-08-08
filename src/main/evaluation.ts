@@ -309,6 +309,7 @@ export async function preloadPriceCheck(item: PoeItem, store: Store<AppSettings>
       scryingArea: item.scryingArea,
       mercenaryBuild: item.mercenaryBuild,
       mercenaryLevel: item.mercenaryLevel,
+      mercenarySkills: item.mercenarySkills,
     },
     item.advancedMods,
     store.get('priceCheckDefaultPercent') ?? 90,

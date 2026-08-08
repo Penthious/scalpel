@@ -86,7 +86,10 @@ export function HoverTooltip({ text, children, className }: HoverTooltipProps): 
               fontSize: 11,
               fontWeight: 600,
               color: 'var(--text, #fff)',
-              whiteSpace: 'nowrap',
+              // `pre`, not `nowrap`: identical for the single-line price tooltips,
+              // but keeps the newlines in multi-line text (a warrant's skill and
+              // its supports) instead of collapsing them to spaces.
+              whiteSpace: 'pre',
             }}
           >
             {text}

@@ -34,6 +34,9 @@ export interface Listing {
     memoryStrands?: number
     modTiers?: Record<string, { tier: string; name: string; ranges: string }>
     grantedSkills?: Array<{ text: string; icon?: string }>
+    /** Mercenary Warrant kit: each skill with the supports linked to it, in the
+     *  order the item prints them. */
+    mercenarySkills?: Array<{ name: string; icon?: string; supports: Array<{ name: string; tier?: number }> }>
     rarity?: string
     armour?: number
     evasion?: number

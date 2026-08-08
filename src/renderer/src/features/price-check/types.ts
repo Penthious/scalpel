@@ -47,6 +47,10 @@ export interface StatFilter {
   /** True when this mod has a fixed (non-rolled) value: advanced-mod range has min === max,
    *  or no ranges at all. Fixed mods are excluded from direction/bound math in overrides. */
   fixedRoll?: boolean
+  /** Mercenary Warrant support rows only: stat id of the skill this support sits
+   *  on. Set by the main process; the renderer uses it to indent the row under
+   *  its skill. */
+  mercenarySkillId?: string
 }
 
 export interface PriceCheckProps {

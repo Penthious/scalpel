@@ -2,7 +2,7 @@ import { clipboard } from 'electron'
 import { getItemClasses } from '@shared/data/items/item-classes'
 import { MERCENARY_WARRANT_BASE_TYPE } from '@shared/data/trade/mercenary-warrants'
 import { endgameAreaLevel, SKILL_GEM_CLASSES } from '@shared/poe-item'
-import type { AdvancedMod, ItemRarity, PoeItem } from '@shared/types'
+import type { AdvancedMod, ItemRarity, MercenarySkill, PoeItem } from '@shared/types'
 import { getPoeVersion } from '../game-state'
 
 // Both base-name and class-size lookups seed lazily from the active game's
@@ -377,6 +377,7 @@ export function parseItemText(text: string): PoeItem | null {
   const isMercenaryWarrant = baseType === MERCENARY_WARRANT_BASE_TYPE
   const mercenaryBuild = isMercenaryWarrant ? extractStr(allLines, 'Build:') : undefined
   const mercenaryLevel = isMercenaryWarrant ? (extractNum(allLines, 'Mercenary Level:') ?? undefined) : undefined
+  const mercenarySkills = isMercenaryWarrant ? parseMercenarySkills(sections) : undefined
 
   const memoryStrands = extractNum(allLines, 'Memory Strands:')
 
@@ -775,6 +776,7 @@ export function parseItemText(text: string): PoeItem | null {
     ...(scryingArea != null ? { scryingArea } : {}),
     ...(mercenaryBuild != null ? { mercenaryBuild } : {}),
     ...(mercenaryLevel != null ? { mercenaryLevel } : {}),
+    ...(mercenarySkills != null ? { mercenarySkills } : {}),
     ...(physDamageMin != null ? { physDamageMin, physDamageMax } : {}),
     ...(eleDamageAvg != null ? { eleDamageAvg } : {}),
     ...(chaosDamageAvg != null ? { chaosDamageAvg } : {}),
@@ -836,6 +838,44 @@ function extractFloat(lines: string[], prefix: string): number | undefined {
   if (!line) return undefined
   const match = line.match(/(\d+(?:\.\d+)?)/)
   return match ? parseFloat(match[1]) : undefined
+}
+
+/** A support line inside a Mercenary Warrant skill block, e.g.
+ *  "Greater Critical Chance (Tier: 3)". The tier is part of the support's
+ *  identity on trade (its own stat id), not a value on it. */
+const MERCENARY_SUPPORT_LINE = /\(Tier: \d+\)$/
+
+/**
+ * Skill blocks on a Mercenary Warrant. Everything between the "Build:" section
+ * and the closing "Right click this item..." description is one section per
+ * skill: the skill name on the first line, its supports below it. A skill with
+ * no supports (an aura like Grace) is a one-line section, which is why the shape
+ * check -- name line, then nothing but support lines -- is what identifies a
+ * block rather than its length.
+ */
+function parseMercenarySkills(sections: string[]): MercenarySkill[] | undefined {
+  const buildIdx = sections.findIndex((s) => s.split('\n').some((l) => l.trim().startsWith('Build:')))
+  if (buildIdx === -1) return undefined
+
+  const out: MercenarySkill[] = []
+  for (const section of sections.slice(buildIdx + 1)) {
+    const lines = section
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean)
+    if (lines.length === 0) continue
+    // The description block closes the skill list; a trade "Note: ~b/o" section
+    // can only follow it, so stopping here covers both.
+    if (lines.some((l) => l.startsWith('Right click') || l.startsWith('Can be used'))) break
+    const [name, ...supports] = lines
+    // Skill names carry neither a tier nor a "Key: value" shape. Anything else
+    // in this stretch is a section we don't recognise -- skip it rather than
+    // emitting a chip that resolves to nothing.
+    if (MERCENARY_SUPPORT_LINE.test(name) || name.includes(':')) continue
+    if (!supports.every((l) => MERCENARY_SUPPORT_LINE.test(l))) continue
+    out.push({ name, supports })
+  }
+  return out.length > 0 ? out : undefined
 }
 
 function computeLinkedSockets(sockets: string): number {

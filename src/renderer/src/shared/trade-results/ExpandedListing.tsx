@@ -34,6 +34,13 @@ function copyItemToClipboard(d: Listing['itemData'] & {}, rarity: string, btn: H
     lines.push('--------')
     for (const gs of d.grantedSkills) lines.push(`Grants Skill: ${gs.text}`)
   }
+  // Warrants print one section per skill, supports beneath it with the tier -- copy
+  // it back the same way so a pasted listing parses like an in-game Ctrl+C.
+  for (const skill of d.mercenarySkills ?? []) {
+    lines.push('--------')
+    lines.push(skill.name)
+    for (const sup of skill.supports) lines.push(sup.tier != null ? `${sup.name} (Tier: ${sup.tier})` : sup.name)
+  }
   if (d.implicitMods?.length) {
     lines.push('--------')
     for (const mod of d.implicitMods) lines.push(`${mod} (implicit)`)
@@ -256,6 +263,33 @@ export function ExpandedListing({ listing: l, itemClass, itemName, itemRarity }:
           <div className="mt-1 pt-1 w-full" style={MOD_SEPARATOR}>
             {d.runeMods.map((mod, mi) => (
               <ModLine key={mi} text={mod} color={MOD_COLORS.rune} />
+            ))}
+          </div>
+        )}
+
+        {/* Mercenary Warrant kit: one row per skill (with its game icon), its
+            supports listed under it with the tier that is part of their trade
+            identity. This block IS the item on a warrant -- there are no mods. */}
+        {d.mercenarySkills && d.mercenarySkills.length > 0 && (
+          <div className="mt-1 pt-1 w-full flex flex-col gap-[3px]" style={MOD_SEPARATOR}>
+            {d.mercenarySkills.map((skill, si) => (
+              <div key={si} className="flex flex-col items-center">
+                <div
+                  className="text-[10px] flex items-center justify-center gap-1 font-semibold"
+                  style={{ color: MOD_COLORS.skill }}
+                >
+                  {skill.icon && <img src={skill.icon} alt="" className="w-4 h-4 object-contain" />}
+                  <span>{skill.name}</span>
+                </div>
+                {skill.supports.map((sup, ui) => (
+                  <div key={ui} className="text-[10px] flex items-center justify-center gap-1 text-text-dim">
+                    <span>{sup.name}</span>
+                    {sup.tier != null && (
+                      <span className="rounded-[2px] bg-black/35 px-[3px] text-[9px] leading-[13px]">T{sup.tier}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
             ))}
           </div>
         )}

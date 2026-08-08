@@ -25,6 +25,7 @@ export type {
   FilterListEntry,
   AdvancedMod,
   PoeItem,
+  MercenarySkill,
   Zone,
   EvaluatedCondition,
   MatchResult,

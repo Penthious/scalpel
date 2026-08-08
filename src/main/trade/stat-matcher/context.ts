@@ -1,5 +1,5 @@
 import { SKILL_GEM_CLASSES } from '@shared/poe-item'
-import type { AdvancedMod } from '@shared/types'
+import type { AdvancedMod, MercenarySkill } from '@shared/types'
 import { ARMOUR_CLASSES, WEAPON_CLASSES } from './item-classes'
 import type { PseudoAccumulatorEntry } from './pseudo'
 
@@ -67,6 +67,7 @@ export interface ItemInfo {
   scryingArea?: string
   mercenaryBuild?: string
   mercenaryLevel?: number
+  mercenarySkills?: MercenarySkill[]
 }
 
 export interface DefenseValues {

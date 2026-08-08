@@ -224,6 +224,8 @@ interface TradeListing {
     areaLevel?: number
     heistJob?: { skill: string; level: number }
     chartZone?: string
+    /** Mercenary Warrant kit, in the order the item prints it. */
+    mercenarySkills?: Array<{ name: string; icon?: string; supports: Array<{ name: string; tier?: number }> }>
   }
 }
 
@@ -237,6 +239,11 @@ export interface TradeResult {
    *  API rejects weighted searches for anonymous users. The UI shows a login tip
    *  on each matching filter row. Absent when nothing was dropped. */
   loginRequiredPseudoIds?: string[]
+  /** Ids of Mercenary Warrant support rows that searched unscoped because the user
+   *  is not logged in -- scoping a support to its skill needs a `mercenary` stat
+   *  group, and anonymous queries only fit one. The rows still filtered, just
+   *  item-wide instead of per-skill. Absent when nothing was degraded. */
+  loginRequiredMercenaryIds?: string[]
 }
 
 export interface BulkExchangeListing {
@@ -296,6 +303,12 @@ export interface StatFilter {
   /** Ternary chip state: 'yes' | 'no' | undefined (= any). Also used by
    *  minmax chips: 'min' | 'max' | undefined (= off). */
   chipState?: 'yes' | 'no' | 'min' | 'max'
+  /** Mercenary Warrant support rows only: the stat id of the skill this support
+   *  sits on. Trade scopes a support to its skill via a `mercenary` stat group
+   *  (the group's head is the skill), so the pair travels together. Two skills
+   *  carrying the same support therefore get one row each, sharing a stat id but
+   *  not a parent. */
+  mercenarySkillId?: string
   /** PoE2 Weighted Sum payload for calculated pseudos: the contributing real
    *  stat ids. Present only on `type: 'pseudo'` chips; ignored on PoE1, where
    *  pseudos use their native `pseudo.*` id. */
@@ -1134,7 +1147,45 @@ export async function searchTrade(
   // (resistances, life, mana) and all PoE1 pseudos stay in the `and` group as
   // native ids. dialect.weightedPseudoIds names the ids that need this routing.
   const weightPseudoFilters = enabledFilters.filter((f) => isWeightedPseudo(f, dialect))
-  const andFilters = enabledFilters.filter((f) => !weightPseudoFilters.includes(f))
+
+  // Mercenary Warrant kit. A support only means anything scoped to the skill it
+  // sits on, and trade expresses that as a `mercenary` stat group whose head is
+  // the skill: probed, Bladefall + Brutality + Increased AoE returned 2632 as
+  // flat `and` filters (the supports could sit on any skill) versus 979 as one
+  // group, and hanging Bladefall's supports off Frost Shield returned 0.
+  //
+  // One group per skill that has an enabled support; a group also needs its skill
+  // even when the user unticked that row, since a support-only group matches
+  // everything. Skills with no enabled support stay flat -- a one-filter group and
+  // a flat filter return the same count (5395 vs 5396), and groups are what the
+  // complexity budget charges for.
+  const mercenaryFilters = enabledFilters.filter((f) => f.type === 'mercenary')
+  const mercenarySupports = mercenaryFilters.filter((f) => f.mercenarySkillId)
+  // Anonymous queries fit exactly one stat group: six groups, or even one group
+  // alongside a populated `and` group, come back "Query is too complex ... Logging
+  // in will increase this limit". Rather than drop the supports, degrade to the
+  // unscoped flat filters (a superset of the scoped search, still narrowing) and
+  // report the row ids so the UI can offer a login for real scoping.
+  const scopeSupports = loggedIn && mercenarySupports.length > 0
+  const mercenaryGroups = scopeSupports
+    ? [...new Set(mercenarySupports.map((f) => f.mercenarySkillId!))].map((skillId) => ({
+        type: 'mercenary',
+        filters: [
+          { id: skillId },
+          ...mercenarySupports.filter((f) => f.mercenarySkillId === skillId).map((f) => ({ id: f.id })),
+        ],
+      }))
+    : []
+  const groupedMercenaryIds = new Set(mercenaryGroups.flatMap((g) => g.filters.map((f) => f.id)))
+  const loginRequiredMercenaryIds = loggedIn ? [] : mercenarySupports.map((f) => f.id)
+
+  const andFilters = enabledFilters.filter(
+    (f) =>
+      !weightPseudoFilters.includes(f) &&
+      // A skill that heads a group must not also ride in the `and` group: it is
+      // already constrained there, and every extra filter costs complexity.
+      !(f.type === 'mercenary' && groupedMercenaryIds.has(f.id)),
+  )
 
   // The trade API rejects weighted searches for anonymous users ("too complex,
   // log in"), so emit weight groups only when logged in. When not, the unsupported
@@ -1142,8 +1193,11 @@ export async function searchTrade(
   // so the UI can prompt a login on those rows rather than silently lose them.
   const loginRequiredPseudoIds = loggedIn ? [] : weightPseudoFilters.map((f) => f.id)
   // Spread into whichever TradeResult we return below; empty object when nothing
-  // was dropped so the field is absent.
-  const loginRequiredField = loginRequiredPseudoIds.length > 0 ? { loginRequiredPseudoIds } : {}
+  // was dropped or degraded so the fields are absent.
+  const loginRequiredField = {
+    ...(loginRequiredPseudoIds.length > 0 ? { loginRequiredPseudoIds } : {}),
+    ...(loginRequiredMercenaryIds.length > 0 ? { loginRequiredMercenaryIds } : {}),
+  }
 
   const timelessFilters = unidEnabled ? [] : statFilters.filter((f) => f.enabled && f.type === 'timeless')
 
@@ -1163,6 +1217,12 @@ export async function searchTrade(
       })),
     })
   }
+
+  // One `mercenary` group per Mercenary Warrant skill carrying an enabled support
+  // (empty unless logged in -- see scopeSupports above). Presence-only, so no
+  // per-filter or per-group value: sending `value: {min: 1}` made the group match
+  // every warrant instead of narrowing.
+  statGroups.push(...mercenaryGroups)
 
   // One Weighted Sum group per pseudo that needs it. The trade2 weight group
   // lists each stat id as `{id, disabled:false}` and sums at the implicit weight
@@ -1441,6 +1501,13 @@ export interface FetchEntry {
       hashes?: Record<string, Array<[string, number[]]>>
     }
     grantedSkills?: Array<{ name: string; values: Array<[string, number]>; icon?: string }>
+    /** Mercenary Warrants: the mercenary's kit. `supports` is absent on a skill
+     *  with none (an aura like Grace). */
+    mercenarySkills?: Array<{
+      name: string
+      icon?: string
+      supports?: Array<{ name: string; tier?: number }>
+    }>
   }
 }
 
@@ -1657,6 +1724,13 @@ export function parseFetchedListings(fetchedEntries: FetchEntry[]): TradeListing
             grantedSkills: r.item.grantedSkills
               ?.map((g) => ({ text: stripTradeTokens(g.values?.[0]?.[0] ?? ''), icon: g.icon }))
               .filter((g) => g.text),
+            // A Mercenary Warrant's kit -- the thing that sets its price. Kept as
+            // skill -> supports so the listing reads the way the item does in game.
+            mercenarySkills: r.item.mercenarySkills?.map((s) => ({
+              name: s.name,
+              icon: s.icon,
+              supports: (s.supports ?? []).map((sup) => ({ name: sup.name, tier: sup.tier })),
+            })),
           }
         })()
       : undefined,

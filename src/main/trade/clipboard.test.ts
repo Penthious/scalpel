@@ -1274,6 +1274,66 @@ describe('parseItemText', () => {
       const item = parseItemText(text)!
       expect(item.mercenaryBuild).toBeUndefined()
       expect(item.mercenaryLevel).toBeUndefined()
+      expect(item.mercenarySkills).toBeUndefined()
+    })
+
+    // A real level-83 Bladecaster, copied in-game after 3.27 made warrants
+    // Ctrl+C-able. Every skill and support here resolves to a live
+    // mercenary.skill_* / mercenary.support_* trade stat id.
+    const KRIMON = [
+      'Item Class: Map Fragments',
+      'Rarity: Normal',
+      'Mercenary Warrant',
+      '--------',
+      'Krimon Howl-scream',
+      '--------',
+      'Build: Bladecaster',
+      'Mercenary Level: 83',
+      '--------',
+      'Clutches of the Damned',
+      '--------',
+      'Bloody Warp',
+      'Critical Chance (Tier: 2)',
+      'Cooldown Recovery (Tier: 2)',
+      '--------',
+      'Bladefall of Trarthus',
+      'Greater Concentrated Effect (Tier: 3)',
+      'Brutality (Tier: 2)',
+      '--------',
+      'Grace',
+      '--------',
+      'Right click this item to view Mercenary details.',
+      'Can be used in a personal Map Device alongside a Map to have this previously fought Mercenary reappear in the area for a rematch.',
+    ].join('\n')
+
+    it('parses each skill block with its supports, in clipboard order', () => {
+      expect(parseItemText(KRIMON)!.mercenarySkills).toEqual([
+        { name: 'Clutches of the Damned', supports: [] },
+        { name: 'Bloody Warp', supports: ['Critical Chance (Tier: 2)', 'Cooldown Recovery (Tier: 2)'] },
+        {
+          name: 'Bladefall of Trarthus',
+          supports: ['Greater Concentrated Effect (Tier: 3)', 'Brutality (Tier: 2)'],
+        },
+        { name: 'Grace', supports: [] },
+      ])
+    })
+
+    it('keeps the skill blocks out of the mod list', () => {
+      const item = parseItemText(KRIMON)!
+
+      expect(item.explicits ?? []).toEqual([])
+      expect(item.implicits ?? []).toEqual([])
+    })
+
+    it('stops at the description, so a trade note is never read as a skill', () => {
+      const withNote = `${KRIMON}\n--------\nNote: ~b/o 5 divine`
+      const names = parseItemText(withNote)!.mercenarySkills!.map((s) => s.name)
+
+      expect(names).toEqual(['Clutches of the Damned', 'Bloody Warp', 'Bladefall of Trarthus', 'Grace'])
+    })
+
+    it('leaves the field undefined on a warrant printed without skill blocks', () => {
+      expect(parseItemText(warrantText('Mysterious Diver'))!.mercenarySkills).toBeUndefined()
     })
   })
 

@@ -389,6 +389,46 @@ describe('parseFetchedListings', () => {
     expect(data.memoryStrands).toBe(26)
   })
 
+  it('carries a Mercenary Warrant kit onto the listing, supports and tiers intact', () => {
+    // Real shape from /api/trade/fetch: `mercenarySkills`, each with an icon and
+    // the supports linked to it. An aura ships with no `supports` array at all.
+    const entry: FetchEntry = {
+      id: 'w1',
+      listing: baseListing,
+      item: {
+        name: '',
+        baseType: 'Mercenary Warrant',
+        typeLine: 'Mercenary Warrant',
+        frameType: 0,
+        mercenarySkills: [
+          {
+            name: 'Bladefall',
+            icon: 'https://web.poecdn.com/bladefall.png',
+            supports: [
+              { name: 'Brutality', tier: 2 },
+              { name: 'Greater Faster Casting', tier: 3 },
+            ],
+          },
+          { name: 'Grace', icon: 'https://web.poecdn.com/grace.png' },
+        ],
+      },
+    }
+
+    const [listing] = parseFetchedListings([entry])
+
+    expect(listing.itemData!.mercenarySkills).toEqual([
+      {
+        name: 'Bladefall',
+        icon: 'https://web.poecdn.com/bladefall.png',
+        supports: [
+          { name: 'Brutality', tier: 2 },
+          { name: 'Greater Faster Casting', tier: 3 },
+        ],
+      },
+      { name: 'Grace', icon: 'https://web.poecdn.com/grace.png', supports: [] },
+    ])
+  })
+
   it('leaves memoryStrands undefined for an item without the property', () => {
     const entry: FetchEntry = {
       id: 'f8',
@@ -2970,10 +3010,34 @@ describe('searchTrade mercenary warrant handling', () => {
     type: 'gem',
   }
 
-  async function warrantSearchBody(filters: StatFilter[]) {
-    await searchTrade('Allflame', warrant, filters, { tradeStatus: 'any' })
-    return parseCapturedBody(capturedRequests.find((r) => r.url.includes('/search/')))
+  async function warrantSearch(filters: StatFilter[], opts: { loggedIn?: boolean } = {}) {
+    const result = await searchTrade('Allflame', warrant, filters, { tradeStatus: 'any', ...opts })
+    return { result, body: parseCapturedBody(capturedRequests.find((r) => r.url.includes('/search/'))) }
   }
+
+  async function warrantSearchBody(filters: StatFilter[]) {
+    return (await warrantSearch(filters)).body
+  }
+
+  const skillChip = (id: string, text: string, enabled = true): StatFilter => ({
+    id,
+    text,
+    value: null,
+    min: null,
+    max: null,
+    enabled,
+    type: 'mercenary',
+  })
+
+  const supportChip = (id: string, text: string, skillId: string, enabled = true): StatFilter => ({
+    ...skillChip(id, text, enabled),
+    mercenarySkillId: skillId,
+  })
+
+  const BLADEFALL = 'mercenary.skill_37202'
+  const TRARTHUS = 'mercenary.skill_59477'
+  const BRUTALITY = 'mercenary.support_64271'
+  const GR_FASTER_CAST = 'mercenary.support_8607'
 
   it('sends the build discriminator when the build chip is enabled', async () => {
     const body = await warrantSearchBody([buildChip])
@@ -3026,6 +3090,110 @@ describe('searchTrade mercenary warrant handling', () => {
     const body = await warrantSearchBody([buildChip, levelChip])
 
     expect(body.query.filters?.misc_filters?.filters?.ilvl).toEqual({ min: 83 })
+  })
+
+  it('sends bare skills as plain presence stats in the and group', async () => {
+    const body = await warrantSearchBody([
+      buildChip,
+      levelChip,
+      skillChip(BLADEFALL, 'Bladefall'),
+      skillChip(TRARTHUS, 'Bladefall of Trarthus'),
+    ])
+
+    // No value on either: presence-only stats.
+    expect(body.query.stats).toEqual([
+      {
+        type: 'and',
+        filters: [
+          { id: BLADEFALL, value: {} },
+          { id: TRARTHUS, value: {} },
+        ],
+      },
+    ])
+  })
+
+  it('scopes an enabled support to its skill in a mercenary group', async () => {
+    const body = await warrantSearchBody([
+      buildChip,
+      levelChip,
+      skillChip(BLADEFALL, 'Bladefall'),
+      supportChip(GR_FASTER_CAST, 'Greater Faster Casting (Tier: 3)', BLADEFALL),
+    ])
+
+    // The skill heads the group, so it must not also ride in the and group -- and
+    // the group takes no value (sending one made it match every warrant).
+    expect(body.query.stats).toEqual([{ type: 'mercenary', filters: [{ id: BLADEFALL }, { id: GR_FASTER_CAST }] }])
+  })
+
+  it('gives each skill its own group, so a shared support scopes to both', async () => {
+    const body = await warrantSearchBody([
+      buildChip,
+      skillChip(BLADEFALL, 'Bladefall'),
+      supportChip(BRUTALITY, 'Brutality (Tier: 2)', BLADEFALL),
+      skillChip(TRARTHUS, 'Bladefall of Trarthus'),
+      supportChip(BRUTALITY, 'Brutality (Tier: 2)', TRARTHUS),
+    ])
+
+    expect(body.query.stats).toEqual([
+      { type: 'mercenary', filters: [{ id: BLADEFALL }, { id: BRUTALITY }] },
+      { type: 'mercenary', filters: [{ id: TRARTHUS }, { id: BRUTALITY }] },
+    ])
+  })
+
+  it('keeps the skill in the group even when its own row is off', async () => {
+    // A support-only group matches every warrant, so the head is not optional.
+    const body = await warrantSearchBody([
+      buildChip,
+      skillChip(BLADEFALL, 'Bladefall', false),
+      supportChip(GR_FASTER_CAST, 'Greater Faster Casting (Tier: 3)', BLADEFALL),
+    ])
+
+    expect(body.query.stats).toEqual([{ type: 'mercenary', filters: [{ id: BLADEFALL }, { id: GR_FASTER_CAST }] }])
+  })
+
+  it('degrades supports to unscoped and flags the result when not logged in', async () => {
+    // An anonymous query fits exactly one stat group, so scoping is off the table;
+    // the supports still filter, just anywhere on the mercenary.
+    const { body, result } = await warrantSearch(
+      [
+        buildChip,
+        skillChip(BLADEFALL, 'Bladefall'),
+        supportChip(GR_FASTER_CAST, 'Greater Faster Casting (Tier: 3)', BLADEFALL),
+      ],
+      { loggedIn: false },
+    )
+
+    expect(body.query.stats).toEqual([
+      {
+        type: 'and',
+        filters: [
+          { id: BLADEFALL, value: {} },
+          { id: GR_FASTER_CAST, value: {} },
+        ],
+      },
+    ])
+    expect(result.loginRequiredMercenaryIds).toEqual([GR_FASTER_CAST])
+  })
+
+  it('sets no login flag when logged in', async () => {
+    const { result } = await warrantSearch([
+      buildChip,
+      skillChip(BLADEFALL, 'Bladefall'),
+      supportChip(GR_FASTER_CAST, 'Greater Faster Casting (Tier: 3)', BLADEFALL),
+    ])
+
+    expect(result.loginRequiredMercenaryIds).toBeUndefined()
+  })
+
+  it('leaves disabled skill and support rows out of the query', async () => {
+    const body = await warrantSearchBody([
+      buildChip,
+      skillChip(BLADEFALL, 'Bladefall', false),
+      supportChip(GR_FASTER_CAST, 'Greater Faster Casting (Tier: 3)', BLADEFALL, false),
+    ])
+
+    // Only the empty and group the query always carries -- no mercenary group.
+    expect(body.query.stats).toEqual([{ type: 'and', filters: [] }])
   })
 
   it('keeps warrants off the bulk exchange', () => {

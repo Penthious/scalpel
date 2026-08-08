@@ -278,18 +278,62 @@ export function TradeListings({
                   </span>
                 )}
 
-                {/* Seller + time: stacked by default, inline in Shrinkydink to save vertical space */}
-                <div className={`flex-1 min-w-0 flex ${compact ? 'items-center gap-2' : 'flex-col'}`}>
-                  <span
-                    className="text-[10px] truncate"
-                    style={{ color: l.online ? 'var(--accent)' : 'var(--text-dim)' }}
-                  >
-                    {l.account}
-                  </span>
-                  {l.indexed && (
-                    <span className="text-[9px] text-text-dim whitespace-nowrap">{formatTimeAgo(l.indexed)}</span>
-                  )}
-                </div>
+                {/* Seller + time: stacked by default, inline in Shrinkydink to save
+                    vertical space. On a warrant the kit takes the flexible slot, so
+                    this one shrinks to fit and truncates. */}
+                {(() => {
+                  const kit = l.itemData?.mercenarySkills
+                  const hasKit = !!kit && kit.length > 0
+                  return (
+                    <>
+                      <div
+                        className={`min-w-0 flex ${hasKit ? 'shrink-0 max-w-[96px]' : 'flex-1'} ${
+                          compact ? 'items-center gap-2' : 'flex-col'
+                        }`}
+                      >
+                        <span
+                          className="text-[10px] truncate"
+                          style={{ color: l.online ? 'var(--accent)' : 'var(--text-dim)' }}
+                        >
+                          {l.account}
+                        </span>
+                        {l.indexed && (
+                          <span className="text-[9px] text-text-dim whitespace-nowrap">{formatTimeAgo(l.indexed)}</span>
+                        )}
+                      </div>
+
+                      {/* Mercenary Warrant kit at a glance: the skill icons are what
+                          you scan a warrant list by, so they get the row's flexible
+                          space. Supports live in the tooltip (and in full under the
+                          expanded row). */}
+                      {hasKit && (
+                        <div className="flex-1 min-w-0 flex items-center gap-[2px] overflow-hidden">
+                          {kit.map((skill, si) => (
+                            <HoverTooltip
+                              key={si}
+                              className="shrink-0"
+                              text={[
+                                skill.name,
+                                ...skill.supports.map((s) => `  ${s.name}${s.tier != null ? ` (T${s.tier})` : ''}`),
+                              ].join('\n')}
+                            >
+                              {skill.icon ? (
+                                <img
+                                  src={skill.icon}
+                                  alt={skill.name}
+                                  loading="lazy"
+                                  className="w-[18px] h-[18px] object-contain"
+                                />
+                              ) : (
+                                <span className="text-[10px] text-text-dim">{skill.name}</span>
+                              )}
+                            </HoverTooltip>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
 
                 {/* Trade actions - only show when logged in */}
                 {loggedIn &&

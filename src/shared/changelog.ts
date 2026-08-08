@@ -6,7 +6,7 @@ export const CHANGELOG: { version: string; notes: string[] }[] = [
       'Added a Scrying Orb price check to each area in the Div Card Explorer.',
       'Added a poe.re Maps import to the regex tool.',
       "Added Map State filters (rarity, corrupted, unidentified) to the regex tool's Maps tab.",
-      'Added price-check support for Mercenary Warrants.',
+      "Added price-check support for Mercenary Warrants, including the mercenary's skills and their supports.",
       'Added price-check support for Vestigial items.',
       'Originator maps now price-check pinned to rare, and Item Rarity comes pre-checked on every rare map.',
       'Map property chips now learn from your changes.',
