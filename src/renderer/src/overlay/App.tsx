@@ -32,7 +32,7 @@ import { SisterOverlay } from './SisterOverlay'
 import { TierItemsSister } from './TierItemsSister'
 import { getActiveMatch } from '../shared/activeMatch'
 import { ItemSearchCombobox } from '../components/ItemSearchCombobox'
-import { Clipboard } from '@icon-park/react'
+import { Search } from '@icon-park/react'
 import {
   IP,
   iconMap,
@@ -44,7 +44,6 @@ import {
   mergeIconCache,
 } from '../shared/constants'
 import { initManifest, getManifest } from '../shared/manifest'
-import { prettyHotkey } from '../components/primitives/hotkey-utils'
 import { createTryHotkey } from '../components/primitives/hotkey-collisions'
 import { PluginErrorBanner } from '../plugins/PluginErrorBanner'
 import { usePluginAutoUpdate } from '../plugins/use-plugin-auto-update'
@@ -993,11 +992,7 @@ export default function App(): JSX.Element {
                 )}
                 {view === 'no-item' && (
                   <>
-                    <Notice
-                      icon={<Clipboard size={32} {...IP} />}
-                      title={m.overlay_no_item_title()}
-                      body={m.overlay_no_item_body({ hotkey: prettyHotkey(settings?.hotkey) || 'Ctrl+Shift+F' })}
-                    />
+                    <Notice icon={<Search size={32} {...IP} />} title={m.overlay_no_item_title()} />
                     <div className="px-6 pb-6">
                       <ItemSearchCombobox />
                     </div>

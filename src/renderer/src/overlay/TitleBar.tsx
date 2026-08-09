@@ -1,4 +1,4 @@
-import { Setting, CloseSmall, ChartHistogram, Flask, Buy, AllApplication } from '@icon-park/react'
+import { Setting, CloseSmall, ChartHistogram, Flask, Buy, AllApplication, Search } from '@icon-park/react'
 import type { HideableTabKey, OverlayData } from '@shared/types'
 import type { GameFeatures } from '@shared/game-features'
 import { getCurrencyIcons } from '../shared/icons'
@@ -44,8 +44,11 @@ export function TitleBar({
     >
       <span className="text-accent font-bold tracking-[1px] flex items-center gap-1.5">
         <img src={appIcon} alt="" className="w-4 h-4" />
-        Scalpel
-        <span className="text-[9px] text-accent font-medium opacity-60 self-end mb-px -ml-0.5">v{__APP_VERSION__}</span>
+        {/* Name over version, both flush to the icon's right edge */}
+        <span className="flex flex-col items-start leading-none">
+          Scalpel
+          <span className="text-[9px] font-medium tracking-normal opacity-60 mt-0.5">v{__APP_VERSION__}</span>
+        </span>
       </span>
       <div className="flex gap-1.5 items-center">
         {/* Tools tab -- only visible when active */}
@@ -70,31 +73,39 @@ export function TitleBar({
             <ChartHistogram size={16} {...IP} />
           </button>
         )}
-        {/* Item icon -- always navigates back to search results */}
-        {!hiddenTabs.has('item') && (
+        {/* Search tab -- the one button that's always here, in the same slot, whether or
+            not anything is copied. Opens the same view a dry-fired hotkey lands on. */}
+        <button
+          onClick={() => onSetView('no-item')}
+          title={m.overlay_no_item_title()}
+          className="btn-bounce w-[30px] h-[30px] flex items-center justify-center"
+          style={{
+            background: view === 'no-item' ? 'var(--accent)' : undefined,
+            color: view === 'no-item' ? '#171821' : undefined,
+          }}
+        >
+          <Search size={16} {...IP} />
+        </button>
+        {/* Item icon -- navigates back to the filter page. Nothing copied means no item
+            art and nowhere to navigate, so the tab isn't rendered at all. */}
+        {overlayData && !hiddenTabs.has('item') && (
           <button
-            onClick={() => {
-              if (overlayData) onSetView('item')
-            }}
+            onClick={() => onSetView('item')}
             title={m.feature_filter_editor()}
             className="btn-bounce p-0.5 w-[30px] h-[30px] flex items-center justify-center"
             style={{
               background: view === 'item' ? 'var(--accent)' : undefined,
               color: view === 'item' ? '#171821' : undefined,
-              opacity: overlayData ? 1 : 0.35,
-              cursor: overlayData ? 'pointer' : 'default',
             }}
           >
             {(() => {
-              const isDivCard = overlayData && overlayData.item.itemClass === 'Divination Cards'
+              const isDivCard = overlayData.item.itemClass === 'Divination Cards'
               const divArt = isDivCard
                 ? (divCardArtMap.get(overlayData.item.baseType) ?? divCardArtMap.get(overlayData.item.name))
                 : undefined
               const src = divArt
                 ? `https://web.poecdn.com/image/divination-card/${divArt}.png`
-                : overlayData
-                  ? (iconMap[overlayData.item.name] ?? iconMap[overlayData.item.baseType] ?? fallbackIcon)
-                  : fallbackIcon
+                : (iconMap[overlayData.item.name] ?? iconMap[overlayData.item.baseType] ?? fallbackIcon)
               return (
                 <img
                   src={src}

@@ -1,5 +1,11 @@
+import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import type { StorybookConfig } from '@storybook/react-vite'
+
+// Read rather than import: Storybook evaluates this file through an ESM loader
+// that rejects JSON imports without an import attribute.
+const appVersion = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string })
+  .version
 
 /** Storybook config for the renderer. Stories live next to the components they
  *  document so they get picked up by IDE refactors automatically. The catalog
@@ -30,6 +36,12 @@ const config: StorybookConfig = {
       '@shared': resolve(process.cwd(), 'src/shared'),
       '@main': resolve(process.cwd(), 'src/main'),
       '@renderer': resolve(process.cwd(), 'src/renderer/src'),
+    }
+    // Mirror electron.vite.config.ts's define so components that print the app
+    // version (TitleBar's brand block) don't blow up on a missing global.
+    config.define = {
+      ...(config.define ?? {}),
+      __APP_VERSION__: JSON.stringify(appVersion),
     }
     return config
   },

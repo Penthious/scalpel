@@ -252,6 +252,5 @@
   "overlay_no_filter_title": "Ningún filtro cargado",
   "overlay_no_filter_body": "Selecciona tu archivo .filter para empezar.",
   "overlay_open_filter_settings": "Abrir ajustes de filtro",
-  "overlay_no_item_title": "Ningún objeto en el portapapeles",
-  "overlay_no_item_body": "Pasa el cursor sobre un objeto en PoE y pulsa {hotkey}."
+  "overlay_no_item_title": "Busca un objeto"
 }

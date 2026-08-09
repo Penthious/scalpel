@@ -252,6 +252,5 @@
   "overlay_no_filter_title": "No filter loaded",
   "overlay_no_filter_body": "Select your .filter file to get started.",
   "overlay_open_filter_settings": "Open Filter Settings",
-  "overlay_no_item_title": "No item in clipboard",
-  "overlay_no_item_body": "Hover an item in PoE and press {hotkey}."
+  "overlay_no_item_title": "Search for an item"
 }

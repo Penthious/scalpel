@@ -252,6 +252,5 @@
   "overlay_no_filter_title": "Kein Filter geladen",
   "overlay_no_filter_body": "Wähle deine .filter-Datei, um zu beginnen.",
   "overlay_open_filter_settings": "Filter-Einstellungen öffnen",
-  "overlay_no_item_title": "Kein Gegenstand in der Zwischenablage",
-  "overlay_no_item_body": "Fahre über einen Gegenstand in PoE und drücke {hotkey}."
+  "overlay_no_item_title": "Gegenstand suchen"
 }
