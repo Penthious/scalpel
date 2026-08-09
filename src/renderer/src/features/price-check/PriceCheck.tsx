@@ -4,6 +4,8 @@ import type { PriceCheckProps, StatFilter, Listing, BulkListing } from './types'
 import { searchSignature } from './search-signature'
 import { getTradeUrls } from '@shared/endpoints'
 import { getGameFeatures } from '@shared/game-features'
+import type { ExchangeDetails } from '@shared/contracts/exchange'
+import { isVendorExchangeItem } from '@shared/data/trade/bulk-exchange-eligibility'
 import {
   RARITY_COLORS,
   INFLUENCE_ICONS,
@@ -18,6 +20,7 @@ import {
 import { FilterChip } from '../../components/primitives/FilterChip'
 import { FaustusBanner } from './FaustusBanner'
 import { AngeBanner } from './AngeBanner'
+import { ExchangePanel } from './ExchangePanel'
 import { TradeTimeoutBanner } from './TradeTimeoutBanner'
 import { ItemHeader } from './ItemHeader'
 import { getDustInfo } from '../../shared/dust'
@@ -39,6 +42,7 @@ import {
 } from './base-mode'
 import { applyLearnedDecisions } from './learned-decisions'
 import { toggleFilterAt } from './toggle-filter'
+import { shouldAutoBulkSearch, shouldShowExchangePanel } from './exchange-view'
 import type { ListedTime, PriceOption, ResultsView, StatusOption } from './search-settings'
 import {
   LISTED_TIME_OPTIONS,
@@ -198,6 +202,11 @@ export function PriceCheck({
   const lastSearchedSig = useRef<string>('')
   const [isBulk, setIsBulk] = useState<boolean | null>(null)
   const [bulkListings, setBulkListings] = useState<BulkListing[]>([])
+  // undefined = request in flight, null = no exchange data for this item.
+  const [exchange, setExchange] = useState<ExchangeDetails | null | undefined>(undefined)
+  // Bulk listings are opt-in for exchange items: the request only fires on the
+  // first expand, so a normal currency check costs zero trade-API budget.
+  const [listingsOpen, setListingsOpen] = useState(false)
 
   // Per-search settings overrides (exposed via the Settings chip). Defaults come from the
   // user's global settings once they load; left blank for "listed" ("any time").
@@ -230,6 +239,30 @@ export function PriceCheck({
   useEffect(() => {
     window.api.checkBulkItem(item.name, item.baseType, item.itemClass, item.rarity, item.zanaMemory).then(setIsBulk)
   }, [item.name, item.baseType, item.itemClass, item.zanaMemory])
+
+  // Currency Exchange details. Only worth asking for items the vendor actually
+  // carries -- isVendorExchangeItem is the cheap local gate in front of the
+  // network call. Anything else resolves straight to null so the auto-search
+  // gate isn't left waiting on a request we never made.
+  useEffect(() => {
+    if (!isVendorExchangeItem(poeVersion, item.itemClass, item.baseType, item.rarity)) {
+      setExchange(null)
+      return
+    }
+    let cancelled = false
+    setExchange(undefined)
+    window.api
+      .exchangeDetails(item.baseType)
+      .then((d) => {
+        if (!cancelled) setExchange(d)
+      })
+      .catch(() => {
+        if (!cancelled) setExchange(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [item.baseType, item.itemClass, item.rarity, poeVersion])
 
   // Auto-apply Base mode:
   //   - Item classes in BASE_DEFAULT_ITEM_CLASSES: always (e.g. Blueprints, Contracts)
@@ -295,6 +328,8 @@ export function PriceCheck({
   )
   // Only dirty after a search has run, not while one is in progress, and never for bulk.
   const searchDirty = searched && !searching && !isBulk && currentSig !== lastSearchedSig.current
+  // The Currency Exchange dashboard is up and has taken over the results area.
+  const showExchangePanel = shouldShowExchangePanel({ isBulk, details: exchange })
 
   const doBulkSearch = async (): Promise<void> => {
     setSearching(true)
@@ -410,15 +445,18 @@ export function PriceCheck({
     if (isBulk === null) return // still checking
     if (!settingsLoaded) return
     if (neverAutoSearch.current) return
+    // Exchange items are still resolving their details; searching now would burn
+    // a trade request whose results the dashboard is about to hide.
+    if (isBulk && exchange === undefined) return
     if (!autoSearched.current && (!unidCandidates || selectedUnique)) {
       autoSearched.current = true
       if (isBulk) {
-        doBulkSearch()
+        if (shouldAutoBulkSearch({ isBulk, details: exchange })) doBulkSearch()
       } else {
         doSearch()
       }
     }
-  }, [selectedUnique, isBulk, settingsLoaded])
+  }, [selectedUnique, isBulk, settingsLoaded, exchange])
 
   const toggleFilter = (idx: number): void => {
     setFilters((prev) => toggleFilterAt(prev, idx))
@@ -845,39 +883,52 @@ export function PriceCheck({
           </div>
         )}
 
-        {/* Search buttons */}
-        <div className="flex gap-[6px]">
-          <button
-            onClick={() => (isBulk ? doBulkSearch() : doSearch())}
-            onMouseEnter={() => {
-              if (searchDirty) void doSearch()
-            }}
-            disabled={searching}
-            className="flex-1 px-4 py-2 text-xs font-semibold border-none rounded"
-            style={{
-              background: searching ? 'rgba(255,255,255,0.1)' : 'var(--accent)',
-              color: searching ? 'var(--text-dim)' : '#171821',
-              cursor: searching ? 'default' : 'pointer',
-              boxShadow: searchDirty ? '0 0 4px 0 var(--accent)' : undefined,
-            }}
-          >
-            {searching ? 'Searching...' : searched ? 'Search Again' : 'Search Trade'}
-          </button>
-          {searched && !searching && queryId !== null && (
+        {/* Search buttons. With the dashboard up this whole row is gone: there is
+            nothing to search from here, and "Open in Trade" moves down next to
+            the listings it belongs with. An empty row would still count as a
+            flex child of the parent's gap-[10px] stack and leave dead space. */}
+        {!showExchangePanel && (
+          <div className="flex gap-[6px]">
             <button
-              onClick={() =>
-                window.api.openExternal(
-                  isBulk === true ? tradeUrls.webExchange(league, queryId) : tradeUrls.webSearch(league, queryId),
-                )
-              }
-              className="px-3 py-2 text-[11px] font-semibold bg-white/[0.08] text-text border-none rounded cursor-pointer whitespace-nowrap"
+              onClick={() => (isBulk ? doBulkSearch() : doSearch())}
+              onMouseEnter={() => {
+                if (searchDirty) void doSearch()
+              }}
+              disabled={searching}
+              className="flex-1 px-4 py-2 text-xs font-semibold border-none rounded"
+              style={{
+                background: searching ? 'rgba(255,255,255,0.1)' : 'var(--accent)',
+                color: searching ? 'var(--text-dim)' : '#171821',
+                cursor: searching ? 'default' : 'pointer',
+                boxShadow: searchDirty ? '0 0 4px 0 var(--accent)' : undefined,
+              }}
             >
-              Open in Trade
+              {searching ? 'Searching...' : searched ? 'Search Again' : 'Search Trade'}
             </button>
-          )}
-        </div>
+            {searched && !searching && queryId !== null && (
+              <button
+                onClick={() =>
+                  window.api.openExternal(
+                    isBulk === true ? tradeUrls.webExchange(league, queryId) : tradeUrls.webSearch(league, queryId),
+                  )
+                }
+                className="px-3 py-2 text-[11px] font-semibold bg-white/[0.08] text-text border-none rounded cursor-pointer whitespace-nowrap"
+              >
+                Open in Trade
+              </button>
+            )}
+          </div>
+        )}
 
-        {features.bulkExchangeBanner === 'ange' ? (
+        {showExchangePanel ? (
+          <ExchangePanel
+            key={item.baseType}
+            details={exchange!}
+            vendor={features.bulkExchangeBanner === 'ange' ? 'Ange' : 'Faustus'}
+            stackSize={item.stackSize}
+            onOpenNinja={onOpenNinja}
+          />
+        ) : features.bulkExchangeBanner === 'ange' ? (
           <AngeBanner item={item} priceInfo={priceInfo} chaosPerDivine={chaosPerDivine} divineGraph={divineGraph} />
         ) : (
           <FaustusBanner item={item} priceInfo={priceInfo} chaosPerDivine={chaosPerDivine} divineGraph={divineGraph} />
@@ -901,7 +952,44 @@ export function PriceCheck({
             API is in flight (can take several seconds under rate limit). */}
         {searching && <ListingRowsSkeleton />}
 
-        {/* Bulk Exchange Results */}
+        {/* Bulk Exchange Results. With the dashboard up these are opt-in: the
+            search only runs on the first expand. If the expand search failed
+            (rate limit is the common case), no listings ever appear and the
+            button stays hidden -- re-show it as a retry affordance so the user
+            isn't stuck re-checking the item to try again. */}
+        {(() => {
+          if (!isBulk || !showExchangePanel) return null
+          const showToggle = !listingsOpen || (error != null && bulkListings.length === 0)
+          // "Open in Trade" lives here rather than in the top button row: with the
+          // dashboard up it is only meaningful once listings are open, so it
+          // belongs in the same slot the expand button occupied.
+          const showOpenInTrade = listingsOpen && searched && !searching && queryId !== null
+          if (!showToggle && !showOpenInTrade) return null
+          return (
+            <div className="flex gap-[6px] items-center">
+              {showToggle && (
+                <button
+                  onClick={() => {
+                    if (!listingsOpen) setListingsOpen(true)
+                    void doBulkSearch()
+                  }}
+                  className="px-3 py-[6px] text-[11px] text-text-dim bg-white/[0.04] border-none rounded cursor-pointer whitespace-nowrap"
+                >
+                  {listingsOpen ? <>&#8635; Retry trade listings</> : <>&#9660; Trade listings</>}
+                </button>
+              )}
+              {showOpenInTrade && (
+                <button
+                  onClick={() => window.api.openExternal(tradeUrls.webExchange(league, queryId))}
+                  className="px-3 py-[6px] text-[11px] font-semibold bg-white/[0.08] text-text border-none rounded cursor-pointer whitespace-nowrap"
+                >
+                  Open in Trade
+                </button>
+              )}
+            </div>
+          )
+        })()}
+
         {isBulk && searched && !searching && bulkListings.length > 0 && (
           <BulkListings bulkListings={bulkListings} total={total} />
         )}

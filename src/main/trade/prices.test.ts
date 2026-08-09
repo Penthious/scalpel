@@ -15,6 +15,7 @@ import {
   _setPricesForTests,
   _setPriceEntriesForTests,
   _setUniquesByBaseForTests,
+  getNinjaType,
   getPriceEntries,
   lookupItemPrice,
   lookupPrice,
@@ -338,5 +339,29 @@ describe('processDenseResponse price entries', () => {
     processDenseResponse(resp as never, entries)
     expect(entries.filter((e) => e.name === 'Chaos Orb')).toHaveLength(1)
     expect(lookupPrice('Chaos Orb', 'Chaos Orb')?.graph).toEqual([0, 1])
+  })
+})
+
+describe('ninjaType capture', () => {
+  it('records the dense overview type on each entry', () => {
+    const entries: PriceEntry[] = []
+    processDenseResponse(
+      {
+        currencyOverviews: [{ type: 'Currency', lines: [{ name: 'Divine Orb', chaos: 808 }] }],
+        itemOverviews: [{ type: 'DivinationCard', lines: [{ name: 'The Doctor', chaos: 863.8 }] }],
+      },
+      entries,
+    )
+    expect(entries.find((e) => e.name === 'Divine Orb')?.ninjaType).toBe('Currency')
+    expect(entries.find((e) => e.name === 'The Doctor')?.ninjaType).toBe('DivinationCard')
+  })
+
+  it('resolves a type by case-insensitive name', () => {
+    _setPriceEntriesForTests(
+      [{ name: "Omen of Death's Door", category: 'omens', chaosValue: 10, ninjaType: 'Omen' }],
+      Date.now(),
+    )
+    expect(getNinjaType("omen of death's door")).toBe('Omen')
+    expect(getNinjaType('Nonexistent Thing')).toBeUndefined()
   })
 })

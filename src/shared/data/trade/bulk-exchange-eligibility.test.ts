@@ -38,6 +38,14 @@ describe('isVendorExchangeItem (PoE1 / Faustus)', () => {
     expect(isVendorExchangeItem(1, 'Map Fragments', 'Mercenary Warrant', 'Normal')).toBe(false)
   })
 
+  it('includes Reliquary Keys, whose class is Vault Keys rather than Map Fragments', () => {
+    // Confirmed against poedb: Voidborn Reliquary Key is Class "Vault Keys". The
+    // PoE2 rules already carried that class and PoE1's did not, so every key
+    // failed this gate despite a liquid exchange market behind it.
+    expect(isVendorExchangeItem(1, 'Vault Keys', 'Voidborn Reliquary Key', 'Normal')).toBe(true)
+    expect(isVendorExchangeItem(1, 'Vault Keys', 'Ancient Reliquary Key', 'Normal')).toBe(true)
+  })
+
   it('excludes every Incursion vial -- Faustus does not carry them, they sell on regular trade (#550)', () => {
     const VIALS = [
       'Vial of Awakening',

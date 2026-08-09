@@ -83,6 +83,7 @@ export function applyResponse(
   priceMap: Map<string, PriceInfo>,
   ninjaCategory?: string,
   entriesOut?: PriceEntry[],
+  ninjaType?: string,
 ): void {
   const exaltedPerPrimary = resp.core.rates?.exalted ?? 0
   const nameById = new Map<string, string>()
@@ -96,7 +97,7 @@ export function applyResponse(
     const chaosValue = divineValue * exaltedPerPrimary
     if (!Number.isFinite(chaosValue) || chaosValue <= 0) continue
     priceMap.set(item.name.toLowerCase(), { chaosValue, divineValue, ninjaCategory: 'currency' })
-    entriesOut?.push({ name: item.name, category: 'currency', chaosValue, divineValue })
+    entriesOut?.push({ name: item.name, category: 'currency', chaosValue, divineValue, ninjaType: 'Currency' })
   }
 
   for (const line of resp.lines ?? []) {
@@ -116,6 +117,7 @@ export function applyResponse(
       chaosValue,
       divineValue: primary,
       graph: line.sparkline?.data,
+      ninjaType,
     })
   }
 }
@@ -159,7 +161,19 @@ interface Ee2OverviewResponse {
  *
  * categoryByType maps each overview's `type` string to a poe.ninja URL
  * category segment. Threaded in by the caller so this module stays decoupled
- * from the manifest. Core currencies (divine, exalted) always use 'currency'. */
+ * from the manifest. Core currencies (divine, exalted) always use 'currency'.
+ *
+ * NOTE: `overview.type` here is EE2's own vocabulary, not guaranteed to equal
+ * poe.ninja's type string -- unlike PoE1's dense feed and PoE2's direct-ninja
+ * fallback, which both iterate ninja's own overview types. Of the 14 non-unique
+ * types, 13 happen to match ninja's; Soul Cores does not (`Ultimatum` in the
+ * proxy vs `SoulCores` on ninja -- `type=Ultimatum` 404s against the exchange
+ * details endpoint). This is entriesOut's `ninjaType`, which backs
+ * getNinjaType() for the exchange-details fetch, so a caller that widens PoE2
+ * eligibility to include a type the two vocabularies disagree on will send a
+ * dead request. Currently masked because Soul Cores isn't in
+ * POE2_RULES.classes (bulk-exchange-eligibility.ts), so isVendorExchangeItem
+ * short-circuits before any fetch happens. */
 export function applyProxyResponse(
   resp: Ee2OverviewResponse,
   priceMap: Map<string, PriceInfo>,
@@ -188,6 +202,7 @@ export function applyProxyResponse(
         chaosValue: info.chaosValue,
         divineValue: info.divineValue,
         graph: line.sparkline?.data,
+        ninjaType: overview.type,
       })
     }
   }
@@ -235,6 +250,7 @@ export function applyProxyResponse(
       chaosValue: exaltedPerPrimary,
       divineValue: 1,
       graph: divineGraph,
+      ninjaType: 'Currency',
     })
     entriesOut?.push({
       name: 'Exalted Orb',
@@ -242,6 +258,7 @@ export function applyProxyResponse(
       chaosValue: 1,
       divineValue: 1 / exaltedPerPrimary,
       graph: exaltedGraph,
+      ninjaType: 'Currency',
     })
   }
 }
@@ -336,7 +353,7 @@ export async function fetchAndBuildPoe2PriceMap(
   const entries: PriceEntry[] = []
   for (let i = 0; i < responses.length; i++) {
     const type = POE2_EXCHANGE_TYPES[i]
-    applyResponse(responses[i], priceMap, categoryByType[type], entries)
+    applyResponse(responses[i], priceMap, categoryByType[type], entries, type)
   }
   // The direct-ninja exchange endpoint never returns uniques, so there is
   // no variant data and the base map stays the static catalogue. Empty

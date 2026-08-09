@@ -59,6 +59,17 @@ export const POE2_NINJA_PROXY = 'https://api.exiledexchange2.dev/proxy'
  *  menagerie budget. Append `?league=<league>&type=Beast`. */
 export const POE_NINJA_STASH_OVERVIEW = 'https://poe.ninja/poe1/api/economy/stash/current/item/overview'
 
+/** poe.ninja's per-item Currency Exchange detail endpoint, keyed by game
+ *  version. Undocumented, and the only source for real exchange rates plus
+ *  traded volume/hour and league-length daily history. Append
+ *  `?league=<league>&type=<ninjaType>&id=<slug>`, where ninjaType is poe.ninja's
+ *  raw overview type ('DivinationCard' -- the kebab category slug 404s) and slug
+ *  comes from ninjaSlug() in external-link.ts. */
+export const POE_NINJA_EXCHANGE_DETAILS: Record<1 | 2, string> = {
+  1: 'https://poe.ninja/poe1/api/economy/exchange/current/details',
+  2: 'https://poe.ninja/poe2/api/economy/exchange/current/details',
+}
+
 /** Scalpel's GitHub repo home. Base for the release/issue URLs below and the
  *  Support Development link in Settings. */
 export const GITHUB_REPO_URL = 'https://github.com/scalpelpoe/scalpel'

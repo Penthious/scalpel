@@ -41,6 +41,33 @@ export function formatDust(value: number): string {
   return String(value)
 }
 
+/** Compact hourly exchange volume. These run to hundreds of thousands and the
+ *  exact figure carries no decision value -- only the order of magnitude, which
+ *  is what tells you whether the exchange will actually fill your order. */
+export function formatVolume(value: number): string {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}m`
+  if (value >= 1_000) return `${Math.round(value / 1_000)}k`
+  return `${Math.round(value)}`
+}
+
+/** Rates at or above this format as decimals; below it they flip to 1/N.
+ *  formatPrice's sub-1 branch keeps two decimal places, which still carries two
+ *  significant figures down to 0.10 but degrades fast under it -- 0.036 becomes
+ *  "0.04" and 0.004779 becomes "0". Above the threshold the decimal is both
+ *  accurate and the more natural read ("0.98 divine" beats "1/1"). */
+const RECIPROCAL_BELOW = 0.1
+
+/** Format an exchange rate for display. At or above RECIPROCAL_BELOW this is
+ *  formatPrice. Under it the decimal form collapses to useless, so we flip to
+ *  the reciprocal the way poe.ninja itself presents it -- its Orb of Annulment
+ *  page reads "1.0 Divine Orb / 20", not "0.049". Mirrors the 1/N idiom
+ *  NinjaPriceChip already uses for the pair-currency chip, so the dashboard and
+ *  the header chip never disagree. */
+export function formatRate(rate: number): string {
+  if (rate >= RECIPROCAL_BELOW || rate <= 0) return formatPrice(rate)
+  return `1/${Math.round(1 / rate)}`
+}
+
 /** Alternating ("zebra") row background: even rows get a faint tint, odd rows
  *  are transparent. Default even tint is the common rgba(255,255,255,0.02); pass
  *  evenBg for rows that use a different tint (e.g. 0.03). */

@@ -1,9 +1,11 @@
 import { ipcMain } from 'electron'
 import type Store from 'electron-store'
+import type { ExchangeDetails } from '@shared/contracts/exchange'
 import divCardsData from '@shared/data/economy/div-cards.json'
 import { getItemClasses } from '@shared/data/items/item-classes'
 import uniqueInfoData from '@shared/data/items/unique-info.json'
 import { TRANSFIGURED_GEM_DISC } from '@shared/data/trade/transfigured-gems'
+import { ninjaSlug } from '@shared/external-link'
 import { defaultPoeItem } from '@shared/poe-item'
 import type { AppSettings, FilterBlock, FilterFile, PoeItem, SearchableItem } from '@shared/types'
 import { evaluateAndSend, preloadPriceCheck, runPriceCheck } from '../evaluation'
@@ -12,10 +14,12 @@ import { getCurrentFilter, onFilterLoaded } from '../filter-state'
 import { getPoeVersion } from '../game-state'
 import { getProfileBackedSetting } from '../profiles/profile-settings'
 import { getBeastPrices } from '../trade/beast-prices'
+import { fetchExchangeDetails } from '../trade/exchange-details'
 import { loadIconCache } from '../trade/icon-cache'
 import {
   fetchJson,
   getGemNames,
+  getNinjaType,
   getUniquesByBase,
   lookupBestUniquePrice,
   lookupDivCardPrice,
@@ -327,6 +331,26 @@ export async function primeSearchableItemsCache(store: Store<AppSettings>): Prom
   searchableCache = { filter, items, computedAt: Date.now() }
 }
 
+/** Resolve one item's Currency Exchange details. Split out from the IPC handler
+ *  (and injected with its two dependencies) so the slug + type derivation is
+ *  testable without an electron or network stub. Returns null whenever we can't
+ *  form a well-defined request -- an unknown item or an unset league -- so we
+ *  never fire a request we know will 404. */
+export async function resolveExchangeDetails(
+  name: string,
+  version: 1 | 2,
+  league: string,
+  deps: {
+    getNinjaType: (name: string) => string | undefined
+    fetchDetails: (version: 1 | 2, league: string, ninjaType: string, slug: string) => Promise<ExchangeDetails | null>
+  },
+): Promise<ExchangeDetails | null> {
+  if (!league) return null
+  const ninjaType = deps.getNinjaType(name)
+  if (!ninjaType) return null
+  return deps.fetchDetails(version, league, ninjaType, ninjaSlug(name))
+}
+
 export function register(store: Store<AppSettings>): void {
   // Serve the current version's runtime icon cache to the renderer on startup;
   // filled over time by harvestIcons() in trade.ts.
@@ -497,6 +521,18 @@ export function register(store: Store<AppSettings>): void {
   ipcMain.handle('get-beast-prices', (_event, force?: boolean) =>
     getBeastPrices(getProfileBackedSetting(store, 'league'), fetchJson, force === true),
   )
+
+  ipcMain.handle('exchange-details', async (_event, name: string): Promise<ExchangeDetails | null> => {
+    const league = getProfileBackedSetting(store, 'league')
+    // The type index is derived from the price snapshot, so make sure one exists
+    // before looking the item up -- on a cold start the first price check would
+    // otherwise always miss.
+    await refreshPrices(league)
+    return resolveExchangeDetails(name, getPoeVersion(), league, {
+      getNinjaType,
+      fetchDetails: (version, lg, type, slug) => fetchExchangeDetails(version, lg, type, slug, fetchJson),
+    })
+  })
 
   ipcMain.handle('get-searchable-items', async (): Promise<SearchableItem[]> => {
     const filter = getCurrentFilter()

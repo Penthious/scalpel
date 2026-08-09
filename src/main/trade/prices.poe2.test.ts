@@ -300,3 +300,67 @@ it('fetchPoe2PricesFromProxy returns entries', async () => {
   expect(result.entries.find((e) => e.name === 'Alchemy Orb')).toMatchObject({ category: 'currency' })
   expect(result.entries.find((e) => e.name === 'Divine Orb')).toMatchObject({ category: 'currency' })
 })
+
+describe('ninjaType capture (poe2)', () => {
+  it('records the type passed alongside the category on exchange lines', () => {
+    const priceMap = new Map<string, PriceInfo>()
+    const entries: PriceEntry[] = []
+    applyResponse(
+      {
+        core: { items: [{ id: 'divine', name: 'Divine Orb' }], rates: { exalted: 364.9 }, primary: 'divine' },
+        items: [{ id: 'omen-of-whittling', name: 'Omen of Whittling' }],
+        lines: [{ id: 'omen-of-whittling', primaryValue: 2.5 }],
+      } as never,
+      priceMap,
+      'omens',
+      entries,
+      'Ritual',
+    )
+    expect(entries.find((e) => e.name === 'Omen of Whittling')?.ninjaType).toBe('Ritual')
+  })
+
+  it('records the proxy overview type on each entry', () => {
+    const priceMap = new Map<string, PriceInfo>()
+    const entries: PriceEntry[] = []
+    applyProxyResponse(
+      {
+        core: { rates: { exalted: 364.9 } },
+        itemOverviews: [{ type: 'Essences', lines: [{ name: 'Greater Essence of Haste', primaryValue: 0.047 }] }],
+      } as never,
+      priceMap,
+      { Essences: 'essences' },
+      undefined,
+      entries,
+    )
+    expect(entries.find((e) => e.name === 'Greater Essence of Haste')?.ninjaType).toBe('Essences')
+  })
+
+  it('tags the canonical Divine Orb / Exalted Orb entries with ninjaType: Currency (#568)', () => {
+    // applyProxyResponse's canonical push replaces whatever the loop wrote for
+    // these two names, including ninjaType -- this is the default PoE2 path,
+    // so a regression here silently drops the exchange dashboard for PoE2's
+    // two most price-checked items.
+    const priceMap = new Map<string, PriceInfo>()
+    const entries: PriceEntry[] = []
+    applyProxyResponse(
+      {
+        core: { primary: 'divine', rates: { exalted: 180 } },
+        itemOverviews: [
+          {
+            type: 'Currency',
+            lines: [
+              { name: 'Divine Orb', primaryValue: 1 },
+              { name: 'Exalted Orb', primaryValue: 1 / 180 },
+            ],
+          },
+        ],
+      } as never,
+      priceMap,
+      { Currency: 'currency' },
+      undefined,
+      entries,
+    )
+    expect(entries.find((e) => e.name === 'Divine Orb')?.ninjaType).toBe('Currency')
+    expect(entries.find((e) => e.name === 'Exalted Orb')?.ninjaType).toBe('Currency')
+  })
+})

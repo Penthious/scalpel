@@ -113,6 +113,9 @@ let lastFetchTime = 0
 // from priceMap because it retains display-case names + category slugs that the
 // lowercased lookup map discards.
 let priceEntries: PriceEntry[] = []
+// Lazily built name -> ninjaType index over priceEntries. Nulled on every
+// snapshot swap so it can't outlive the entries it was derived from.
+let ninjaTypeByName: Map<string, string> | null = null
 let priceEntriesUpdatedAt: number | null = null
 const priceUpdateListeners = new Set<() => void>()
 
@@ -295,7 +298,14 @@ export function processDenseResponse(resp: DenseResponse, entriesOut: PriceEntry
       pricesByVariant.set(`${name.toLowerCase()}|${line.variant ?? ''}`, info)
       if (isDivCards) divCardPriceMap.set(name.toLowerCase(), info)
 
-      entriesOut.push({ name, category, chaosValue: chaos, divineValue: info.divineValue, graph: line.graph })
+      entriesOut.push({
+        name,
+        category,
+        chaosValue: chaos,
+        divineValue: info.divineValue,
+        graph: line.graph,
+        ninjaType: overview.type,
+      })
     }
   }
 
@@ -328,6 +338,7 @@ export function processDenseResponse(resp: DenseResponse, entriesOut: PriceEntry
         category: 'currency',
         chaosValue: info.chaosValue,
         divineValue: info.divineValue,
+        ninjaType: 'Currency',
       })
     }
   }
@@ -347,6 +358,7 @@ function resetCache(league: string, now: number): void {
   divCardPriceMap = new Map()
   gemNames = new Set()
   priceEntries = []
+  ninjaTypeByName = null
   lastFetchTime = now
 }
 
@@ -372,6 +384,7 @@ export async function refreshPrices(league: string): Promise<void> {
       uniqueBaseMapPoe2 = result.uniquesByBase
       saveCachedUniquesByBasePoe2(result.uniquesByBase)
       priceEntries = result.entries
+      ninjaTypeByName = null
       priceEntriesUpdatedAt = now
       notifyPriceUpdate()
       return
@@ -382,6 +395,7 @@ export async function refreshPrices(league: string): Promise<void> {
     processDenseResponse(resp, freshEntries)
     buildUniquesByBaseFromDense(resp)
     priceEntries = freshEntries
+    ninjaTypeByName = null
     priceEntriesUpdatedAt = now
     notifyPriceUpdate()
   } catch (e) {
@@ -404,6 +418,20 @@ export function getPriceEntries(category?: string): { prices: PriceEntry[]; upda
   return { prices, updatedAt: priceEntriesUpdatedAt }
 }
 
+/** poe.ninja's raw overview type for an item ('DivinationCard', 'Ritual', ...),
+ *  or undefined when the current snapshot doesn't price it. Backs the exchange
+ *  details fetch, whose `type` param rejects the kebab `category` slug. Built
+ *  off priceEntries so both games share one code path. */
+export function getNinjaType(name: string): string | undefined {
+  if (ninjaTypeByName === null) {
+    ninjaTypeByName = new Map()
+    for (const e of priceEntries) {
+      if (e.ninjaType) ninjaTypeByName.set(e.name.toLowerCase(), e.ninjaType)
+    }
+  }
+  return ninjaTypeByName.get(name.toLowerCase())
+}
+
 /** Subscribe to "price snapshot refreshed" events. Fires after each successful
  *  refreshPrices(). Returns an unsubscribe function. */
 export function subscribePriceUpdates(cb: () => void): () => void {
@@ -417,6 +445,7 @@ export function subscribePriceUpdates(cb: () => void): () => void {
  *  the update emitter so subscriber wiring can be asserted. */
 export function _setPriceEntriesForTests(entries: PriceEntry[], updatedAt: number | null): void {
   priceEntries = entries
+  ninjaTypeByName = null
   priceEntriesUpdatedAt = updatedAt
   notifyPriceUpdate()
 }

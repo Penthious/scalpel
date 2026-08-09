@@ -131,8 +131,11 @@ const NINJA_CURRENCY_LIKE_CLASSES = new Set([
  *  the strip (no real examples use them in our data today, but keeping them
  *  future-proofs the slug). The gem-variant separator is a SPACE (e.g. `21 20c`),
  *  which the trailing space-to-hyphen pass turns into `21-20c` in the URL. The
- *  slash in "21/20c" would be stripped, so that notation is NOT used. */
-function ninjaSlug(name: string, variant?: string): string {
+ *  slash in "21/20c" would be stripped, so that notation is NOT used.
+ *
+ *  Also the id the poe.ninja exchange-details endpoint keys on -- verified live
+ *  on the awkward cases (`Omen of Death's Door` -> `omen-of-deaths-door`). */
+export function ninjaSlug(name: string, variant?: string): string {
   const combined = variant ? `${name}, ${variant}` : name
   return combined
     .normalize('NFKD')

@@ -547,6 +547,8 @@ export const api = {
     rarity?: string,
     zanaMemory?: boolean,
   ): Promise<boolean> => ipcRenderer.invoke('check-bulk-item', itemName, baseType, itemClass, rarity, zanaMemory),
+  exchangeDetails: (name: string): Promise<import('@shared/contracts/exchange').ExchangeDetails | null> =>
+    ipcRenderer.invoke('exchange-details', name),
   mapRegexTrade: (params: {
     tier: number
     avoidTexts: string[]
