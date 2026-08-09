@@ -1,5 +1,6 @@
 import type { PoeItem, PriceInfo } from '@shared/types'
 import type { ModTier } from '@shared/data/tiers/types'
+import type { ModSource } from '@shared/data/tiers/mod-sources'
 
 export type { Listing, BulkListing } from '../../shared/trade-types'
 
@@ -28,6 +29,9 @@ export interface StatFilter {
   premium?: boolean
   modTier?: number
   modRange?: { min: number; max: number }
+  /** Where the mod came from (influence, delve, temple, eldritch altar) when it isn't
+   *  an ordinary craftable affix. Renders as a small symbol beside the mod text. */
+  modSource?: ModSource
   /** Resolved tier ladder for scrubbable affixes (single-stat or trade-averaged,
    *  non-Unique). Attached by the main-process matcher; absent when not scrubbable. */
   tierLadder?: ModTier[]

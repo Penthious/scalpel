@@ -61,9 +61,10 @@ export function processImplicits(ctx: MatchContext): StatFilter[] {
       if (pseudoList && matched.value != null && !isPerMod) {
         accumulatePseudo(pseudoAccumulator, pseudoList, matched.value, isWeapon)
       }
-      // Check if this implicit is from eldritch (Searing Exarch / Eater of Worlds)
-      let _isEldritch = false
-      if (advMod?.eldritch) _isEldritch = true
+      // Eldritch implicits (Searing Exarch / Eater of Worlds) name their altar in the
+      // advanced header, so the source badge reads it straight off the parsed mod - no
+      // dataset lookup, unlike the explicit affixes.
+      const modSource = advMod?.eldritchSource
       // Gem-level implicits (e.g. corrupted "+1 to Level of all Skill Gems" on
       // amulets) are discrete brackets -- pin max to the exact rolled value so
       // the search doesn't merge with pricier +2 listings.
@@ -89,6 +90,7 @@ export function processImplicits(ctx: MatchContext): StatFilter[] {
         type: 'implicit',
         option: matched.option,
         aggregated: matched.aggregated,
+        modSource,
       })
     }
   }

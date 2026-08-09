@@ -4,6 +4,7 @@ import { attachTierLadder } from './tier-attach'
 import { BENEFICIAL_NEGATIVE_KEYWORDS } from '@shared/data/trade/beneficial-negatives'
 import { isClusterJewel } from '@shared/poe-item'
 import type { ModTier } from '@shared/data/tiers/types'
+import { modSourceForAffix } from '@shared/data/tiers/mod-sources'
 import type { StatFilter } from '../../trade'
 import { resolveStaffBlockAttackStatId } from '../../stat-exceptions'
 import { findAdvMod } from '../adv-mods'
@@ -341,10 +342,18 @@ export function processExplicits(ctx: MatchContext): StatFilter[] {
       // (see normRange below) so detrimental rolls on a sign-flipped reduced bracket are
       // NOT mistaken for perfect.
       let perfectRoll = false
+      // Source badge. Read off the affix name resolved up front, not advModName: that
+      // one is only captured on the tier-ladder path, which is gated on a numeric value
+      // and skips socketed-support lines, and influence/delve mods can be value-less
+      // ("Curse Enemies with Despair on Hit") or Elder support hybrids.
+      let modSource = modSourceForAffix(advMod?.name, itemInfo?.itemClass)
       if (advancedMods && matched.value != null) {
         const rawCleaned = mod.replace(/\s*\((?:crafted|fractured)\)\s*$/i, '').trim()
         const advMod = findAdvMod(advancedMods, cleaned, 'explicit', rawCleaned)
         if (advMod) {
+          // The raw-text fallback above matches blocks the plain lookup misses (a basic
+          // copy's "(fractured)" suffix), so let it fill in a source the outer one missed.
+          modSource ??= modSourceForAffix(advMod.name, itemInfo?.itemClass)
           const range = advMod.ranges.find((r) => r.value === matched.value || r.value === -(matched.value ?? 0))
           // When the mod matched only via sign inversion (clipboard "fewer N" / "reduced N"
           // against the trade API's positive "additional" / "increased" stat, value negated
@@ -544,6 +553,7 @@ export function processExplicits(ctx: MatchContext): StatFilter[] {
         premium: isPremium || undefined,
         modTier: matchedTier,
         modRange: matchedRange,
+        modSource,
         tierLadder,
         tierQualityMult: advModMult,
         fixedRoll: isFixedValue || undefined,
@@ -573,6 +583,7 @@ export function processExplicits(ctx: MatchContext): StatFilter[] {
           aggregated: matched.aggregated,
           modTier: matchedTier,
           modRange: matchedRange,
+          modSource,
           tierLadder,
           tierQualityMult: advModMult,
         })

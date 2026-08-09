@@ -1,5 +1,8 @@
+// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest'
-import { getSearchTint } from './StatFilterRow'
+import { render } from '@testing-library/react'
+import { getSearchTint, StatFilterRow } from './StatFilterRow'
+import type { StatFilter } from './types'
 
 const ORANGE = '#ff9800'
 const RED = '#ef5350'
@@ -40,5 +43,47 @@ describe('getSearchTint', () => {
     expect(getSearchTint(null, -6, { min: -4, max: -2 }, 'Rare', 'explicit')).toBeNull()
     expect(getSearchTint(null, -6, { min: -4, max: -2 }, 'Unique', 'pseudo')).toBeNull()
     expect(getSearchTint(null, -6, undefined, 'Unique', 'explicit')).toBeNull()
+  })
+})
+
+describe('mod source badge (#565)', () => {
+  const baseFilter: StatFilter = {
+    id: 'explicit.stat_crit_multi',
+    text: '+38% to Global Critical Strike Multiplier',
+    value: 38,
+    min: 35,
+    max: null,
+    enabled: true,
+    type: 'explicit',
+  }
+
+  function renderRow(overrides: Partial<StatFilter> = {}) {
+    return render(
+      <StatFilterRow
+        f={{ ...baseFilter, ...overrides }}
+        i={0}
+        rowIdx={0}
+        toggleFilter={() => {}}
+        updateFilterMin={() => {}}
+        updateFilterMax={() => {}}
+        itemRarity="Rare"
+        onRowContextMenu={() => {}}
+      />,
+    )
+  }
+
+  it('shows the symbol without hovering the row', () => {
+    // The tier chip is hover-gated; the source badge must not be.
+    const { container } = renderRow({ modSource: 'shaper' })
+    expect(container.querySelector('img[title="Shaper mod"]')).not.toBeNull()
+  })
+
+  it('labels delve and temple with their own source', () => {
+    expect(renderRow({ modSource: 'delve' }).container.querySelector('img[title="Delve-only mod"]')).not.toBeNull()
+    expect(renderRow({ modSource: 'temple' }).container.querySelector('img[title="Temple mod"]')).not.toBeNull()
+  })
+
+  it('renders no symbol for an ordinary affix', () => {
+    expect(renderRow().container.querySelector('img')).toBeNull()
   })
 })

@@ -1,6 +1,12 @@
 import { describe, it, expect, test } from 'vitest'
 // CJS module; import its pure exports.
-import { buildCompact, buildDesecrated, normKey } from '../../../../scripts/build-tier-data.js'
+import {
+  buildCompact,
+  buildDesecrated,
+  buildModSources,
+  familyToSource,
+  normKey,
+} from '../../../../scripts/build-tier-data.js'
 
 const mbb = {
   Rings: {
@@ -135,4 +141,96 @@ test('buildDesecrated stores positive (absolute) ranges for negative "reduced" m
   const ds = buildDesecrated(mods)
   const mod = ds.mods.find((m) => m.key === '#% REDUCED EFFECT OF CURSES ON YOU')
   expect(mod?.tiers).toEqual([{ min: 25, max: 35, lvl: 1 }])
+})
+
+describe('buildModSources', () => {
+  // Rings host an influence family, so their ordinary affixes are in scope for the
+  // collision check. Sentinels host none, so their reuse of a flavour name is ignored.
+  const srcMbb = {
+    Rings: {
+      'ring,default': {
+        bases: ['Metadata/Items/Rings/Ring1'],
+        mods: {
+          prefix: { IncreasedLife: { Plain1: 1 } },
+          prefix_shaper: { SocketedGems: { Shaper1: 1 } },
+          suffix_adjudicator: { FireResistance: { Warlord1: 1 } },
+          delve_suffix: { ColdResistance: { Delve1: 1 } },
+        },
+        conditional_mods: null,
+      },
+    },
+    Sentinels: {
+      'sentinel,default': {
+        bases: ['Metadata/Items/Sentinel1'],
+        mods: { suffix: { Shrine: { SentinelShrine1: 1 } } },
+        conditional_mods: null,
+      },
+    },
+  }
+  const stat = [{ id: 'x', min: 1, max: 2 }]
+  const srcMods = {
+    Plain1: { name: 'Healthy', domain: 'item', generation_type: 'prefix', stats: stat },
+    Shaper1: { name: "The Shaper's", domain: 'item', generation_type: 'prefix', stats: stat },
+    Warlord1: { name: 'of the Conquest', domain: 'item', generation_type: 'suffix', stats: stat },
+    Delve1: { name: 'Subterranean', domain: 'delve', generation_type: 'suffix', stats: stat },
+    // Not in mods_by_base at all; identified as temple purely by the Enhanced id.
+    IncreasedLifeEnhancedMod: { name: "Guatelitzi's", domain: 'item', generation_type: 'prefix', stats: stat },
+    // Sentinels reuse the Warlord suffix name for an unrelated shrine mod. Sentinels
+    // host no source family, so this must not poison "of the Conquest".
+    SentinelShrine1: { name: 'of the Conquest', domain: 'item', generation_type: 'suffix', stats: stat },
+  }
+
+  it('maps influence, delve and temple affix names to their source', () => {
+    const out = buildModSources(srcMbb, srcMods)
+    expect(out.schemaVersion).toBe(1)
+    expect(out.sources).toEqual({
+      "The Shaper's": 'shaper',
+      'of the Conquest': 'warlord',
+      Subterranean: 'delve',
+      "Guatelitzi's": 'temple',
+    })
+  })
+
+  it('scopes to the classes that host a source family, so off-equipment names are ignored', () => {
+    const out = buildModSources(srcMbb, srcMods)
+    expect(out.classes).toEqual(['Rings'])
+    // Present despite the Sentinel mod of the same name.
+    expect(out.sources['of the Conquest']).toBe('warlord')
+  })
+
+  it('leaves ordinary craftable affixes unbadged', () => {
+    expect(buildModSources(srcMbb, srcMods).sources.Healthy).toBeUndefined()
+  })
+
+  it('throws when a source name is also an ordinary affix on a badged class', () => {
+    // A ring prefix that reuses the Shaper name: on a real ring the badge could not
+    // tell them apart, so this must break the build rather than mislabel the row.
+    const clash = structuredClone(srcMbb) as Record<
+      string,
+      Record<string, { mods: Record<string, Record<string, Record<string, number>>> }>
+    >
+    clash.Rings['ring,default'].mods.prefix.IncreasedLife.Collide1 = 1
+    const mods = {
+      ...srcMods,
+      Collide1: { name: "The Shaper's", domain: 'item', generation_type: 'prefix', stats: stat },
+    }
+    expect(() => buildModSources(clash, mods)).toThrow(/no longer unambiguous/)
+  })
+
+  it('throws when one name claims two different sources', () => {
+    const mods = {
+      ...srcMods,
+      Delve1: { name: "The Shaper's", domain: 'delve', generation_type: 'suffix', stats: stat },
+    }
+    expect(() => buildModSources(srcMbb, mods)).toThrow(/The Shaper's/)
+  })
+})
+
+test('familyToSource maps GGG internal conqueror names to their display names', () => {
+  expect(familyToSource('prefix_basilisk')).toBe('hunter')
+  expect(familyToSource('suffix_eyrie')).toBe('redeemer')
+  expect(familyToSource('prefix_adjudicator')).toBe('warlord')
+  expect(familyToSource('delve_prefix')).toBe('delve')
+  expect(familyToSource('prefix')).toBeNull()
+  expect(familyToSource('searing_exarch_implicit')).toBeNull()
 })

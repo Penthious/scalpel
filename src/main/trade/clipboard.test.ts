@@ -1922,6 +1922,7 @@ describe('parseItemText', () => {
       const eldritchMod = item.advancedMods?.find((m) => m.eldritch)
       expect(eldritchMod).toBeDefined()
       expect(eldritchMod?.type).toBe('implicit')
+      expect(eldritchMod?.eldritchSource).toBe('searing-exarch')
       expect(item.implicits).toContain('+2% to maximum Fire Resistance')
     })
 
@@ -1945,6 +1946,25 @@ describe('parseItemText', () => {
       const eldritchMod = item.advancedMods?.find((m) => m.eldritch)
       expect(eldritchMod).toBeDefined()
       expect(eldritchMod?.type).toBe('implicit')
+      expect(eldritchMod?.eldritchSource).toBe('eater-of-worlds')
+    })
+
+    it('leaves eldritchSource unset on an ordinary affix', () => {
+      const text = [
+        'Item Class: Rings',
+        'Rarity: Rare',
+        'Doom Loop',
+        'Iron Ring',
+        '--------',
+        'Item Level: 86',
+        '--------',
+        '{ Prefix Modifier "Test" (Tier: 1) -- Life }',
+        '+50 to maximum Life',
+      ].join('\n')
+
+      const mod = parseItemText(text)!.advancedMods?.[0]
+      expect(mod?.eldritch).toBe(false)
+      expect(mod?.eldritchSource).toBeUndefined()
     })
 
     it('stops collecting mod lines at section separators', () => {

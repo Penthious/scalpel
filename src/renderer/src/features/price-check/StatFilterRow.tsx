@@ -4,6 +4,7 @@ import { ScrubInput } from '../../components/primitives/ScrubInput'
 import { scrubAccumulate, snapToStep } from '../../components/primitives/scrub-math'
 import { LearnedIcon } from './LearnedIcon'
 import { divCardArtMap, RARITY_COLORS } from '../../shared/constants'
+import { MOD_SOURCE_ICONS, MOD_SOURCE_LABELS } from '../../shared/item-display'
 import { getModColor, MOD_BOLD_TYPES, uniqueToBase } from './constants'
 import type { StatFilter } from './types'
 import { zebraRowBg } from '../../shared/utils'
@@ -256,6 +257,16 @@ export function StatFilterRow({
           </span>
         )}
         {f.text}
+        {f.modSource && (
+          <img
+            src={MOD_SOURCE_ICONS[f.modSource]}
+            alt=""
+            title={MOD_SOURCE_LABELS[f.modSource]}
+            width={18}
+            height={18}
+            className="inline-block shrink-0 ml-[3px] object-contain"
+          />
+        )}
         {showChip && (
           <span
             onMouseDown={ladder ? startTierScrub : undefined}

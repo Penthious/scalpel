@@ -102,6 +102,115 @@ function buildCompact(modsByBase, mods, baseItems) {
   return { schemaVersion: SCHEMA_VERSION, mods: outMods, pools, bases }
 }
 
+/** RePoE influence family suffix -> the source we badge the row with. GGG's internal
+ *  names for the four Conquerors differ from their display names. */
+const INFLUENCE_FAMILIES = {
+  shaper: 'shaper',
+  elder: 'elder',
+  crusader: 'crusader',
+  basilisk: 'hunter',
+  eyrie: 'redeemer',
+  adjudicator: 'warlord',
+}
+
+/** The badge source a mods_by_base family implies, or null for an ordinary affix. */
+function familyToSource(family) {
+  if (family === 'delve_prefix' || family === 'delve_suffix') return 'delve'
+  const m = /^(?:prefix|suffix)_([a-z_]+)$/.exec(family)
+  return m ? (INFLUENCE_FAMILIES[m[1]] ?? null) : null
+}
+
+/**
+ * Build the affix-name -> mod-source map used by the price-check source badge.
+ *
+ * The affix name is the only identifier that pins a mod's origin exactly. Per-base
+ * stat ranges are ~50% ambiguous, mod groups mix sources (a delve variant shares its
+ * group with the plain mod), delve mods are domain "delve" so they never enter the
+ * tier pools, and temple mods are absent from mods_by_base entirely. Names are
+ * unambiguous across every source-carrying affix, so that is what we key on.
+ *
+ * Temple (Temple of Atzoatl) mods carry "Enhanced" in their RePoE id and are the only
+ * ordinary-domain prefix/suffix mods that do. Known gap: "of Tzteosh" (+46-48% Fire
+ * Resistance) is a temple mod on the legacy id FireResist8, inside the generic suffix
+ * family, so it is indistinguishable here and goes unbadged. Deliberate - a rule loose
+ * enough to catch it also sweeps in essence/veiled mods and would mislabel them.
+ *
+ * Scoped to the item classes that actually host these mods (equipment, jewels, maps).
+ * Off-equipment classes reuse the flavour names for unrelated affixes - a Sentinel's
+ * "of the Hunt" grants a Hunter's Shrine and an Idol's "of the Underground" is a
+ * sulphite mod - so without the class gate those rows would be badged as influenced.
+ *
+ * Throws when a name would map to two sources, or when a source name is also used by
+ * an ordinary craftable affix on a badged class - the badge would then mislabel real
+ * items, so this must break the build rather than ship.
+ */
+function buildModSources(modsByBase, mods) {
+  // Classes hosting at least one source family; everything else is out of scope.
+  const classes = new Set()
+  for (const cls of Object.keys(modsByBase)) {
+    for (const combo of Object.keys(modsByBase[cls])) {
+      const entry = modsByBase[cls][combo]
+      for (const family of Object.keys((entry && entry.mods) || {})) {
+        if (familyToSource(family)) classes.add(cls)
+      }
+    }
+  }
+
+  const claims = new Map() // affix name -> Set of source (or 'plain')
+  const claim = (name, source) => {
+    if (!name) return
+    if (!claims.has(name)) claims.set(name, new Set())
+    claims.get(name).add(source)
+  }
+
+  for (const cls of Object.keys(modsByBase)) {
+    if (!classes.has(cls)) continue
+    for (const combo of Object.keys(modsByBase[cls])) {
+      const entry = modsByBase[cls][combo]
+      for (const family of Object.keys((entry && entry.mods) || {})) {
+        // Ordinary prefix/suffix mods are claimed as 'plain' purely so the collision
+        // check below can catch a source name that is also craftable. Mods absent from
+        // mods_by_base can't spawn on any base, so they're ignored rather than claimed.
+        const source = familyToSource(family) ?? (family === 'prefix' || family === 'suffix' ? 'plain' : null)
+        if (!source) continue
+        for (const group of Object.keys(entry.mods[family])) {
+          for (const id of Object.keys(entry.mods[family][group])) {
+            const m = mods[id]
+            if (!m || !m.stats || m.stats.length === 0) continue
+            claim(m.name, source)
+          }
+        }
+      }
+    }
+  }
+
+  for (const [id, m] of Object.entries(mods)) {
+    if (!/Enhanced/.test(id)) continue
+    if (!m || m.domain !== 'item' || !m.stats || m.stats.length === 0) continue
+    if (m.generation_type !== 'prefix' && m.generation_type !== 'suffix') continue
+    claim(m.name, 'temple')
+  }
+
+  const sources = {}
+  const conflicts = []
+  for (const name of [...claims.keys()].sort()) {
+    const set = claims.get(name)
+    const named = [...set].filter((s) => s !== 'plain')
+    if (named.length === 0) continue
+    if (named.length > 1 || set.has('plain')) {
+      conflicts.push(`${JSON.stringify(name)} -> ${[...set].sort().join(', ')}`)
+      continue
+    }
+    sources[name] = named[0]
+  }
+  if (conflicts.length > 0) {
+    throw new Error(
+      `mod-source names are no longer unambiguous; the price-check badge would mislabel these:\n  ${conflicts.join('\n  ')}`,
+    )
+  }
+  return { schemaVersion: 1, classes: [...classes].sort(), sources }
+}
+
 /** Strip RePoE markup: [a|b] -> b, [x] -> x. */
 function stripMarkup(text) {
   return (text || '')
@@ -209,7 +318,13 @@ async function main() {
     }
     const outPath = path.join(OUT_DIR, `tiers-${game}.json`)
     const desecPath = path.join(OUT_DIR, 'desecrated-poe2.json')
-    if (!gameChanged && fs.existsSync(outPath) && (game !== 'poe2' || fs.existsSync(desecPath))) {
+    const sourcesPath = path.join(OUT_DIR, 'mod-sources-poe1.json')
+    if (
+      !gameChanged &&
+      fs.existsSync(outPath) &&
+      (game !== 'poe2' || fs.existsSync(desecPath)) &&
+      (game !== 'poe1' || fs.existsSync(sourcesPath))
+    ) {
       perGameHash[game] = sha256(fs.readFileSync(outPath, 'utf8'))
       continue
     }
@@ -222,6 +337,15 @@ async function main() {
       }
     }
     const compact = buildCompact(fetched['mods_by_base.json'], fetched['mods.json'], fetched['base_items.json'])
+    if (game === 'poe1') {
+      const srcJson = `${JSON.stringify(buildModSources(fetched['mods_by_base.json'], fetched['mods.json']), null, 2)}\n`
+      const srcExisting = fs.existsSync(sourcesPath) ? fs.readFileSync(sourcesPath, 'utf8') : null
+      if (srcJson !== srcExisting) {
+        fs.writeFileSync(sourcesPath, srcJson, 'utf8')
+        anyChange = true
+        console.log(`poe1: wrote mod-sources-poe1.json (${Object.keys(JSON.parse(srcJson).sources).length} affix names)`)
+      }
+    }
     if (game === 'poe2') {
       const desecJson = `${JSON.stringify(buildDesecrated(fetched['mods.json']))}\n`
       const desecExisting = fs.existsSync(desecPath) ? fs.readFileSync(desecPath, 'utf8') : null
@@ -270,4 +394,16 @@ if (require.main === module) {
   })
 }
 
-module.exports = { buildCompact, buildDesecrated, normKey, stripMarkup, sha256, main, SCHEMA_VERSION, OUT_DIR, SOURCES }
+module.exports = {
+  buildCompact,
+  buildDesecrated,
+  buildModSources,
+  familyToSource,
+  normKey,
+  stripMarkup,
+  sha256,
+  main,
+  SCHEMA_VERSION,
+  OUT_DIR,
+  SOURCES,
+}

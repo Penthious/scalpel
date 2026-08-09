@@ -43,6 +43,20 @@ export declare function normKey(text: string): string
 
 export declare function buildDesecrated(mods: Record<string, unknown>): DesecratedDataset
 
+export interface ModSourceDataset {
+  schemaVersion: number
+  /** Item classes that host at least one source family; the lookup is scoped to these. */
+  classes: string[]
+  sources: Record<string, string>
+}
+
+export declare function buildModSources(
+  modsByBase: Record<string, unknown>,
+  mods: Record<string, unknown>,
+): ModSourceDataset
+
+export declare function familyToSource(family: string): string | null
+
 export declare function sha256(str: string): string
 
 export declare function main(): Promise<void>

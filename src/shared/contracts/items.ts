@@ -62,6 +62,10 @@ export interface AdvancedMod {
   fractured?: boolean
   crafted?: boolean
   eldritch?: boolean
+  /** Which eldritch altar granted the implicit. `eldritch` only says one of them did;
+   *  the price-check source badge needs to know which, so it is kept separately rather
+   *  than widening the boolean its existing consumers read. */
+  eldritchSource?: 'searing-exarch' | 'eater-of-worlds'
   foulborn?: boolean
   magnitudeMultiplier?: number
   randomSupport?: boolean

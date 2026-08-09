@@ -6813,3 +6813,148 @@ describe('mercenary warrant chips', () => {
     expect(filters.find((f) => f.id === 'misc.mercenary_build')).toBeUndefined()
   })
 })
+
+describe('mod source badge (#565)', () => {
+  const CRIT_MULTI = {
+    id: 'explicit.stat_crit_multi',
+    text: '+#% to Global Critical Strike Multiplier',
+    type: 'explicit',
+  }
+  const LIFE = { id: 'explicit.stat_life', text: '+# to maximum Life', type: 'explicit' }
+  const PHYS = { id: 'explicit.stat_phys', text: '#% increased Physical Damage', type: 'explicit' }
+  const LEECH = { id: 'explicit.stat_leech', text: '#% of Physical Attack Damage Leeched as Life', type: 'explicit' }
+  const DESPAIR = { id: 'explicit.stat_despair', text: 'Curse Enemies with Despair on Hit', type: 'explicit' }
+  const PEN = { id: 'implicit.stat_pen', text: 'Damage Penetrates #% Elemental Resistances', type: 'implicit' }
+
+  beforeEach(() => {
+    setPoeVersion(1)
+    _setStatEntriesForTests([CRIT_MULTI, LIFE, PHYS, LEECH, DESPAIR, PEN])
+  })
+
+  const ring = (overrides: Record<string, unknown> = {}) =>
+    makeItemInfo({ rarity: 'Rare', itemClass: 'Rings', baseType: 'Iron Ring', itemLevel: 85, ...overrides })
+
+  it('badges an influence affix and leaves an ordinary one alone', () => {
+    const adv: AdvancedMod[] = [
+      {
+        type: 'suffix',
+        name: 'of Shaping',
+        tier: 1,
+        tags: [],
+        lines: ['+38(35-38)% to Global Critical Strike Multiplier'],
+        ranges: [{ value: 38, min: 35, max: 38 }],
+      },
+      {
+        type: 'prefix',
+        name: 'Healthy',
+        tier: 3,
+        tags: [],
+        lines: ['+70(60-79) to maximum Life'],
+        ranges: [{ value: 70, min: 60, max: 79 }],
+      },
+    ]
+    const filters = matchItemMods(
+      ['+38% to Global Critical Strike Multiplier', '+70 to maximum Life'],
+      [],
+      undefined,
+      ring(),
+      adv,
+    )
+    expect(filters.find((f) => f.id === CRIT_MULTI.id)?.modSource).toBe('shaper')
+    expect(filters.find((f) => f.id === LIFE.id)?.modSource).toBeUndefined()
+  })
+
+  it('badges both trade rows of a hybrid influence affix', () => {
+    // A Crusader's prefix indexes as two separate trade stats; both lines are
+    // influenced, so both rows carry the symbol.
+    const adv: AdvancedMod[] = [
+      {
+        type: 'prefix',
+        name: "Crusader's",
+        tier: 1,
+        tags: [],
+        lines: ['30(25-34)% increased Physical Damage', '0.6% of Physical Attack Damage Leeched as Life'],
+        ranges: [{ value: 30, min: 25, max: 34 }],
+      },
+    ]
+    const filters = matchItemMods(
+      ['30% increased Physical Damage', '0.6% of Physical Attack Damage Leeched as Life'],
+      [],
+      undefined,
+      ring(),
+      adv,
+    )
+    expect(filters.find((f) => f.id === PHYS.id)?.modSource).toBe('crusader')
+    expect(filters.find((f) => f.id === LEECH.id)?.modSource).toBe('crusader')
+  })
+
+  it('badges a value-less delve mod, which the tier-ladder path never sees', () => {
+    const adv: AdvancedMod[] = [
+      {
+        type: 'suffix',
+        name: 'Subterranean',
+        tier: 1,
+        tags: [],
+        lines: ['Curse Enemies with Despair on Hit'],
+        ranges: [],
+      },
+    ]
+    const filters = matchItemMods(['Curse Enemies with Despair on Hit'], [], undefined, ring(), adv)
+    expect(filters.find((f) => f.id === DESPAIR.id)?.modSource).toBe('delve')
+  })
+
+  it('badges a temple affix', () => {
+    const adv: AdvancedMod[] = [
+      {
+        type: 'prefix',
+        name: "Guatelitzi's",
+        tier: 1,
+        tags: [],
+        lines: ['+75(70-79) to maximum Life'],
+        ranges: [{ value: 75, min: 70, max: 79 }],
+      },
+    ]
+    const filters = matchItemMods(['+75 to maximum Life'], [], undefined, ring(), adv)
+    expect(filters.find((f) => f.id === LIFE.id)?.modSource).toBe('temple')
+  })
+
+  it('ignores a source name reused by an off-equipment class', () => {
+    // Sentinels reuse "of the Conquest" for an unrelated shrine mod; the class gate
+    // keeps that row unbadged.
+    const adv: AdvancedMod[] = [
+      {
+        type: 'suffix',
+        name: 'of the Conquest',
+        tier: 1,
+        tags: [],
+        lines: ['+38(35-38)% to Global Critical Strike Multiplier'],
+        ranges: [{ value: 38, min: 35, max: 38 }],
+      },
+    ]
+    const filters = matchItemMods(
+      ['+38% to Global Critical Strike Multiplier'],
+      [],
+      undefined,
+      makeItemInfo({ rarity: 'Rare', itemClass: 'Sentinels', baseType: 'Stalking Sentinel', itemLevel: 85 }),
+      adv,
+    )
+    expect(filters.find((f) => f.id === CRIT_MULTI.id)?.modSource).toBeUndefined()
+  })
+
+  it('badges an eldritch implicit with the altar that granted it', () => {
+    const adv: AdvancedMod[] = [
+      {
+        type: 'implicit',
+        name: '',
+        tier: 0,
+        tags: [],
+        lines: ['Damage Penetrates 15(12-15)% Elemental Resistances'],
+        ranges: [{ value: 15, min: 12, max: 15 }],
+        eldritch: true,
+        eldritchSource: 'searing-exarch',
+      },
+    ]
+    const filters = matchItemMods([], ['Damage Penetrates 15% Elemental Resistances'], undefined, ring(), adv)
+    expect(filters.find((f) => f.id === PEN.id)?.modSource).toBe('searing-exarch')
+  })
+})

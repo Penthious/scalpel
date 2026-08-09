@@ -1,13 +1,16 @@
 import { baseToClass, classSizes } from './constants'
 import baseToUniques from '@shared/data/items/unique-info.json'
-import elderIcon from '../assets/influences/Elder-item-symbol.png'
-import shaperIcon from '../assets/influences/Shaper-item-symbol.png'
-import crusaderIcon from '../assets/influences/Crusader-item-symbol.png'
-import redeemerIcon from '../assets/influences/Redeemer-item-symbol.png'
-import hunterIcon from '../assets/influences/Hunter-item-symbol.png'
-import warlordIcon from '../assets/influences/Warlord-item-symbol.png'
-import searingExarchIcon from '../assets/influences/SearingExarch-item-symbol.png'
-import eaterOfWorldsIcon from '../assets/influences/EaterOfWorlds-item-symbol.png'
+import type { ModSource } from '@shared/data/tiers/mod-sources'
+import elderIcon from '../assets/mod-sources/Elder-item-symbol.png'
+import shaperIcon from '../assets/mod-sources/Shaper-item-symbol.png'
+import crusaderIcon from '../assets/mod-sources/Crusader-item-symbol.png'
+import redeemerIcon from '../assets/mod-sources/Redeemer-item-symbol.png'
+import hunterIcon from '../assets/mod-sources/Hunter-item-symbol.png'
+import warlordIcon from '../assets/mod-sources/Warlord-item-symbol.png'
+import searingExarchIcon from '../assets/mod-sources/SearingExarch-item-symbol.png'
+import eaterOfWorldsIcon from '../assets/mod-sources/EaterOfWorlds-item-symbol.png'
+import delveIcon from '../assets/mod-sources/Delve-item-symbol.png'
+import templeIcon from '../assets/mod-sources/Temple-item-symbol.png'
 
 export const INFLUENCE_ICONS_BY_NAME: Record<string, string> = {
   Elder: elderIcon,
@@ -18,6 +21,36 @@ export const INFLUENCE_ICONS_BY_NAME: Record<string, string> = {
   Warlord: warlordIcon,
   'Searing Exarch': searingExarchIcon,
   'Eater of Worlds': eaterOfWorldsIcon,
+}
+
+/** Symbol shown beside a price-check mod row that didn't come from ordinary crafting.
+ *  The six influences reuse the item-header symbols; delve and temple have no in-game
+ *  item symbol, so they borrow the art of the thing that makes them (a fossil, the
+ *  Chronicle of Atzoatl). */
+export const MOD_SOURCE_ICONS: Record<ModSource, string> = {
+  shaper: shaperIcon,
+  elder: elderIcon,
+  crusader: crusaderIcon,
+  hunter: hunterIcon,
+  redeemer: redeemerIcon,
+  warlord: warlordIcon,
+  'searing-exarch': searingExarchIcon,
+  'eater-of-worlds': eaterOfWorldsIcon,
+  delve: delveIcon,
+  temple: templeIcon,
+}
+
+export const MOD_SOURCE_LABELS: Record<ModSource, string> = {
+  shaper: 'Shaper mod',
+  elder: 'Elder mod',
+  crusader: 'Crusader mod',
+  hunter: 'Hunter mod',
+  redeemer: 'Redeemer mod',
+  warlord: 'Warlord mod',
+  'searing-exarch': 'Searing Exarch implicit',
+  'eater-of-worlds': 'Eater of Worlds implicit',
+  delve: 'Delve-only mod',
+  temple: 'Temple mod',
 }
 
 const _baseToUniques = baseToUniques as Record<string, string[]>

@@ -289,6 +289,9 @@ export interface StatFilter {
   premium?: boolean
   modTier?: number // mod tier if known (from advanced mod data)
   modRange?: { min: number; max: number } // possible roll range for this mod
+  /** Where the mod came from (influence, delve, temple, eldritch altar) when it isn't
+   *  an ordinary craftable affix. Display only - the trade query is unaffected. */
+  modSource?: import('@shared/data/tiers/mod-sources').ModSource
   /** Resolved tier ladder for scrubbable affixes (single-stat or trade-averaged,
    *  non-Unique). Attached by the explicits producer; absent when not scrubbable. */
   tierLadder?: import('@shared/data/tiers/types').ModTier[]

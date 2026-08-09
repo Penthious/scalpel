@@ -1095,6 +1095,11 @@ function parseAdvancedMods(text: string): AdvancedMod[] {
         fractured: isFractured,
         crafted: isCrafted,
         eldritch: isEldritch,
+        eldritchSource: isEldritch
+          ? modPrefix === 'searing exarch'
+            ? 'searing-exarch'
+            : 'eater-of-worlds'
+          : undefined,
         foulborn: isFoulborn,
         magnitudeMultiplier,
       }
