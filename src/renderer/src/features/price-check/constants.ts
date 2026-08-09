@@ -2,12 +2,10 @@ import { RARITY_COLORS, iconMap } from '../../shared/constants'
 import { formatPrice, getItemIcon } from '../../shared/utils'
 import { getCurrencyIconMap } from '../../shared/currency-icons'
 import { INFLUENCE_ICONS_BY_NAME, uniqueToBase, getItemSize } from '../../shared/item-display'
-import socketWhite from '../../assets/sockets/socket-white.png'
 import { MOD_COLORS } from '../../shared/trade-results/constants'
 
 export { RARITY_COLORS, iconMap }
 export { formatPrice, getItemIcon }
-export { socketWhite }
 export { getCurrencyIconMap }
 export { INFLUENCE_ICONS_BY_NAME, uniqueToBase, getItemSize }
 export { default as ninjaIcon } from '../../assets/other/poe-ninja.png'

@@ -11,7 +11,8 @@ import dustIcon from '../assets/currency/thaumaturgic-dust.png'
 import socketRed from '../assets/sockets/socket-red.png'
 import socketGreen from '../assets/sockets/socket-green.png'
 import socketBlue from '../assets/sockets/socket-blue.png'
-import socketWhite from '../assets/sockets/socket-white.png'
+import socketColorless from '../assets/sockets/socket-colorless.png'
+import socketAbyss from '../assets/sockets/socket-abyss.png'
 import { RuneSocketChipPoe2 } from './sockets/RuneSocketChip.poe2'
 import { usePoeVersion } from '../shared/poe-version-context'
 import { getGameFeatures } from '@shared/game-features'
@@ -407,13 +408,14 @@ function _Chip({
   )
 }
 
+// 3.29 renders the any-colour (W) socket grey; the clipboard token is still "W".
 const SOCKET_ICONS: Record<string, string> = {
   R: socketRed,
   G: socketGreen,
   B: socketBlue,
-  W: socketWhite,
-  A: socketWhite,
-  D: socketWhite,
+  W: socketColorless,
+  A: socketAbyss,
+  D: socketColorless,
 }
 const SOCKET_SIZE = 18
 const LINK_WIDTH = 10
@@ -439,7 +441,7 @@ function SocketDisplay({ sockets, onRecolor }: { sockets: string; onRecolor?: ()
         return (
           <div key={gi} className="flex items-center relative" style={{ height: SOCKET_SIZE }}>
             {colors.map((c, ci) => {
-              const icon = SOCKET_ICONS[c] ?? socketWhite
+              const icon = SOCKET_ICONS[c] ?? socketColorless
               const isLinked = ci < colors.length - 1
               return (
                 <div key={ci} className="contents">

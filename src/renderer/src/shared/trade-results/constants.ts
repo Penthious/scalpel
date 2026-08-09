@@ -3,17 +3,17 @@ import { getItemSize } from '../item-display'
 import socketRed from '../../assets/sockets/socket-red.png'
 import socketGreen from '../../assets/sockets/socket-green.png'
 import socketBlue from '../../assets/sockets/socket-blue.png'
-import socketWhite from '../../assets/sockets/socket-white.png'
+import socketColorless from '../../assets/sockets/socket-colorless.png'
 import socketAbyss from '../../assets/sockets/socket-abyss.png'
 
-export { RARITY_COLORS, getItemSize, socketWhite }
+export { RARITY_COLORS, getItemSize, socketColorless }
 export { default as socketLink } from '../../assets/sockets/socket-link.png'
 
 export const SOCKET_IMGS: Record<string, string> = {
   R: socketRed,
   G: socketGreen,
   B: socketBlue,
-  W: socketWhite,
+  W: socketColorless,
   A: socketAbyss,
   Ab: socketAbyss,
 }

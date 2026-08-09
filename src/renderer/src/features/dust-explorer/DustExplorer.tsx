@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import dustIcon from '../../assets/currency/thaumaturgic-dust.png'
 import { CurrencyIcon } from '../../shared/CurrencyIcon'
-import socketWhite from '../../assets/sockets/socket-white.png'
+import socketColorless from '../../assets/sockets/socket-colorless.png'
 import type { DustEntry, ActiveFilter, FilterType, SortKey, SortDir } from './types'
 import {
   cachedBaseEntries,
@@ -293,7 +293,7 @@ export function DustExplorer({
               <span>/</span>
               <CurrencyIcon name="chaos" className="w-[10px] h-[10px]" />
               <span>/</span>
-              <img src={socketWhite} alt="" className="w-[10px] h-[10px]" />
+              <img src={socketColorless} alt="" className="w-[10px] h-[10px]" />
             </>
           }
           sortKey="dustPerChaosPerSlot"

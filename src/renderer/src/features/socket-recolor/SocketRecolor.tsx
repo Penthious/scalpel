@@ -5,7 +5,7 @@ import { zebraRowBg } from '../../shared/utils'
 import socketRed from '../../assets/sockets/socket-red.png'
 import socketGreen from '../../assets/sockets/socket-green.png'
 import socketBlue from '../../assets/sockets/socket-blue.png'
-import socketWhite from '../../assets/sockets/socket-white.png'
+import socketColorless from '../../assets/sockets/socket-colorless.png'
 import socketLink from '../../assets/sockets/socket-link.png'
 import { getItemClasses } from '@shared/data/items/item-classes'
 import { chaosIcon } from '../../shared/icons'
@@ -39,7 +39,7 @@ const icons = itemIcons as Record<string, string>
 const chromIcon = icons['Chromatic Orb']
 const omenIcon = icons['Omen of Trichromatism']
 
-const SOCKET_IMG: Record<string, string> = { R: socketRed, G: socketGreen, B: socketBlue, W: socketWhite }
+const SOCKET_IMG: Record<string, string> = { R: socketRed, G: socketGreen, B: socketBlue, W: socketColorless }
 // White is a legitimate target now that most sockets roll white, so it is in the cycle.
 const CYCLE: Record<string, string> = { R: 'G', G: 'B', B: 'W', W: 'R' }
 
@@ -47,7 +47,7 @@ const CHANCE_ROW: { key: 'r' | 'g' | 'b' | 'w'; img: string }[] = [
   { key: 'r', img: socketRed },
   { key: 'g', img: socketGreen },
   { key: 'b', img: socketBlue },
-  { key: 'w', img: socketWhite },
+  { key: 'w', img: socketColorless },
 ]
 
 const NOTICE_TEXT = {
@@ -157,7 +157,7 @@ export function SocketRecolor({ item, priceInfo, chaosPerDivine, divineGraph }: 
                   <div key={i} className="contents">
                     {i > 0 && !linkedAfter.has(i - 1) && <div className="w-2" />}
                     <img
-                      src={SOCKET_IMG[c] ?? socketWhite}
+                      src={SOCKET_IMG[c] ?? socketColorless}
                       alt={c}
                       onClick={() => cycleSocket(i)}
                       className="cursor-pointer transition-transform duration-100 relative z-[2] hover:scale-[1.15]"
@@ -243,7 +243,7 @@ export function SocketRecolor({ item, priceInfo, chaosPerDivine, divineGraph }: 
                     {swatch.length > 0 && (
                       <span className="inline-flex items-center gap-px rounded-full shrink-0 bg-white/[0.06] px-1 py-[2px]">
                         {swatch.map((s, si) => (
-                          <img key={si} src={SOCKET_IMG[s] ?? socketWhite} alt={s} className="w-3 h-3" />
+                          <img key={si} src={SOCKET_IMG[s] ?? socketColorless} alt={s} className="w-3 h-3" />
                         ))}
                       </span>
                     )}

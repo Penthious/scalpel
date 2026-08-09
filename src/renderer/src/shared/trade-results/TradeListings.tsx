@@ -1,7 +1,7 @@
 import { Down, Up } from '@icon-park/react'
 import type { Listing } from '../trade-types'
 import { ExpandedListing } from './ExpandedListing'
-import { SOCKET_IMGS, formatTimeAgo, socketLink, socketWhite } from './constants'
+import { SOCKET_IMGS, formatTimeAgo, socketLink, socketColorless } from './constants'
 import { RuneSocketOverlayPoe2 } from '../../components/sockets/RuneSocketOverlay.poe2'
 import { usePoeVersion } from '../poe-version-context'
 import type { ResultsView } from '../trade-settings'
@@ -153,7 +153,7 @@ export function TradeListings({
                                   )}
                                   {!linked && si > 0 && <div style={{ height: gap }} />}
                                   <img
-                                    src={SOCKET_IMGS[s.sColour] ?? socketWhite}
+                                    src={SOCKET_IMGS[s.sColour] ?? socketColorless}
                                     alt=""
                                     style={{ width: sz, height: sz }}
                                   />
@@ -231,7 +231,7 @@ export function TradeListings({
                                   linkEl,
                                   <img
                                     key={si}
-                                    src={SOCKET_IMGS[s.sColour] ?? socketWhite}
+                                    src={SOCKET_IMGS[s.sColour] ?? socketColorless}
                                     alt=""
                                     style={{
                                       position: 'absolute',

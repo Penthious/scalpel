@@ -57,6 +57,7 @@ export const CHANGELOG: { version: string; notes: string[] }[] = [
       'Fixed your clipboard being left holding an /itemfilter command when a price check overlapped a filter reload.',
       "Fixed the regex tool's trade searches ignoring your buyout currency.",
       'Fixed Forbidden Shako price checks throwing away the supports it rolled.',
+      'PoE1 white sockets now render grey the way the game has shown them since 3.29, and abyssal sockets in the item panel use their own art (s/o fredfhammer!).',
     ],
   },
   {
