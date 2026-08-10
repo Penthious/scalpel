@@ -91,6 +91,79 @@ describe('parseItemText', () => {
       expect(item.itemLevel).toBe(83)
     })
 
+    it('parses the level requirement from the requirements section', () => {
+      const text = [
+        'Item Class: Helmets',
+        'Rarity: Rare',
+        'Dread Visor',
+        'Iron Hat',
+        '--------',
+        'Armour: 120',
+        '--------',
+        'Requirements:',
+        'Level: 40',
+        'Str: 62',
+        '--------',
+        'Item Level: 55',
+        '--------',
+        '+42 to maximum Life',
+      ].join('\n')
+
+      expect(parseItemText(text)!.requiredLevel).toBe(40)
+    })
+
+    it('reads the gem level requirement, not the gem property-block level', () => {
+      // A gem prints "Level: 20" in its property block before the requirements
+      // section. An unscoped read takes the first match and returns the gem level.
+      const text = [
+        'Item Class: Active Skill Gems',
+        'Rarity: Gem',
+        'Fireball',
+        '--------',
+        'Fire, Projectile, Spell, AoE',
+        'Level: 20',
+        '--------',
+        'Requirements:',
+        'Level: 70',
+        'Int: 155',
+        '--------',
+        'Deals 1095 to 1643 Fire Damage',
+      ].join('\n')
+
+      const item = parseItemText(text)!
+      expect(item.gemLevel).toBe(20)
+      expect(item.requiredLevel).toBe(70)
+    })
+
+    it('parses a level requirement the character cannot meet', () => {
+      const text = [
+        'Item Class: Body Armours',
+        'Rarity: Rare',
+        'Doom Shell',
+        'Astral Plate',
+        '--------',
+        'Requirements:',
+        'Level: 62 (unmet)',
+        'Str: 180',
+        '--------',
+        'Item Level: 86',
+      ].join('\n')
+
+      expect(parseItemText(text)!.requiredLevel).toBe(62)
+    })
+
+    it('leaves the level requirement absent when the item prints none', () => {
+      const text = [
+        'Item Class: Stackable Currency',
+        'Rarity: Currency',
+        'Chaos Orb',
+        '--------',
+        'Stack Size: 5/10',
+      ].join('\n')
+
+      expect(parseItemText(text)!.requiredLevel).toBeUndefined()
+    })
+
     it('parses quality', () => {
       const text = [
         'Item Class: Body Armours',

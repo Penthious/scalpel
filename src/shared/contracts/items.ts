@@ -89,6 +89,9 @@ export interface PoeItem {
   reqStr: number
   reqDex: number
   reqInt: number
+  /** "Requires Level" from the requirements section. Absent on items that print
+   *  no requirements block (most currency, maps, div cards). */
+  requiredLevel?: number
   corrupted: boolean
   twiceCorrupted?: boolean
   hasVaalUniqueMod?: boolean

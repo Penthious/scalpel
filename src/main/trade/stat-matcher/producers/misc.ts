@@ -19,7 +19,22 @@ type MiscItemInfo = {
   vestigial?: boolean
   foulborn?: boolean
   zanaMemory?: boolean
+  requiredLevel?: number
 }
+
+/** Level requirement at or below which a rare is leveling stock rather than
+ *  endgame gear, per game. Hard-coded rather than a setting: this is a property
+ *  of each game's leveling bracket, not a taste knob, and a wrong value silently
+ *  narrows every search it touches (#570). */
+const LEVELING_REQ_CAP: Record<number, number> = { 1: 48, 2: 36 }
+
+/** Item kinds whose level requirement tracks a leveling curve worth searching on.
+ *  Matched against the trade category, so it excludes jewels -- PoE1 rare jewels
+ *  sit at Requires Level 20-40 from the base alone, and a default-on cap there
+ *  would silently narrow every rare-jewel check -- along with flasks, tablets,
+ *  waystones, relics and charts. A positive rule rather than a blocklist so newly
+ *  added classes stay out until someone opts them in. */
+const REQ_LEVEL_CATEGORIES = /^(weapon|armour|accessory)\./
 
 // Non-gem quality, item level, open prefix/suffix, memory strands, corrupted,
 // rarity, mirrored, unidentified, fractured, and influence chips.
@@ -83,6 +98,34 @@ export function buildMiscFilters(
       value: 83,
       min: 83,
       max: null,
+      enabled: true,
+      type: 'gem',
+    })
+  }
+
+  // Level Requirement row for leveling gear. A low-req rare sells on how early you
+  // can equip it, so searching it without a cap prices a twink piece against the
+  // same base at req 68. Only emitted below the cap -- above it the requirement
+  // carries no signal, so there is nothing to show.
+  // type 'gem' (instead of 'misc') routes through StatFilterRow for an editable
+  // min/max pair, and lets Base mode pass the row through untouched so a base
+  // search on a twink rare stays a low-req search. trade.ts routes the id to
+  // req_filters.filters.lvl -- the same group in both games, unlike ilvl.
+  const reqLevelCap = LEVELING_REQ_CAP[getPoeVersion()]
+  if (
+    itemInfo.rarity === 'Rare' &&
+    itemInfo.requiredLevel != null &&
+    itemInfo.requiredLevel > 0 &&
+    reqLevelCap != null &&
+    itemInfo.requiredLevel <= reqLevelCap &&
+    REQ_LEVEL_CATEGORIES.test(ITEM_CLASS_TO_CATEGORY[itemInfo.itemClass] ?? '')
+  ) {
+    out.push({
+      id: 'misc.req_level',
+      text: 'Level Requirement',
+      value: itemInfo.requiredLevel,
+      min: null,
+      max: itemInfo.requiredLevel,
       enabled: true,
       type: 'gem',
     })

@@ -1114,6 +1114,21 @@ export async function searchTrade(
     }
   }
 
+  // Level Requirement row (#570). Both games index this under req_filters -- unlike
+  // ilvl there is no per-game split, so no version gate. It must not be folded into
+  // miscQuery above: misc_filters has no `lvl` key, so the cap would be accepted and
+  // silently dropped.
+  const reqLevelFilter = statFilters.find((f) => f.id === 'misc.req_level' && f.enabled)
+  if (reqLevelFilter) {
+    const existing = (query.filters as Record<string, unknown>) ?? {}
+    const existingReqFilters =
+      ((existing.req_filters as Record<string, unknown>)?.filters as Record<string, unknown>) ?? {}
+    query.filters = {
+      ...existing,
+      req_filters: { filters: { ...existingReqFilters, lvl: minMaxValue(reqLevelFilter) } },
+    }
+  }
+
   // Add stat filters (exclude non-stat types, but include pseudo filters from misc chips)
   const miscPseudoIds = new Set([
     'pseudo.pseudo_number_of_empty_prefix_mods',

@@ -489,6 +489,18 @@ export function parseItemText(text: string): PoeItem | null {
   const reqDex = extractNum(allLines, 'Dex:') ?? 0
   const reqInt = extractNum(allLines, 'Int:') ?? 0
 
+  // "Requires Level" from the requirements section. Scoped to that section rather
+  // than read off allLines because gems print a `Level:` line in their property
+  // block *before* the requirements section -- an unscoped extractNum takes the
+  // first match and would return the gem level (parsed separately above).
+  const reqSection = sections.find((s) => s.includes('Requirements:'))
+  const requiredLevel = reqSection
+    ? (extractNum(
+        reqSection.split('\n').map((l) => l.trim()),
+        'Level:',
+      ) ?? undefined)
+    : undefined
+
   // Sockets
   const socketLine = allLines.find((l) => l.startsWith('Sockets:'))
   const sockets = socketLine ? socketLine.replace('Sockets:', '').trim() : ''
@@ -729,6 +741,7 @@ export function parseItemText(text: string): PoeItem | null {
     reqStr,
     reqDex,
     reqInt,
+    requiredLevel,
     corrupted,
     twiceCorrupted,
     hasVaalUniqueMod,

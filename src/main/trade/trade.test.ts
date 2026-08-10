@@ -1657,6 +1657,70 @@ describe('searchTrade filter-group dispatch', () => {
     expect(allFilters.type_filters.filters.ilvl).toEqual({ max: 80 })
   })
 
+  it.each([
+    1, 2,
+  ] as const)('PoE%i enabled misc.req_level row lands in req_filters.filters.lvl as a max cap', async (version) => {
+    setPoeVersion(version)
+    const helmet = {
+      name: '',
+      baseType: 'Iron Hat',
+      itemClass: 'Helmets',
+      rarity: 'Rare',
+    }
+    const reqLevelRow: StatFilter[] = [
+      {
+        id: 'misc.req_level',
+        text: 'Level Requirement',
+        type: 'gem',
+        enabled: true,
+        value: 40,
+        min: null,
+        max: 40,
+      },
+    ]
+    await searchTrade('Dread Visor', helmet, reqLevelRow, {
+      tradeStatus: 'any',
+      tradePriceOption: version === 1 ? 'chaos_divine' : 'exalted_divine',
+    })
+    const req = capturedRequests.find((r) => r.url.includes('/search/'))
+    const body = parseCapturedBody(req)
+    const allFilters = body.query.filters as Record<string, { filters: Record<string, unknown> }>
+    expect(allFilters.req_filters).toBeDefined()
+    expect(allFilters.req_filters.filters.lvl).toEqual({ max: 40 })
+    // misc_filters has no lvl key -- routing it there would be silently dropped
+    expect(allFilters.misc_filters?.filters?.lvl).toBeUndefined()
+    expect(allFilters.type_filters?.filters?.lvl).toBeUndefined()
+  })
+
+  it('disabled misc.req_level row leaves req_filters out of the query', async () => {
+    setPoeVersion(1)
+    const helmet = {
+      name: '',
+      baseType: 'Iron Hat',
+      itemClass: 'Helmets',
+      rarity: 'Rare',
+    }
+    const reqLevelRow: StatFilter[] = [
+      {
+        id: 'misc.req_level',
+        text: 'Level Requirement',
+        type: 'gem',
+        enabled: false,
+        value: 40,
+        min: null,
+        max: 40,
+      },
+    ]
+    await searchTrade('Dread Visor', helmet, reqLevelRow, {
+      tradeStatus: 'any',
+      tradePriceOption: 'chaos_divine',
+    })
+    const req = capturedRequests.find((r) => r.url.includes('/search/'))
+    const body = parseCapturedBody(req)
+    const allFilters = body.query.filters as Record<string, { filters: Record<string, unknown> }>
+    expect(allFilters.req_filters).toBeUndefined()
+  })
+
   it('PoE2 enabled misc.quality (equipment) row lands in type_filters.filters.quality and NOT in misc_filters.filters.quality', async () => {
     setPoeVersion(2)
     const armour = {

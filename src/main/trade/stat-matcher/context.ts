@@ -68,6 +68,7 @@ export interface ItemInfo {
   mercenaryBuild?: string
   mercenaryLevel?: number
   mercenarySkills?: MercenarySkill[]
+  requiredLevel?: number
 }
 
 export interface DefenseValues {

@@ -58,6 +58,7 @@ export const CHANGELOG: { version: string; notes: string[] }[] = [
       "Fixed the regex tool's trade searches ignoring your buyout currency.",
       'Fixed Forbidden Shako price checks throwing away the supports it rolled.',
       'PoE1 white sockets now render grey the way the game has shown them since 3.29, and abyssal sockets in the item panel use their own art (s/o fredfhammer!).',
+      'Rares you can equip early (level 48 or lower in PoE1, 36 or lower in PoE2) now price-check with a Level Requirement cap, so leveling gear stops being priced against endgame copies of the same base.',
     ],
   },
   {
