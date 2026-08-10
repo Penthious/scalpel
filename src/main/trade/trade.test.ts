@@ -1440,6 +1440,23 @@ describe('searchTrade filter-group dispatch', () => {
     expect(body.query.filters.type_filters.filters.category).toEqual({ option: 'flask' })
   })
 
+  // A category the API doesn't publish is worse than no category at all: the
+  // router drops the query.type fallback whenever it has one, so the search
+  // goes out with an unknown category and nothing to fall back on.
+  it('PoE2 Charms route to flask.charm category', async () => {
+    setPoeVersion(2)
+    const charm = {
+      name: '',
+      baseType: 'Amethyst Charm',
+      itemClass: 'Charms',
+      rarity: 'Magic',
+    }
+    await searchTrade('Fate of the Vaal', charm, [], { tradeStatus: 'any', tradePriceOption: 'exalted_divine' })
+    const req = capturedRequests.find((r) => r.url.includes('/search/'))
+    const body = parseCapturedBody(req)
+    expect(body.query.filters.type_filters.filters.category).toEqual({ option: 'flask.charm' })
+  })
+
   it('PoE2 rune_sockets filter lands under equipment_filters alongside defence stats', async () => {
     setPoeVersion(2)
     const withRunes: StatFilter[] = [

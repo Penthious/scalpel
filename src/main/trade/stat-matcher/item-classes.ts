@@ -35,7 +35,10 @@ export const ITEM_CLASS_TO_CATEGORY: Record<string, string> = {
   // PoE2 splits flasks by recover type; same trade category as PoE1 Flasks.
   'Life Flasks': 'flask',
   'Mana Flasks': 'flask',
-  Charms: 'azmeri.charm',
+  // PoE2 files charms under the flask family; there is no azmeri.* category in
+  // either game's published filter list, and an unpublished category is worse
+  // than none -- trade.ts drops the query.type fallback as soon as it has one.
+  Charms: 'flask.charm',
   // PoE1 craftables that share the Abyss-Jewel failure mode if omitted: no
   // Corrupted/Mirrored ternary chips and trade falls back to bare base-type.
   Tinctures: 'tincture',

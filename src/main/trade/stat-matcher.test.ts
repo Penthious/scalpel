@@ -49,7 +49,7 @@ describe('ITEM_CLASS_TO_CATEGORY', () => {
     expect(ITEM_CLASS_TO_CATEGORY.Flasks).toBe('flask')
     expect(ITEM_CLASS_TO_CATEGORY['Life Flasks']).toBe('flask')
     expect(ITEM_CLASS_TO_CATEGORY['Mana Flasks']).toBe('flask')
-    expect(ITEM_CLASS_TO_CATEGORY.Charms).toBe('azmeri.charm')
+    expect(ITEM_CLASS_TO_CATEGORY.Charms).toBe('flask.charm')
     expect(ITEM_CLASS_TO_CATEGORY.Tinctures).toBe('tincture')
     expect(ITEM_CLASS_TO_CATEGORY.Trinkets).toBe('accessory.trinket')
     expect(ITEM_CLASS_TO_CATEGORY['Heist Brooches']).toBe('heistequipment.heistreward')
