@@ -194,7 +194,9 @@ if (store.get('locale') === undefined) store.set('locale', 'en')
 
 initMainLocale(store, () => refreshTrayMenu())
 
-const profileStore = initProfileStore(app.getPath('userData'))
+const profileStore = initProfileStore(app.getPath('userData'), (variant) =>
+  store.get(variant === 2 ? 'leaguesPoe2' : 'leaguesPoe1'),
+)
 
 if (store.get(ACTIVE_PROFILE_ID_KEY) === undefined) store.set(ACTIVE_PROFILE_ID_KEY, '')
 if (store.get(LAST_PROFILE_ID_POE1_KEY) === undefined) store.set(LAST_PROFILE_ID_POE1_KEY, '')

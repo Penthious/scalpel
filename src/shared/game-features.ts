@@ -41,7 +41,7 @@ const FEATURES_BY_VERSION: Record<GameVariant, GameFeatures> = {
     regexTool: true,
     bulkBaselineCurrency: 'chaos',
     bulkExchangeBanner: 'faustus',
-    leagues: ['Mirage', 'Hardcore Mirage', 'Standard', 'Hardcore'],
+    leagues: ['Allflame', 'Hardcore Allflame', 'Standard', 'Hardcore'],
     filterFolderHint: 'Documents\\My Games\\Path of Exile',
   },
   2: {

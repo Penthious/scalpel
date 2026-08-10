@@ -2,7 +2,13 @@ import { writeFileSync, readFileSync, existsSync, mkdirSync, readdirSync, unlink
 import { join } from 'path'
 import { randomUUID } from 'crypto'
 import type Store from 'electron-store'
+import { getGameFeatures } from '@shared/game-features'
+import { currentTradeLeague } from '@shared/leagues'
 import type { AppSettings, PoeProfile, GameVariant, LegacyAppSettings } from '@shared/types'
+
+/** Reads the league list the last refresh cached for a game, so a new profile
+ *  can start on the league that is actually running. */
+export type LeagueListReader = (variant: GameVariant) => readonly string[] | undefined
 
 let _instance: ProfileStore | null = null
 
@@ -11,16 +17,18 @@ export function getProfileStore(): ProfileStore {
   return _instance
 }
 
-export function initProfileStore(userDataPath: string): ProfileStore {
-  _instance = new ProfileStore(userDataPath)
+export function initProfileStore(userDataPath: string, readLeagues?: LeagueListReader): ProfileStore {
+  _instance = new ProfileStore(userDataPath, readLeagues)
   return _instance
 }
 
 export class ProfileStore {
   private dir: string
+  private readLeagues?: LeagueListReader
 
-  constructor(userDataPath: string) {
+  constructor(userDataPath: string, readLeagues?: LeagueListReader) {
     this.dir = join(userDataPath, 'profiles')
+    this.readLeagues = readLeagues
   }
 
   ensureDir(): void {
@@ -57,13 +65,24 @@ export class ProfileStore {
     }
   }
 
+  /** The league a new profile starts on: the current softcore challenge league,
+   *  read from the list the last refresh cached. Hardcoding the name here left
+   *  every profile created after a league rotation stuck on the previous league
+   *  -- the refresh only migrates profiles that already exist, so a profile born
+   *  with a dead name kept it. The bundled list is the offline fallback. */
+  private defaultLeague(variant: GameVariant): string {
+    const cached = this.readLeagues?.(variant)
+    const list = cached && cached.length > 0 ? cached : getGameFeatures(variant).leagues
+    return currentTradeLeague(list) ?? ''
+  }
+
   private defaultValues(
     variant: GameVariant,
   ): Pick<PoeProfile, 'name' | 'league' | 'tradePriceOption' | 'cheatSheets'> {
     const isPoe2 = variant === 2
     return {
       name: `Path of Exile ${isPoe2 ? '2' : '1'}`,
-      league: isPoe2 ? 'Runes of Aldur' : 'Mirage',
+      league: this.defaultLeague(variant),
       tradePriceOption: isPoe2 ? 'exalted_divine' : 'chaos_divine',
       cheatSheets: { globalHotkey: '', categories: [], pinned: false },
     }

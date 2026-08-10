@@ -4,11 +4,19 @@ import { getTradeUrls } from '@shared/endpoints'
 import { getProfileStore } from '../profiles/store'
 import { listProfilesByGameVariant, type ProfileChangedSetting } from '../profiles/profile-settings'
 import { getGameFeatures } from '@shared/game-features'
+import { currentTradeLeague, isHardcoreLeague } from '@shared/leagues'
 import type { AppSettings } from '@shared/types'
 
 interface LeaguesResponse {
   result?: Array<{ id?: string; text?: string; realm?: string }>
 }
+
+/** GGG tags every league with the realm it belongs to and returns all of them
+ *  in one response. PoE1 uses `pc` alongside `xbox`/`sony`; PoE2's trade2
+ *  endpoint tags its PC leagues `poe2`. Filtering both games on `pc` dropped
+ *  every PoE2 entry, so that fetch always came back empty and PoE2 silently sat
+ *  on the bundled fallback list forever. */
+const PC_REALM: Record<1 | 2, string> = { 1: 'pc', 2: 'poe2' }
 
 function fetchJson(url: string, timeoutMs = 10000): Promise<unknown> {
   return new Promise((resolve, reject) => {
@@ -48,39 +56,35 @@ function fetchJson(url: string, timeoutMs = 10000): Promise<unknown> {
   })
 }
 
+/** Pulls the PC league ids out of a /data/leagues response, in order and
+ *  deduplicated. Exported for tests -- the fetch itself needs Electron's net. */
+export function parseLeagueList(json: unknown, version: 1 | 2): string[] | null {
+  const result = (json as LeaguesResponse | null)?.result ?? []
+  const realm = PC_REALM[version]
+  const entries = result.filter((l) => !l.realm || l.realm.toLowerCase() === realm)
+  const rawIds = entries.map((l) => l.id).filter((s): s is string => typeof s === 'string' && s.length > 0)
+  const seen = new Set<string>()
+  const ids: string[] = []
+  for (const id of rawIds) {
+    if (seen.has(id)) continue
+    seen.add(id)
+    ids.push(id)
+  }
+  return ids.length > 0 ? ids : null
+}
+
 export async function fetchLeagueList(version: 1 | 2): Promise<string[] | null> {
   try {
-    const json = (await fetchJson(getTradeUrls(version).leagues)) as LeaguesResponse
-    const entries = (json.result ?? []).filter((l) => !l.realm || l.realm.toLowerCase() === 'pc')
-    const rawIds = entries.map((l) => l.id).filter((s): s is string => typeof s === 'string' && s.length > 0)
-    const seen = new Set<string>()
-    const ids: string[] = []
-    for (const id of rawIds) {
-      if (seen.has(id)) continue
-      seen.add(id)
-      ids.push(id)
-    }
-    return ids.length > 0 ? ids : null
+    return parseLeagueList(await fetchJson(getTradeUrls(version).leagues), version)
   } catch (err) {
     console.error(`[leagues] fetch poe${version} failed:`, err)
     return null
   }
 }
 
-function isHardcore(name: string): boolean {
-  return name.startsWith('Hardcore ') || name.startsWith('HC ') || name === 'Hardcore'
-}
-
-function isPermanentLeague(name: string): boolean {
-  return name === 'Standard' || name === 'Hardcore'
-}
-
 export function migrateLeague(current: string, fresh: readonly string[]): string | null {
   if (!current || fresh.includes(current)) return null
-  const wantsHC = isHardcore(current)
-  const challenge = fresh.find((l) => isHardcore(l) === wantsHC && !isPermanentLeague(l))
-  const permanent = fresh.find((l) => l === (wantsHC ? 'Hardcore' : 'Standard'))
-  return challenge ?? permanent ?? fresh[0] ?? current
+  return currentTradeLeague(fresh, { hardcore: isHardcoreLeague(current) }) ?? current
 }
 
 export type LeagueFetcher = (version: 1 | 2) => Promise<string[] | null>

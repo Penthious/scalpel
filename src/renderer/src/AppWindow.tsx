@@ -85,9 +85,31 @@ export function AppWindow(): JSX.Element {
     // Re-fetch leagues each time the app window mounts. The cooldown gate in
     // refreshLeagues short-circuits the network call when the launch-time
     // refresh was recent, so this is essentially free on most reopens.
-    window.api.refreshLeagues().catch(() => {
-      /* fail silently -- cached/fallback leagues already render */
-    })
+    //
+    // The result has to be pulled back by hand: main broadcasts setting updates
+    // to every window *except* the sender, and the launch-time refresh runs
+    // before any window exists. Without this the settings League row kept
+    // rendering the pre-rotation league out of a stale snapshot while the
+    // profile on disk had already been migrated. Merge only the keys the
+    // refresh can touch so an edit made while it was in flight survives.
+    window.api
+      .refreshLeagues()
+      .then(async () => {
+        const fresh = await window.api.getSettings()
+        setSettings((prev) =>
+          prev
+            ? {
+                ...prev,
+                leaguesPoe1: fresh.leaguesPoe1,
+                leaguesPoe2: fresh.leaguesPoe2,
+                activeProfile: fresh.activeProfile,
+              }
+            : fresh,
+        )
+      })
+      .catch(() => {
+        /* fail silently -- cached/fallback leagues already render */
+      })
     const unsub = window.api.onSettingUpdated((key, value) => {
       setSettings((prev) => (prev ? { ...prev, [key]: value } : prev))
     })

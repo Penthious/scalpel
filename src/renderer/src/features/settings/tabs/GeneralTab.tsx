@@ -44,28 +44,24 @@ export function GeneralTab({
   const activeLeague = settings.activeProfile?.league ?? ''
   const isListedLeague = (league: string): boolean => leagueOptions.includes(league)
 
-  // Private-league UI is intentional local state. Do NOT derive privateMode from
-  // settings on every activeLeague change: selecting Private League writes '' via
-  // async IPC, and a stale settings snapshot still holding "Runes of Aldur"
-  // would immediately flip privateMode back off (flicker).
-  const [privateMode, setPrivateMode] = useState(() => !isListedLeague(activeLeague))
+  // Only the act of picking "Private League" is latched: it writes '' via async
+  // IPC, and a stale settings snapshot still holding the old challenge league
+  // would otherwise flip the row straight back off (flicker). Whether the league
+  // *is* private is derived. Latching that too was the bug behind the row still
+  // reading "Mirage" after the league refresh had already migrated the profile
+  // to Allflame: the new list and the migrated profile arrive in separate
+  // broadcasts, so the row briefly saw a league that wasn't on the new list,
+  // latched private mode, and never let go once the real name landed.
+  const [privatePicked, setPrivatePicked] = useState(false)
   const [draftLeague, setDraftLeague] = useState(() => (isListedLeague(activeLeague) ? '' : activeLeague))
+  const privateMode = privatePicked || !isListedLeague(activeLeague)
   const leaguePersistTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    if (privateMode) {
-      // Stay in private mode until the user picks a listed league. Only sync the
-      // draft when settings already carry a custom (non-listed) name.
-      if (activeLeague && !isListedLeague(activeLeague)) {
-        setDraftLeague(activeLeague)
-      }
-      return
-    }
-    if (!isListedLeague(activeLeague)) {
-      setPrivateMode(true)
-      setDraftLeague(activeLeague)
-    }
-  }, [activeLeague, leagueOptions, privateMode])
+    // Adopt a custom league that arrived from settings (another window, a
+    // restored profile) so the text box shows it.
+    if (activeLeague && !isListedLeague(activeLeague)) setDraftLeague(activeLeague)
+  }, [activeLeague, leagueOptions])
 
   useEffect(() => {
     return () => {
@@ -89,7 +85,7 @@ export function GeneralTab({
   }
 
   const selectPrivateLeague = (): void => {
-    setPrivateMode(true)
+    setPrivatePicked(true)
     setDraftLeague('')
     // Optimistic local update so parent settings don't briefly re-show the old
     // challenge league while IPC is in flight.
@@ -103,7 +99,7 @@ export function GeneralTab({
   }
 
   const selectListedLeague = (league: string): void => {
-    setPrivateMode(false)
+    setPrivatePicked(false)
     setDraftLeague('')
     if (settings.activeProfile) {
       onSettingsChange({

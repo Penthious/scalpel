@@ -6,7 +6,40 @@ import { describe, expect, it } from 'vitest'
 import type { AppSettings } from '@shared/types'
 import { ACTIVE_PROFILE_ID_KEY, LAST_PROFILE_ID_POE1_KEY, PROFILE_VERSION_KEY } from '../profiles/profile-settings'
 import { initProfileStore } from '../profiles/store'
-import { migrateLeague, refreshLeagues } from './leagues'
+import { migrateLeague, parseLeagueList, refreshLeagues } from './leagues'
+
+describe('parseLeagueList', () => {
+  it('keeps the pc realm and drops console duplicates for PoE1', () => {
+    const json = {
+      result: [
+        { id: 'Allflame', realm: 'pc' },
+        { id: 'Hardcore Allflame', realm: 'pc' },
+        { id: 'Standard', realm: 'pc' },
+        { id: 'Allflame', realm: 'xbox' },
+        { id: 'Allflame', realm: 'sony' },
+      ],
+    }
+    expect(parseLeagueList(json, 1)).toEqual(['Allflame', 'Hardcore Allflame', 'Standard'])
+  })
+
+  it('keeps the poe2 realm that trade2 tags its PC leagues with', () => {
+    const json = {
+      result: [
+        { id: 'Runes of Aldur', realm: 'poe2' },
+        { id: 'HC Runes of Aldur', realm: 'poe2' },
+        { id: 'Standard', realm: 'poe2' },
+        { id: 'Hardcore', realm: 'poe2' },
+      ],
+    }
+    expect(parseLeagueList(json, 2)).toEqual(['Runes of Aldur', 'HC Runes of Aldur', 'Standard', 'Hardcore'])
+  })
+
+  it('returns null when nothing survives the realm filter', () => {
+    expect(parseLeagueList({ result: [{ id: 'Allflame', realm: 'xbox' }] }, 1)).toBeNull()
+    expect(parseLeagueList({ result: [] }, 1)).toBeNull()
+    expect(parseLeagueList(null, 1)).toBeNull()
+  })
+})
 
 describe('migrateLeague', () => {
   it('returns null when current league is still valid', () => {
