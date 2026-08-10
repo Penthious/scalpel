@@ -41,6 +41,7 @@ import {
   shouldIncludeImplicitsInBase,
 } from './base-mode'
 import { applyLearnedDecisions } from './learned-decisions'
+import { pickMercenarySupportsToEnable } from './mercenary-tighten'
 import { toggleFilterAt } from './toggle-filter'
 import { shouldAutoBulkSearch, shouldShowExchangePanel } from './exchange-view'
 import type { ListedTime, PriceOption, ResultsView, StatusOption } from './search-settings'
@@ -200,6 +201,8 @@ export function PriceCheck({
   }, [queryId, remainingIds.length, loadingMore])
   const autoSearched = useRef(false)
   const lastSearchedSig = useRef<string>('')
+  // Mercenary Warrants get exactly one automatic narrowing pass per item.
+  const mercenaryTightened = useRef(false)
   const [isBulk, setIsBulk] = useState<boolean | null>(null)
   const [bulkListings, setBulkListings] = useState<BulkListing[]>([])
   // undefined = request in flight, null = no exchange data for this item.
@@ -357,7 +360,11 @@ export function PriceCheck({
     setSearching(false)
   }
 
-  const doSearch = async (): Promise<void> => {
+  // `overrideFilters` is the tightening pass re-searching with rows it has just
+  // switched on: setFilters won't have landed by the time we need them, so the
+  // array travels by argument rather than through state.
+  const doSearch = async (overrideFilters?: StatFilter[]): Promise<void> => {
+    const active = overrideFilters ?? filters
     setSearching(true)
     setError(null)
     setPenaltyUntil(null)
@@ -373,7 +380,7 @@ export function PriceCheck({
       // Snapshot which filters are currently enabled -- these stay visible when collapsed.
       // Also keep rows that were originally on before auto-Base disabled them, so the user
       // can still see the "turned off" rows above the fold rather than hidden behind "more filters".
-      const enabledIndices = new Set(filters.map((f, i) => (f.enabled ? i : -1)).filter((i) => i >= 0))
+      const enabledIndices = new Set(active.map((f, i) => (f.enabled ? i : -1)).filter((i) => i >= 0))
       if (baseModeExpandedIndices.current) {
         for (const i of baseModeExpandedIndices.current) enabledIndices.add(i)
       }
@@ -384,12 +391,12 @@ export function PriceCheck({
       // support only the higher one can be searched (two filters on one indexable id
       // match nothing), so the twin arrives disabled -- but it is still a mod printed on
       // the item, and hiding it reads as the price checker having lost it (#564).
-      filters.forEach((f, i) => {
+      active.forEach((f, i) => {
         if (f.type === 'rune' || f.randomSupport) enabledIndices.add(i)
       })
       setCollapsedVisibleIndices(enabledIndices)
     }
-    lastSearchedSig.current = searchSignature(filters, { listedTime, priceOption, statusOption })
+    lastSearchedSig.current = searchSignature(active, { listedTime, priceOption, statusOption })
     try {
       const result = await window.api.tradeSearch(
         {
@@ -404,7 +411,7 @@ export function PriceCheck({
           block: item.block,
           vaalGem: item.vaalGem,
         },
-        filters,
+        active,
         { listedTime, priceOption, statusOption },
       )
       setListings(result.listings)
@@ -414,6 +421,25 @@ export function PriceCheck({
       setRemainingIds(result.remainingIds ?? [])
       setLoginRequiredPseudoIds(result.loginRequiredPseudoIds ?? [])
       setLoginRequiredMercenaryIds(result.loginRequiredMercenaryIds ?? [])
+
+      // Mercenary Warrants open on skills alone, which prices the build rather
+      // than the warrant. The comps that just came back are the cheapest ones
+      // matching those skills, so they say which of this warrant's supports are
+      // unusual -- tick those and search again. Once per item: after this the
+      // user owns the selection, including if they clear it.
+      if (!mercenaryTightened.current) {
+        const picks = pickMercenarySupportsToEnable(active, result.listings, result.total)
+        if (picks.length > 0) {
+          mercenaryTightened.current = true
+          const tightened = active.map((f, i) => (picks.includes(i) ? { ...f, enabled: true } : f))
+          // Positional, not a wholesale replace: a chip the user clicked while the
+          // search was in flight would otherwise be reverted. Toggling only flips
+          // `enabled`, so the indices still line up. If they did click, the query
+          // we are about to send no longer matches state and the panel says so.
+          setFilters((prev) => prev.map((f, i) => (picks.includes(i) ? { ...f, enabled: true } : f)))
+          await doSearch(tightened)
+        }
+      }
     } catch (e) {
       setError(stripIpcErrorWrapper(e instanceof Error ? e.message : 'Search failed'))
     }

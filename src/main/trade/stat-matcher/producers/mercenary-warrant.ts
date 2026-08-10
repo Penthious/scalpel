@@ -16,11 +16,6 @@ function supportStatText(clipboardLine: string): string {
   return clipboardLine.replace(/\(Tier: (\d+)\)$/, '(Tier $1)')
 }
 
-/** Tier off a clipboard support line, or 0 when it prints without one. */
-function supportTier(clipboardLine: string): number {
-  return Number(clipboardLine.match(/\(Tier: (\d+)\)$/)?.[1] ?? 0)
-}
-
 // Skills and supports are the only `mercenary`-type stats, and both match by
 // exact display text, so a text -> id map over that group is the whole lookup --
 // no fuzzy matching, no pinned dataset. Rebuilt only when the cached entries
@@ -105,11 +100,12 @@ export function buildMercenaryWarrantFilters(itemInfo: MercenaryWarrantItemInfo 
   // comparable set: build + level alone returned 6119 listings on a probed
   // level-83 Bladecaster, the same search plus its six skills returned 103.
   //
-  // Tier 3 supports ("Greater"/"Gilded") default on too -- they are the roll that
-  // sets a warrant's price, so the first search should price THIS warrant rather
-  // than its build. That is a tight search by design (the six skills plus five
-  // Tier 3s returned 1 on the probed item); switch a skill off to widen, and its
-  // supports come off with it. Tier 1-2 supports stay off: they are filler.
+  // Supports all arrive OFF, tier included. Tier 3 reads like the prize and is
+  // not: a warrant carries about six of them, so requiring the lot describes one
+  // item -- this one -- and the probed six-skills-plus-five-Tier-3s search
+  // returned exactly 1 listing. Skills alone returned 103, which is a set worth
+  // reading, and the tightening pass in the price-check panel narrows from there
+  // using what the returned comps actually carry (pickMercenarySupportsToEnable).
   //
   // Rows follow the clipboard's reading order: each skill, then its own supports.
   // A support carries `mercenarySkillId` because it only means anything scoped to
@@ -136,7 +132,7 @@ export function buildMercenaryWarrantFilters(itemInfo: MercenaryWarrantItemInfo 
         value: null,
         min: null,
         max: null,
-        enabled: supportTier(support) === 3,
+        enabled: false,
         type: 'mercenary',
         mercenarySkillId: skillId,
       })

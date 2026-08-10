@@ -97,16 +97,17 @@ describe('buildMercenaryWarrantFilters', () => {
       })
     })
 
-    it('emits a Tier 3 support enabled, matched by the tier in its text, bound to its skill', () => {
-      // Tier 3 is the roll that sets a warrant's price, so it prices this warrant
-      // rather than its build on the first search.
+    it('emits a Tier 3 support disabled, matched by the tier in its text, bound to its skill', () => {
+      // Tier 3 is not the prize -- a warrant averages about six of them, so
+      // requiring the lot describes exactly one item (this one) and prices
+      // nothing. Supports arrive off and the tightening pass picks which to add.
       const filters = buildMercenaryWarrantFilters(
         warrant({ mercenarySkills: [{ name: 'Bladefall', supports: ['Greater Faster Casting (Tier: 3)'] }] }),
       )
 
       expect(filters.find((f) => f.id === 'mercenary.support_8607')).toMatchObject({
         text: 'Greater Faster Casting (Tier: 3)',
-        enabled: true,
+        enabled: false,
         type: 'mercenary',
         mercenarySkillId: 'mercenary.skill_37202',
       })
