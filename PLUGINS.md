@@ -120,7 +120,7 @@ interface ScalpelPluginContext {
   // 'annotation' (transparent, click-through, full-game-window surface).
   // See "Overlay windows" below.
   registerOverlay(
-    opts: { title: string; icon?: string; hotkeyLabel?: string; defaultSize?: { width: number; height: number }; mode?: 'window' | 'annotation' },
+    opts: { title: string; icon?: string; hotkeyLabel?: string; defaultSize?: { width: number; height: number }; defaultPosition?: { fracX: number; fracY: number }; mode?: 'window' | 'annotation' },
     render: (container: HTMLElement) => (() => void) | void,
   ): void
   openOverlay(): void   // show the overlay window
@@ -411,6 +411,8 @@ export default function activate(ctx) {
 
 Launch it three ways: the **Pop out** button on the plugin's tab, the dedicated **hotkey** (when you set `hotkeyLabel`; it is a separate Settings > Macros row from your `registerHotkey` action hotkey), or programmatically via `ctx.openOverlay()` / `ctx.closeOverlay()`.
 
+**Window position persists.** A window-mode overlay remembers where the user drags it, across restarts, once they've moved it. `defaultPosition` sets where it first appears - as fractions of the game window, from the window's top-left corner - and doubles as the window's drag-snap home. It stops applying once the user has moved the window; from then on the remembered position wins. Each fraction is clamped so the window stays fully on the game window.
+
 **The render runs in a separate process.** Each window is its own renderer process, so the `render` you pass to `registerOverlay` cannot be the same live function object your tab uses - Scalpel loads (imports and runs) your plugin module a *second time* inside the overlay window and calls your `registerOverlay` render there. Two consequences:
 
 - Inside the overlay window, `registerTab` and `registerHotkey` are inert no-ops (your tab and action hotkey already took effect in the main overlay). Only the overlay `render` is used.
@@ -439,7 +441,7 @@ ctx.registerOverlay(
 
 Key differences from `mode: 'window'` (the default):
 
-- The surface locks to the game window and cannot be moved or resized - `defaultSize` is ignored.
+- The surface locks to the game window and cannot be moved or resized - `defaultSize` and `defaultPosition` are ignored. Annotation overlays never persist a position either, since they always span the whole game window.
 - The root `container` is always `position:absolute; inset:0; pointer-events:none`, sized to the full game window in CSS px. Position your child elements absolutely within it.
 - The entire surface passes mouse events through to the game by default. To make a specific child element interactive, set `pointer-events: auto` on that element only.
 - There is no title bar, border, or window chrome.

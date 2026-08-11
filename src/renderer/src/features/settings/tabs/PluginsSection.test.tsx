@@ -81,6 +81,54 @@ describe('PluginsSection installed icon', () => {
   })
 })
 
+describe('PluginsSection icon fallback', () => {
+  function installApiWithIcon(iconUrl?: string): void {
+    ;(window as unknown as { api: Record<string, unknown> }).api = {
+      listInstalledPlugins: vi.fn(async () => [
+        { manifest: { id: 'demo', name: 'Demo', version: '1.0.0', author: 'me', iconUrl }, entryUrl: '' },
+      ]),
+      pluginListRegisteredHotkeys: vi.fn(async () => []),
+      pluginFetchRegistry: vi.fn(async () => ({ ok: false, error: 'offline' })),
+      pluginUninstall: vi.fn(async () => ({ ok: true })),
+      onPluginInstalled: vi.fn(() => () => {}),
+      onPluginUpdated: vi.fn(() => () => {}),
+      onPluginHotkeysChanged: vi.fn(() => () => {}),
+    }
+  }
+
+  it('renders an img with the iconUrl when one is supplied', async () => {
+    installApiWithIcon('http://example/demo-icon.png')
+    const { container, findByText } = render(
+      <PluginsSection onError={noop} settings={settings} update={noop} tryHotkey={tryHotkey} />,
+    )
+    await findByText('Demo')
+    expect(container.querySelector('img[src="http://example/demo-icon.png"]')).toBeTruthy()
+  })
+
+  it('falls back to the initial when the img fails to load', async () => {
+    installApiWithIcon('http://example/demo-icon.png')
+    const { container, findByText } = render(
+      <PluginsSection onError={noop} settings={settings} update={noop} tryHotkey={tryHotkey} />,
+    )
+    await findByText('Demo')
+    const img = container.querySelector('img[src="http://example/demo-icon.png"]') as HTMLImageElement
+    expect(img).toBeTruthy()
+    fireEvent.error(img)
+    expect(container.querySelector('img')).toBeNull()
+    expect(await findByText('D')).toBeTruthy()
+  })
+
+  it('renders the initial with no img when no iconUrl is supplied', async () => {
+    installApiWithIcon(undefined)
+    const { container, findByText } = render(
+      <PluginsSection onError={noop} settings={settings} update={noop} tryHotkey={tryHotkey} />,
+    )
+    await findByText('Demo')
+    expect(container.querySelector('img')).toBeNull()
+    expect(await findByText('D')).toBeTruthy()
+  })
+})
+
 it('renders the auto-update toggle and flips pluginAutoUpdate', async () => {
   installApi([])
   const update = vi.fn()

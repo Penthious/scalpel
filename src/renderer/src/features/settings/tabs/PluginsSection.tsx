@@ -33,11 +33,23 @@ function versionBadge(poeVersions?: (1 | 2)[]): string | null {
   return poeVersions[0] === 1 ? m.settings_plg_poe1_only() : m.settings_plg_poe2_only()
 }
 
-/** 40px round plugin mark: real icon when the registry/manifest supplies one,
- *  otherwise a tinted initial so rows never look broken. */
+/** 40px round plugin mark: real icon when the registry/manifest supplies one and it
+ *  loads, otherwise a tinted initial so rows never look broken - covers both no
+ *  iconUrl and a supplied iconUrl that fails to load. */
 function PluginIcon({ iconUrl, name }: { iconUrl?: string; name: string }): JSX.Element {
-  if (iconUrl) {
-    return <img src={iconUrl} alt="" className="w-10 h-10 shrink-0 rounded-full object-cover" />
+  // Track the url that failed rather than a boolean: the component instance is
+  // reused across re-renders, so a boolean would keep suppressing a later,
+  // working icon. Comparing against the current url self-heals instead.
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
+  if (iconUrl && iconUrl !== failedUrl) {
+    return (
+      <img
+        src={iconUrl}
+        alt=""
+        onError={() => setFailedUrl(iconUrl)}
+        className="w-10 h-10 shrink-0 rounded-full object-cover"
+      />
+    )
   }
   return (
     <div className="w-10 h-10 shrink-0 rounded-full grid place-items-center bg-accent/20 text-accent font-bold text-[15px]">

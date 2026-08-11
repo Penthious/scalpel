@@ -996,6 +996,7 @@ export const api = {
       title: string
       hotkeyLabel?: string
       defaultSize?: { width: number; height: number }
+      defaultPosition?: { fracX: number; fracY: number }
       mode?: 'window' | 'annotation'
     },
   ): Promise<void> => ipcRenderer.invoke('plugins:register-overlay', pluginId, opts),

@@ -1,7 +1,7 @@
 import type { MacroScope } from '../macro-scope'
 import type { ThemePalette } from '../theme/palette'
 import type { AppLocale, TradePriceOption, AdaptiveMode } from './core'
-import type { CheatSheetsSettings } from './overlay'
+import type { CheatSheetsSettings, OverlayAnchor } from './overlay'
 import type { RegexPreset } from './regex'
 import type { PoeProfile } from './profiles'
 import type { HideableTabKey } from './items'
@@ -80,6 +80,12 @@ export interface AppSettings {
   lastProfileIdPoe2: string
   startInTray: boolean
   appWindowPosition?: { x: number; y: number }
+  /** Per-plugin overlay window geometry, keyed by plugin id. Written when the
+   *  user moves or resizes a plugin's overlay window, read back when the plugin
+   *  registers it. An absent entry means "use the plugin's declared default
+   *  anchor". Top-level rather than profile-backed: window geometry is a
+   *  per-machine preference, not part of a filter profile. */
+  pluginOverlayAnchors?: Record<string, OverlayAnchor>
   onboardingCompleted: boolean
   onboardingStep?: string
   onboardingSelectedGames?: { poe1: boolean; poe2: boolean }

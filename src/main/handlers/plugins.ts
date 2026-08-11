@@ -29,6 +29,7 @@ import { installFromRegistry } from '../plugins/install-from-registry'
 import { installUnpacked } from '../plugins/install-unpacked'
 import { getInstalledPlugins, getUnpackedPlugins } from '../plugins/manager'
 import { PLUGIN_ID_PATTERN } from '../plugins/manifest-validator'
+import { clearPluginOverlayAnchor, getPluginOverlayAnchor, setPluginOverlayAnchor } from '../plugins/overlay-anchors'
 import { pluginEntryUrl } from '../plugins/plugin-protocol'
 import { fetchRegistry } from '../plugins/registry'
 import { deleteValue, getValue, listKeys, setValue } from '../plugins/storage'
@@ -246,6 +247,7 @@ export function register(store: Store<AppSettings>, isElevated: () => boolean = 
         title: string
         hotkeyLabel?: string
         defaultSize?: { width: number; height: number }
+        defaultPosition?: { fracX: number; fracY: number }
         mode?: 'window' | 'annotation'
       },
     ) => {
@@ -253,7 +255,13 @@ export function register(store: Store<AppSettings>, isElevated: () => boolean = 
       if (opts.mode === 'annotation') {
         registerPluginAnnotationOverlay(pluginId)
       } else {
-        registerPluginOverlay(pluginId, { title: opts.title, defaultSize: opts.defaultSize })
+        registerPluginOverlay(pluginId, {
+          title: opts.title,
+          defaultSize: opts.defaultSize,
+          defaultPosition: opts.defaultPosition,
+          storedAnchor: () => getPluginOverlayAnchor(store, pluginId),
+          onAnchorChanged: (anchor) => setPluginOverlayAnchor(store, pluginId, anchor),
+        })
       }
       if (opts.hotkeyLabel) {
         setPluginOverlayHotkey(pluginId, opts.hotkeyLabel)
@@ -280,6 +288,7 @@ export function register(store: Store<AppSettings>, isElevated: () => boolean = 
     if (uninstallResult.ok) {
       getOverlayWindow()?.webContents.send('plugin-uninstalled', pluginId)
       disposePluginOverlay(pluginId)
+      clearPluginOverlayAnchor(store, pluginId)
       removePluginHotkey(pluginId)
       removePluginOverlayHotkey(pluginId)
       removePluginTab(pluginId)

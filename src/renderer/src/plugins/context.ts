@@ -49,6 +49,7 @@ export function createPluginContext(deps: PluginContextFactoryDeps): ScalpelPlug
         icon: opts.icon,
         hotkeyLabel: opts.hotkeyLabel,
         defaultSize: opts.defaultSize,
+        defaultPosition: opts.defaultPosition,
         mode: opts.mode,
       })
     },

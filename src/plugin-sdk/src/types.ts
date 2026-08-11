@@ -60,6 +60,19 @@ export interface RegisterOverlayOptions {
   /** Initial window size in CSS px. Falls back to a Scalpel default if absent. */
   defaultSize?: { width: number; height: number }
   /**
+   * Where the overlay first appears, as fractions of the game window (the
+   * window's top-left corner). Omit for Scalpel's centered default. Each
+   * fraction is clamped so the window stays fully on the game window - fracX to
+   * 0..(1 - the window's fractional width), fracY likewise - so a position past
+   * the far edge is pulled back rather than left off-screen. A non-finite value
+   * falls back to centering on that axis. This is also the window's snap-home,
+   * so a drag-snap returns it here. Ignored in 'annotation' mode, which always
+   * spans the game window,
+   * and ignored once the user has moved the window - the moved position is
+   * remembered from then on.
+   */
+  defaultPosition?: { fracX: number; fracY: number }
+  /**
    * Overlay surface kind. 'window' (default) is the chrome'd, draggable,
    * snap-anchored window. 'annotation' is a borderless, transparent,
    * click-through surface locked to the full game window: `render`'s container

@@ -174,6 +174,7 @@ export function PluginHost(props: PluginHostProps): JSX.Element | null {
             title: opts.title,
             hotkeyLabel: opts.hotkeyLabel,
             defaultSize: opts.defaultSize,
+            defaultPosition: opts.defaultPosition,
             mode: opts.mode,
           })
         },

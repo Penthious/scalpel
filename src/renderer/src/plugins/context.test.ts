@@ -173,6 +173,22 @@ describe('createPluginContext registerOverlay', () => {
     expect(render).not.toHaveBeenCalled()
   })
 
+  it('forwards defaultPosition and defaultSize to deps', () => {
+    const deps = baseDeps()
+    const ctx = createPluginContext(deps)
+    ctx.registerOverlay(
+      { title: 'T', defaultSize: { width: 307, height: 432 }, defaultPosition: { fracX: 0.505, fracY: 0.4 } },
+      () => {},
+    )
+    expect(deps.registerOverlay).toHaveBeenCalledWith(
+      'test',
+      expect.objectContaining({
+        defaultSize: { width: 307, height: 432 },
+        defaultPosition: { fracX: 0.505, fracY: 0.4 },
+      }),
+    )
+  })
+
   it('throws if registerOverlay is called twice', () => {
     const ctx = createPluginContext(baseDeps())
     ctx.registerOverlay({ title: 'T' }, () => {})
