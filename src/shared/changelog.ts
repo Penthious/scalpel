@@ -1,5 +1,15 @@
 export const CHANGELOG: { version: string; notes: string[] }[] = [
   {
+    version: '1.0.3',
+    notes: [
+      'Updated onboarding with new settings and plugins.',
+      'Updated plugin sdk with some new features.',
+      'Fixed mods whose plural changes with the roll (like Death Rush\'s "for 2 seconds") matching nothing.',
+      'Fixed unidentified uniques leaving out candidates poe.ninja has no price for.',
+      'Fixed plugin rows going iconless when the registry icon fails to load.',
+    ],
+  },
+  {
     version: '1.0.2',
     notes: [
       'The Div Card Explorer now uses live drop weights from wraeclast.cards.',
