@@ -15,6 +15,7 @@ import {
   _setPricesForTests,
   _setPriceEntriesForTests,
   _setUniquesByBaseForTests,
+  buildUnidCandidates,
   getNinjaType,
   getPriceEntries,
   lookupItemPrice,
@@ -194,6 +195,29 @@ describe('lookupUniquePriceForBase', () => {
   it('returns undefined when the name is not priced at all', () => {
     _setPricesForTests([{ name: 'Something Else', variant: 'Foo', chaos: 1 }])
     expect(lookupUniquePriceForBase('Nonexistent', 'Foo')).toBeUndefined()
+  })
+})
+
+describe('buildUnidCandidates', () => {
+  beforeEach(() => {
+    setPoeVersion(1)
+    _setPricesForTests([
+      { name: 'Mageblood', variant: 'Heavy Belt', chaos: 11888 },
+      { name: "Bisco's Leash", variant: 'Heavy Belt', chaos: 2 },
+    ])
+    _setUniquesByBaseForTests({ 'Heavy Belt': ["Bisco's Leash", 'Mageblood', 'String of Servitude'] })
+  })
+
+  it('offers every unique on the base, including ones poe.ninja never prices (#579)', () => {
+    expect(buildUnidCandidates('Heavy Belt')).toEqual([
+      { name: 'Mageblood', chaosValue: 11888 },
+      { name: "Bisco's Leash", chaosValue: 2 },
+      { name: 'String of Servitude', chaosValue: 0 },
+    ])
+  })
+
+  it('returns nothing for a base with no known uniques', () => {
+    expect(buildUnidCandidates('Rustic Sash')).toEqual([])
   })
 })
 

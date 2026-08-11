@@ -533,12 +533,31 @@ export function lookupBestUniquePrice(baseType: string): PriceInfo | undefined {
   return best
 }
 
+/** The "which unique is this?" picker shown for an unidentified unique, priced
+ *  where poe.ninja has data and sorted most-valuable first.
+ *
+ *  Every unique on the base is offered, priced or not. This used to skip
+ *  unpriced names outside Standard on the theory that no price meant not
+ *  obtainable this league, but ninja only publishes uniques with enough
+ *  listings: String of Servitude has no ninja entry in *any* league, so an
+ *  unid Heavy Belt could never be identified as one (#579). ~146 names across
+ *  the PoE1 base map were hidden the same way. Unpriced candidates land at the
+ *  bottom, where the UI renders them without a price chip. */
+export function buildUnidCandidates(baseType: string): Array<{ name: string; chaosValue: number }> {
+  const names = getUniquesByBase()[baseType] ?? []
+  // lookupUniquePriceForBase disambiguates same-name uniques by base type and
+  // falls back to the name-only entry when no variant key matches.
+  return names
+    .map((name) => ({ name, chaosValue: lookupUniquePriceForBase(name, baseType)?.chaosValue ?? 0 }))
+    .sort((a, b) => b.chaosValue - a.chaosValue)
+}
+
 /** Pick the price entry to display for an item. Identified uniques -- and every
  *  non-unique -- resolve by their own name/variant via lookupPriceForItem. An
  *  *unidentified* unique doesn't expose its name in the clipboard (PoE shows
  *  only the base), so the only thing we can price it by is its base: we estimate
  *  with the most valuable unique that drops on that base. This mirrors the
- *  best-case unidCandidates list shown alongside it in preloadPriceCheck. */
+ *  best-case buildUnidCandidates list shown alongside it in preloadPriceCheck. */
 export function lookupItemPrice(item: NinjaItemRef & { identified?: boolean }): PriceInfo | undefined {
   if (item.rarity === 'Unique' && !item.identified) {
     return lookupBestUniquePrice(item.baseType) ?? lookupPriceForItem(item)

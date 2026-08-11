@@ -20,14 +20,7 @@ import { sendCtrlCToPoE } from './hotkeys'
 import { focusGameWindow, getOverlayWindow, showOverlay } from './overlay'
 import { advancedCopyTracker } from './trade/advanced-copy'
 import { readItemFromClipboard } from './trade/clipboard'
-import {
-  getUniquesByBase,
-  lookupItemPrice,
-  lookupPrice,
-  lookupPriceForItem,
-  lookupUniquePriceForBase,
-  refreshPrices,
-} from './trade/prices'
+import { buildUnidCandidates, lookupItemPrice, lookupPrice, lookupPriceForItem, refreshPrices } from './trade/prices'
 import { ensureStatsLoaded, matchItemMods } from './trade/trade'
 import { beginSession, decisionsForSession } from './learning'
 
@@ -218,21 +211,7 @@ export async function preloadPriceCheck(item: PoeItem, store: Store<AppSettings>
   const priceInfo = lookupItemPrice(item)
 
   // For unidentified uniques, find all possible uniques for this base type
-  const unidCandidates: Array<{ name: string; chaosValue: number }> = []
-  if (item.rarity === 'Unique' && !item.identified) {
-    const uniquesByBase = getUniquesByBase()
-    const names = uniquesByBase[item.baseType] ?? []
-    const isStandard = league.toLowerCase() === 'standard'
-    for (const name of names) {
-      // Disambiguate same-name uniques by the item's base type; falls back
-      // to the name-only entry when no variant key matches.
-      const price = lookupUniquePriceForBase(name, item.baseType)
-      // In non-Standard leagues, skip items with no price (not obtainable this league)
-      if (!isStandard && !price) continue
-      unidCandidates.push({ name, chaosValue: price?.chaosValue ?? 0 })
-    }
-    unidCandidates.sort((a, b) => b.chaosValue - a.chaosValue)
-  }
+  const unidCandidates = item.rarity === 'Unique' && !item.identified ? buildUnidCandidates(item.baseType) : []
 
   await ensureStatsLoaded()
   const statFilters = matchItemMods(
