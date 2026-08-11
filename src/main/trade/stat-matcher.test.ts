@@ -2324,6 +2324,79 @@ describe('matchItemMods', () => {
     })
   })
 
+  describe('number-governed plurals (#577)', () => {
+    // The clipboard pluralizes the noun a number governs ("for 2 seconds") while the
+    // trade stat text bakes in one plurality ("Gain Adrenaline for # second on Kill",
+    // explicit.stat_4145689649). Death Rush rolls 1-3 seconds, so only the 1-second
+    // roll produced a row -- 2 and 3 matched nothing and the mod was dropped.
+    const DEATH_RUSH_STATS = [
+      { id: 'explicit.stat_821241261', text: 'Recover #% of Life on Kill', type: 'explicit' },
+      { id: 'explicit.stat_4145689649', text: 'Gain Adrenaline for # second on Kill', type: 'explicit' },
+    ]
+
+    it.each([1, 2, 3])('emits the Adrenaline row for a %i second roll', (seconds) => {
+      _setStatEntriesForTests(DEATH_RUSH_STATS)
+      const filters = matchItemMods(
+        ['Recover 4% of Life on Kill', `Gain Adrenaline for ${seconds} second${seconds === 1 ? '' : 's'} on Kill`],
+        [],
+        undefined,
+        makeItemInfo({ rarity: 'Unique', itemClass: 'Rings', baseType: 'Amethyst Ring' }),
+      )
+      const adrenaline = filters.find((f) => f.id === 'explicit.stat_4145689649')
+      expect(adrenaline).toBeDefined()
+      expect(adrenaline?.value).toBe(seconds)
+    })
+
+    it('matches a singular clipboard roll against a plural stat text', () => {
+      _setStatEntriesForTests([
+        {
+          id: 'explicit.stat_4205704547',
+          text: 'Gain Adrenaline for # seconds when you reach Low Life',
+          type: 'explicit',
+        },
+      ])
+      const filters = matchItemMods(
+        ['Gain Adrenaline for 1 second when you reach Low Life'],
+        [],
+        undefined,
+        makeItemInfo({ rarity: 'Unique' }),
+      )
+      const adrenaline = filters.find((f) => f.id === 'explicit.stat_4205704547')
+      expect(adrenaline?.value).toBe(1)
+    })
+
+    it('keeps a fixed-value stat on its own id when the rollable twin also matches', () => {
+      // The only pair in either live catalog where relaxing the plural makes a second
+      // stat match a real clipboard line: the fixed 1.5m Shock spread and its rollable
+      // "# metre" twin. The longest-text tiebreak has to keep the fixed one.
+      _setStatEntriesForTests([
+        {
+          id: 'explicit.stat_424549222',
+          text: 'Shocks you inflict spread to other Enemies within # metre',
+          type: 'explicit',
+        },
+        {
+          id: 'explicit.stat_1640259660',
+          text: 'Shocks you inflict spread to other Enemies within 1.5 metres',
+          type: 'explicit',
+        },
+      ])
+      expect(matchModToStat('Shocks you inflict spread to other Enemies within 1.5 metres')?.statId).toBe(
+        'explicit.stat_1640259660',
+      )
+      // …while a rolled distance still reaches the rollable id (it never matched before).
+      const rolled = matchModToStat('Shocks you inflict spread to other Enemies within 2 metres')
+      expect(rolled?.statId).toBe('explicit.stat_424549222')
+      expect(rolled?.value).toBe(2)
+    })
+
+    it('matches the plural metre form of a singular range stat', () => {
+      _setStatEntriesForTests([{ id: 'explicit.stat_2264295449', text: '+# metre to Weapon Range', type: 'explicit' }])
+      const filters = matchItemMods(['+2 metres to Weapon Range'], [], undefined, makeItemInfo())
+      expect(filters.find((f) => f.id === 'explicit.stat_2264295449')?.value).toBe(2)
+    })
+  })
+
   describe('tablet (precursor tablet) mods', () => {
     // Tablet affixes are explicit map mods, but the clipboard phrases them
     // differently from the trade stat text. buildTabletFilters maps the clipboard
