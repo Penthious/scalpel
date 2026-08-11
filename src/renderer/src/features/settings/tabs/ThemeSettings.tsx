@@ -5,6 +5,7 @@ import { PRESETS, CUSTOM_THEME_ID } from '@shared/theme/presets'
 import { resolveActivePalette } from '@shared/theme/active'
 import { applyPalette, applyVars } from '@renderer/shared/apply-theme'
 import { CollapsibleSection } from '@renderer/shared/CollapsibleSection'
+import { ThemePresetGrid, applyThemePreset } from '@renderer/shared/ThemePresetGrid'
 
 interface EyeDropperResult {
   sRGBHex: string
@@ -64,11 +65,8 @@ export function ThemeSettings({ settings, update, updateMany }: Props): JSX.Elem
   }, [settings.themeId, settings.customThemePalette, dirty])
 
   const selectPreset = (id: string): void => {
-    const palette = resolveActivePalette(id, settings.customThemePalette ?? null)
-    setWorking(palette)
+    setWorking(applyThemePreset(id, settings, update))
     setDirty(false)
-    applyPalette(palette)
-    update('themeId', id)
   }
 
   const editColor = (key: keyof ThemePalette, value: string): void => {
@@ -126,32 +124,7 @@ export function ThemeSettings({ settings, update, updateMany }: Props): JSX.Elem
 
       <section>
         <label>Presets</label>
-        <div className="flex flex-wrap gap-1.5 mt-[6px]">
-          {presetList.map((p) => {
-            const selected = !dirty && settings.themeId === p.id
-            return (
-              <button
-                key={p.id}
-                onClick={() => selectPreset(p.id)}
-                title={p.name}
-                className={`text-[11px] px-3 py-1.5 flex items-center gap-2 ${
-                  selected ? 'bg-accent text-bg-solid' : 'text-text-dim'
-                }`}
-              >
-                <span className="flex">
-                  {[p.palette.bgCard, p.palette.accent].map((c, i) => (
-                    <span
-                      key={i}
-                      className="w-3 h-3 inline-block"
-                      style={{ background: c, boxShadow: '0 1px 2px rgba(0, 0, 0, 0.5)' }}
-                    />
-                  ))}
-                </span>
-                {p.name}
-              </button>
-            )
-          })}
-        </div>
+        <ThemePresetGrid presets={presetList} selectedId={dirty ? '' : settings.themeId} onSelect={selectPreset} />
       </section>
 
       <section>

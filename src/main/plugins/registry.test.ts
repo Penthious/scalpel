@@ -170,3 +170,37 @@ describe('fetchRegistry', () => {
     if (result.ok) expect(result.snapshot.plugins).toHaveLength(0)
   })
 })
+
+describe('featured flag', () => {
+  const withFeatured = (featured: unknown): unknown => ({
+    ...validRegistry,
+    plugins: [{ ...validRegistry.plugins[0], featured }],
+  })
+
+  it('passes through featured: true', async () => {
+    mockNetFetch(async () => new Response(JSON.stringify(withFeatured(true)), { status: 200 }))
+    const { fetchRegistry } = await import('./registry')
+    const result = await fetchRegistry()
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.snapshot.plugins[0].featured).toBe(true)
+  })
+
+  it('leaves featured undefined when absent', async () => {
+    mockNetFetch(async () => new Response(JSON.stringify(validRegistry), { status: 200 }))
+    const { fetchRegistry } = await import('./registry')
+    const result = await fetchRegistry()
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.snapshot.plugins[0].featured).toBeUndefined()
+  })
+
+  it('drops a non-boolean featured without rejecting the entry', async () => {
+    mockNetFetch(async () => new Response(JSON.stringify(withFeatured('yes')), { status: 200 }))
+    const { fetchRegistry } = await import('./registry')
+    const result = await fetchRegistry()
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.snapshot.plugins).toHaveLength(1)
+      expect(result.snapshot.plugins[0].featured).toBeUndefined()
+    }
+  })
+})

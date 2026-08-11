@@ -3,6 +3,7 @@ import type { AppSettings, HideableTabKey } from '@shared/types'
 import { ScrubInput } from '@renderer/components/primitives/ScrubInput'
 import { SettingToggleBox } from '@renderer/components/primitives/SettingToggleBox'
 import { ThemeSettings } from './ThemeSettings'
+import { OpenSideSelector } from '@renderer/shared/OpenSideSelector'
 import { Setting, CloseSmall, Buy, Filter, AllApplication } from '@icon-park/react'
 import { getGameFeatures } from '@shared/game-features'
 import { DIV_CARD_ICON_URL, IP } from '@renderer/shared/constants'
@@ -211,25 +212,7 @@ export function ViewTab({ settings, update, updateMany }: Props): JSX.Element {
       {/* Open side (mount side at scan time; doesn't affect dragging) */}
       <section>
         <label>{m.settings_open_scalpel_on()}</label>
-        <div className="flex gap-1.5 mt-[6px]">
-          {(
-            [
-              ['both', m.settings_side_both()],
-              ['right', m.settings_side_right()],
-              ['left', m.settings_side_left()],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              onClick={() => update('openSide', value)}
-              className={`text-[11px] px-3 py-1.5 ${
-                (settings.openSide ?? 'both') === value ? 'bg-accent text-bg-solid' : 'text-text-dim'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <OpenSideSelector value={settings.openSide} onChange={(v) => update('openSide', v)} />
       </section>
 
       {/* Close on click outside */}

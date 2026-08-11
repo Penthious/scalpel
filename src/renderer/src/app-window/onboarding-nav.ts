@@ -2,7 +2,7 @@
  *  module exists so the "what step is next given X" logic is unit-testable
  *  without React + IPC mocks. */
 
-import type { SelectedGames, Step } from './constants'
+import { SHARED_STEPS, type SelectedGames, type Step } from './constants'
 
 /** Games the user picked, in flow order. */
 export function selectedGameOrder(games: SelectedGames): Array<1 | 2> {
@@ -39,6 +39,12 @@ export function filterStepNum(games: SelectedGames, game: 1 | 2, which: 'folder'
  *  one game it's 1-2, shared starts at 3. */
 export function sharedStepBase(games: SelectedGames): number {
   return games.poe1 && games.poe2 ? 4 : 2
+}
+
+/** 1-based number to render in the StepHeader for a step in the shared tail.
+ *  Derived from SHARED_STEPS order so adding a page needs no arithmetic here. */
+export function sharedStepNum(games: SelectedGames, step: Step): number {
+  return sharedStepBase(games) + SHARED_STEPS.indexOf(step) + 1
 }
 
 /** Where the user goes after picking a filter for `game`: into online setup

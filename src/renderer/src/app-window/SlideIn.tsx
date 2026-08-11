@@ -15,8 +15,12 @@ export function SlideIn({
     return () => cancelAnimationFrame(frame)
   }, [])
   return (
+    // Each step's root is a single div. Stretching it into a full-height flex
+    // column is what lets StepFooter's mt-auto pin the buttons to the bottom of
+    // the window on steps whose content does not fill it.
     <div
       key={stepKey}
+      className="flex-1 flex flex-col [&>div]:flex-1 [&>div]:flex [&>div]:flex-col"
       style={{
         transform: mounted ? 'translateX(0)' : `translateX(${direction === 'forward' ? '60px' : '-60px'})`,
         opacity: mounted ? 1 : 0,

@@ -40,6 +40,15 @@ export interface RegistryEntry {
   /** Optional absolute image URLs shown in the expand-in-place gallery.
    *  Bare strings, no captions. Omitted/empty means the row has no gallery. */
   screenshots?: string[]
+  /** When true the plugin is promoted into the "Featured Plugins" section of
+   *  onboarding's Plugins step. Onboarding only: Settings > Plugins lists every
+   *  plugin flat and does not surface this flag. Ordering within the featured
+   *  group follows registry array order. Absent means not featured.
+   *
+   *  Optional and additive on purpose: no schemaVersion bump is needed, older
+   *  app builds ignore it, and a self-hosted registry that omits it simply
+   *  renders no featured section. */
+  featured?: boolean
 }
 
 export interface RegistrySnapshot {

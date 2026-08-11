@@ -71,6 +71,9 @@ function validateSnapshot(raw: unknown): RegistrySnapshot | null {
         Array.isArray(e.screenshots) && e.screenshots.every((s) => typeof s === 'string')
           ? (e.screenshots as string[])
           : undefined,
+      // Anything other than `true` becomes undefined rather than failing the
+      // entry: one malformed flag must not drop a plugin from every user's list.
+      featured: e.featured === true ? true : undefined,
     })
   }
   return { schemaVersion: 1, plugins }
