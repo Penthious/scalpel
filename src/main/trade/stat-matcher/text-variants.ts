@@ -70,10 +70,19 @@ function generateTextVariants(text: string): string[] {
   // word, dropping the trailing 's' from the first plural word in that run (the noun, e.g.
   // "Rare Monsters" -> "Rare Monster"). Naive -s is sufficient for the regular plurals these
   // tablet count-mods use; an irregular plural (-es) would need a special case below.
+  //
+  // A verb the singularized noun governs has to come back with it: the PoE1 relic mod prints
+  // as "2 additional Rooms ARE revealed on the Sanctum Map" but its trade stat
+  // (sanctum.stat_386901949) reads "An additional Room IS revealed on the Sanctum Map", so
+  // singularizing only the noun still matched nothing and the relic lost the row (#582).
+  // Scoped to the verb directly after that noun -- a blanket "are"->"is" variant would fire
+  // on every mod carrying the word and cost a full catalog scan each time.
   if (/\b\d+ additional\b/i.test(text)) {
     const an = text.replace(/\b\d+ additional\b/i, 'an additional')
     variants.push(an)
-    const singular = an.replace(/\b(an additional (?:\w+ )*?\w+?)s\b/i, '$1')
+    const singular = an.replace(/\b(an additional (?:\w+ )*?\w+?)s\b( are\b)?/i, (_m, head, verb) =>
+      verb ? `${head} is` : head,
+    )
     if (singular !== an) variants.push(singular)
   }
 
@@ -81,10 +90,14 @@ function generateTextVariants(text: string): string[] {
   // but the trade API stores the numeric form: "Bow Attacks fire # additional Arrows").
   // Naive +s pluralization is sufficient for the PoE mods that hit this path (Arrow,
   // Projectile, Curse, Modifier) -- if an irregular plural shows up later, special-case it.
+  // Carries the governed verb the other way ("is" -> "are") for the mirror of the case above,
+  // where the trade stat is the one holding the plural form.
   const anAdditionalMatch = text.match(/\ban additional ([A-Za-z]+)\b/i)
   if (anAdditionalMatch) {
     const noun = anAdditionalMatch[1]
-    variants.push(text.replace(/\ban additional [A-Za-z]+\b/i, `1 additional ${noun}s`))
+    variants.push(
+      text.replace(/\ban additional [A-Za-z]+\b( is\b)?/i, (_m, verb) => `1 additional ${noun}s${verb ? ' are' : ''}`),
+    )
   }
 
   // PoE2 trade folds an always-100% "chance to <effect>" mod into a valueless binary

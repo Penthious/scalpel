@@ -2165,6 +2165,57 @@ describe('matchItemMods', () => {
       )
       expect(filters.find((f) => f.type === 'sanctum')).toBeUndefined()
     })
+
+    // #582. The room-count mod prints its plural form with a plural verb ("2 additional
+    // Rooms ARE revealed") while the live PoE1 trade stat is baked singular ("An
+    // additional Room IS revealed"), so every roll above 1 matched nothing and the relic
+    // lost the row. The count is a real filter value on these stats even though their
+    // text has no "#" (probed on Standard, unfiltered / min:2 / min:3: rooms 1597/485/4,
+    // Merchant Choice 731/290/10), and it is a small per-tier integer, so it must search
+    // as an exact min.
+    const ROOM_STATS = [
+      { id: 'sanctum.stat_386901949', text: 'An additional Room is revealed on the Sanctum Map', type: 'sanctum' },
+      { id: 'sanctum.stat_3237367570', text: 'Rooms are unknown on the Sanctum Map', type: 'sanctum' },
+      { id: 'sanctum.stat_290775436', text: 'The Merchant has an additional Choice', type: 'sanctum' },
+    ]
+    const runRelic = (mods: string[]) =>
+      matchItemMods(mods, [], undefined, makeItemInfo({ rarity: 'Magic', itemClass: 'Relics', baseType: 'Urn Relic' }))
+
+    it('matches the plural room-count roll to the singular trade stat (#582)', () => {
+      _setStatEntriesForTests(ROOM_STATS)
+      const f = runRelic(['2 additional Rooms are revealed on the Sanctum Map']).find(
+        (x) => x.id === 'sanctum.stat_386901949',
+      )
+      expect(f).toBeDefined()
+      expect(f?.value).toBe(2)
+      expect(f?.min).toBe(2) // exact, not floor(2 * 0.9) = 1
+    })
+
+    it('still matches the singular room-count roll, counting it as 1', () => {
+      _setStatEntriesForTests(ROOM_STATS)
+      const f = runRelic(['An additional Room is revealed on the Sanctum Map']).find(
+        (x) => x.id === 'sanctum.stat_386901949',
+      )
+      expect(f).toBeDefined()
+      expect(f?.value).toBe(1)
+      expect(f?.min).toBe(1)
+    })
+
+    it('carries the count of the other word-spelled sanctum counts (#582)', () => {
+      _setStatEntriesForTests(ROOM_STATS)
+      const f = runRelic(['The Merchant has 2 additional Choices']).find((x) => x.id === 'sanctum.stat_290775436')
+      expect(f).toBeDefined()
+      expect(f?.value).toBe(2)
+      expect(f?.min).toBe(2)
+    })
+
+    it('leaves a genuinely valueless sanctum stat presence-only (negative control)', () => {
+      _setStatEntriesForTests(ROOM_STATS)
+      const f = runRelic(['Rooms are unknown on the Sanctum Map']).find((x) => x.id === 'sanctum.stat_3237367570')
+      expect(f).toBeDefined()
+      expect(f?.value).toBeNull()
+      expect(f?.min).toBeNull()
+    })
   })
 
   describe('catalyst quality scales implicit magnitude (#477)', () => {
