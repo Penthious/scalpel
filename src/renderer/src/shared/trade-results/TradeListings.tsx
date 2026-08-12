@@ -1,8 +1,9 @@
 import { Down, Up } from '@icon-park/react'
 import type { Listing } from '../trade-types'
 import { ExpandedListing } from './ExpandedListing'
-import { SOCKET_IMGS, formatTimeAgo, socketLink, socketColorless } from './constants'
+import { formatTimeAgo } from './constants'
 import { RuneSocketOverlayPoe2 } from '../../components/sockets/RuneSocketOverlay.poe2'
+import { SocketOverlayPoe1 } from '../../components/sockets/SocketOverlay.poe1'
 import { usePoeVersion } from '../poe-version-context'
 import type { ResultsView } from '../trade-settings'
 import { zebraRowBg } from '../utils'
@@ -114,14 +115,13 @@ export function TradeListings({
                       >
                         {(() => {
                           const sockets = l.itemData!.sockets!
-                          const n = sockets.length
                           const sz = 12,
                             gap = 3
 
                           if (poeVersion === 2) {
                             return (
                               <RuneSocketOverlayPoe2
-                                count={n}
+                                count={sockets.length}
                                 itemClass={itemClass}
                                 itemName={itemName}
                                 sz={sz}
@@ -130,120 +130,15 @@ export function TradeListings({
                             )
                           }
 
-                          const is1Wide =
-                            n <= 3 && !['Helmets', 'Body Armours', 'Gloves', 'Boots', 'Shields'].includes(itemClass)
-
-                          if (is1Wide || n <= 1) {
-                            return sockets.map((s, si) => {
-                              const linked = si > 0 && sockets[si - 1].group === s.group
-                              return (
-                                <div key={si} className="flex flex-col items-center">
-                                  {linked && (
-                                    <img
-                                      src={socketLink}
-                                      alt=""
-                                      style={{
-                                        width: 4,
-                                        height: gap,
-                                        objectFit: 'fill',
-                                        transform: 'rotate(90deg)',
-                                        filter: 'brightness(2)',
-                                      }}
-                                    />
-                                  )}
-                                  {!linked && si > 0 && <div style={{ height: gap }} />}
-                                  <img
-                                    src={SOCKET_IMGS[s.sColour] ?? socketColorless}
-                                    alt=""
-                                    style={{ width: sz, height: sz }}
-                                  />
-                                </div>
-                              )
-                            })
-                          }
-
-                          // Zigzag positions
-                          const positions: Array<[number, number]> = []
-                          for (let row = 0; row < Math.ceil(n / 2); row++) {
-                            if (row % 2 === 0) {
-                              positions.push([0, row])
-                              if (positions.length < n) positions.push([1, row])
-                            } else {
-                              positions.push([1, row])
-                              if (positions.length < n) positions.push([0, row])
-                            }
-                          }
-
-                          const cellW = sz + gap * 2
-                          const cellH = sz + gap * 2
-                          const totalW = cellW * 2
-                          const totalH = cellH * Math.ceil(n / 2)
-
                           return (
-                            <div className="relative overflow-visible" style={{ width: totalW, height: totalH }}>
-                              {sockets.map((s, si) => {
-                                const [col, row] = positions[si]
-                                const x = col * cellW + gap
-                                const y = row * cellH + gap
-
-                                let linkEl = null
-                                if (si > 0 && sockets[si - 1].group === s.group) {
-                                  const [pc, pr] = positions[si - 1]
-                                  if (pr === row) {
-                                    linkEl = (
-                                      <img
-                                        key={`l${si}`}
-                                        src={socketLink}
-                                        alt=""
-                                        style={{
-                                          position: 'absolute',
-                                          left: Math.min(col, pc) * cellW + gap + sz,
-                                          top: y + (sz - 4) / 2,
-                                          width: gap * 2,
-                                          height: 4,
-                                          objectFit: 'fill',
-                                          filter: 'brightness(2)',
-                                        }}
-                                      />
-                                    )
-                                  } else {
-                                    linkEl = (
-                                      <img
-                                        key={`l${si}`}
-                                        src={socketLink}
-                                        alt=""
-                                        style={{
-                                          position: 'absolute',
-                                          left: col * cellW + gap + (sz - gap * 2) / 2,
-                                          top: Math.min(row, pr) * cellH + gap + sz + (gap * 2 - 4) / 2,
-                                          width: gap * 2,
-                                          height: 4,
-                                          objectFit: 'fill',
-                                          transform: 'rotate(90deg)',
-                                          filter: 'brightness(2)',
-                                        }}
-                                      />
-                                    )
-                                  }
-                                }
-
-                                return [
-                                  linkEl,
-                                  <img
-                                    key={si}
-                                    src={SOCKET_IMGS[s.sColour] ?? socketColorless}
-                                    alt=""
-                                    style={{
-                                      position: 'absolute',
-                                      left: x,
-                                      top: y,
-                                      width: sz,
-                                      height: sz,
-                                    }}
-                                  />,
-                                ]
-                              })}
-                            </div>
+                            <SocketOverlayPoe1
+                              sockets={sockets}
+                              itemClass={itemClass}
+                              itemName={itemName}
+                              sz={sz}
+                              gap={gap}
+                              linkPx={4}
+                            />
                           )
                         })()}
                       </div>

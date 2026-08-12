@@ -97,3 +97,81 @@ describe('buildSocketFilters - special rune deduction', () => {
     expect(runeChip!.value).toBe(2)
   })
 })
+
+// Trade indexes every abyssal-socket grant separately at the value printed on its
+// own line -- probe-verified against live listings. The chips must mirror
+// that split, never the item's total socket count.
+describe('buildSocketFilters - abyssal sockets', () => {
+  const abyss = (filters: ReturnType<typeof buildSocketFilters>) =>
+    filters.filter((f) => f.id.endsWith('.stat_3527617737'))
+
+  // The reported bug: Darkness Enthroned takes one socket from the Stygian Vise
+  // implicit and one from its own unique mod. Trade holds implicit=1 AND
+  // explicit=1; a single chip at 2 sockets matched nothing.
+  it('Darkness Enthroned (implicit 1 + explicit 1) -> two chips, each min 1', () => {
+    const filters = buildSocketFilters(
+      makeInfo({ sockets: 'A A', itemClass: 'Belts' }),
+      ['Has 1 Abyssal Socket', '97% increased Effect of Socketed Abyss Jewels'],
+      ['Has 1 Abyssal Socket'],
+    )
+    const rows = abyss(filters)
+    expect(rows).toHaveLength(2)
+    expect(rows.map((f) => [f.id, f.min, f.value, f.type, f.text])).toEqual([
+      ['implicit.stat_3527617737', 1, 1, 'implicit', 'Abyssal Sockets (implicit)'],
+      ['explicit.stat_3527617737', 1, 1, 'explicit', 'Abyssal Sockets (explicit)'],
+    ])
+    expect(rows.every((f) => f.enabled)).toBe(true)
+  })
+
+  it('plain Stygian Vise (implicit only) -> one implicit chip, min 1, unlabelled', () => {
+    const filters = buildSocketFilters(makeInfo({ sockets: 'A', itemClass: 'Belts' }), [], ['Has 1 Abyssal Socket'])
+    expect(abyss(filters).map((f) => [f.id, f.min, f.text])).toEqual([
+      ['implicit.stat_3527617737', 1, 'Abyssal Sockets'],
+    ])
+  })
+
+  it('suffix-granted socket on a rare (explicit only) -> one explicit chip, min 1', () => {
+    const filters = buildSocketFilters(
+      makeInfo({ sockets: 'A', itemClass: 'Gloves' }),
+      ['+40 to maximum Life', 'Has 1 Abyssal Socket'],
+      [],
+    )
+    expect(abyss(filters).map((f) => [f.id, f.min, f.text])).toEqual([
+      ['explicit.stat_3527617737', 1, 'Abyssal Sockets'],
+    ])
+  })
+
+  // A grant covering several sockets prints one line and indexes as that value, so
+  // the min comes off the line rather than from counting sockets.
+  it('two-socket Bubonic Trail ("Has 2 Abyssal Sockets") -> one explicit chip, min 2', () => {
+    const filters = buildSocketFilters(
+      makeInfo({ sockets: 'W-A A', itemClass: 'Boots' }),
+      ['Has 2 Abyssal Sockets', 'Triggers Level 20 Death Walk when Equipped'],
+      [],
+    )
+    expect(abyss(filters).map((f) => [f.id, f.min])).toEqual([['explicit.stat_3527617737', 2]])
+  })
+
+  it('reads the count through a (crafted) / (implicit) tag', () => {
+    const filters = buildSocketFilters(
+      makeInfo({ sockets: 'A A', itemClass: 'Belts' }),
+      ['Has 1 Abyssal Socket (crafted)'],
+      ['Has 1 Abyssal Socket (implicit)'],
+    )
+    expect(abyss(filters).map((f) => [f.id, f.min])).toEqual([
+      ['implicit.stat_3527617737', 1],
+      ['explicit.stat_3527617737', 1],
+    ])
+  })
+
+  // Unidentified item: no mod lines to attribute the sockets to, so the pre-existing
+  // implicit default at the socket count stands.
+  it('no abyss line at all -> one implicit chip at the socket count', () => {
+    const filters = buildSocketFilters(makeInfo({ sockets: 'A', itemClass: 'Belts' }), [], [])
+    expect(abyss(filters).map((f) => [f.id, f.min])).toEqual([['implicit.stat_3527617737', 1]])
+  })
+
+  it('no abyssal sockets -> no abyss chip', () => {
+    expect(abyss(buildSocketFilters(makeInfo({ sockets: 'R-G-B', itemClass: 'Gloves' }), [], []))).toHaveLength(0)
+  })
+})

@@ -435,6 +435,31 @@ describe('matchItemMods', () => {
       expect(abyss).toHaveLength(1)
       expect(filters.find((f) => f.id === 'implicit.stat_3527617737')).toBeUndefined()
     })
+
+    it('Darkness Enthroned (implicit + unique grant): one row per id at min 1, not one row at 2', () => {
+      // Trade indexes the Stygian Vise implicit and the unique's own line as
+      // separate ids worth 1 each -- probe-verified. A single chip at the total
+      // socket count asked for "implicit >= 2" and returned nothing.
+      const filters = matchItemMods(
+        ['Has 1 Abyssal Socket', '97% increased Effect of Socketed Abyss Jewels'],
+        ['Has 1 Abyssal Socket'],
+        undefined,
+        makeItemInfo({
+          sockets: 'A A',
+          linkedSockets: 0,
+          itemClass: 'Belts',
+          baseType: 'Stygian Vise',
+          rarity: 'Unique',
+        }),
+      )
+      const abyss = filters.filter((f) => f.id.endsWith('.stat_3527617737'))
+      expect(abyss.map((f) => [f.id, f.min])).toEqual([
+        ['implicit.stat_3527617737', 1],
+        ['explicit.stat_3527617737', 1],
+      ])
+      // The raw socket line still belongs to the socket producer alone.
+      expect(filters.find((f) => f.text === 'Has 1 Abyssal Socket')).toBeUndefined()
+    })
   })
 
   describe('misc filters', () => {
