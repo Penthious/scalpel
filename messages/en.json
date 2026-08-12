@@ -93,7 +93,7 @@
   "settings_pc_default_percent": "Default search percentage",
   "settings_pc_adaptive_defaults": "Adaptive defaults",
   "settings_pc_additional": "Additional Settings",
-  "settings_pc_default_base": "Default all items to \"Base\" - can simplify unchecking unwanted mods",
+  "settings_pc_affixes_prechecked": "Affixes prechecked",
   "settings_pc_crafting_ready": "PoE2: default white/magic items to \"Crafting Ready\" (base + ilvl + affixes)",
   "settings_pc_keep_unchecked": "Don't hide mods I uncheck",
   "settings_pc_never_autosearch": "Never auto-search",

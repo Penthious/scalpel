@@ -39,7 +39,7 @@ function settings(input: Partial<RuntimeSettings> = {}): RuntimeSettings {
     updateChannel: 'stable',
     tradeStatus: 'available',
     priceCheckDefaultPercent: 90,
-    tradeDefaultToBase: false,
+    tradeAffixesPrechecked: 'default',
     chatCommands: [],
     appMacros: [],
     stashScrollEnabled: false,

@@ -32,3 +32,7 @@ export type ConditionResult = 'pass' | 'fail' | 'unknown'
 export type { TradePriceOption } from '../trade-price-options'
 
 export type AdaptiveMode = 'eager' | 'conservative' | 'off'
+
+/** Price-check "Affixes prechecked" trade default: 'default' = the producer's smart
+ *  best-effort state, 'base' = every affix unticked, 'all' = every affix ticked. */
+export type AffixesPrechecked = 'default' | 'base' | 'all'

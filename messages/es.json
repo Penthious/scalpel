@@ -93,7 +93,7 @@
   "settings_pc_default_percent": "Porcentaje de búsqueda predeterminado",
   "settings_pc_adaptive_defaults": "Valores adaptativos",
   "settings_pc_additional": "Ajustes adicionales",
-  "settings_pc_default_base": "Predeterminar todos los objetos a \"Base\": puede simplificar desmarcar mods no deseados",
+  "settings_pc_affixes_prechecked": "Afijos premarcados",
   "settings_pc_crafting_ready": "PoE2: predeterminar objetos blancos/mágicos a \"Listo para crafteo\" (base + ilvl + afijos)",
   "settings_pc_keep_unchecked": "No ocultar los mods que desmarco",
   "settings_pc_never_autosearch": "Nunca buscar automáticamente",

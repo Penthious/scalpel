@@ -4,6 +4,7 @@ export const CHANGELOG: { version: string; notes: string[] }[] = [
     notes: [
       'Updated onboarding with new settings and plugins.',
       'Updated plugin sdk with some new features.',
+      'Replaced the price check\'s "Default all items to Base" toggle with an "Affixes prechecked" trade default: Default (smart, best effort), Base (all unchecked), or All (all checked).',
       'Fixed mods whose plural changes with the roll (like Death Rush\'s "for 2 seconds") matching nothing.',
       'Fixed unidentified uniques leaving out candidates poe.ninja has no price for.',
       'Fixed plugin rows going iconless when the registry icon fails to load.',

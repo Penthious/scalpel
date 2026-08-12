@@ -1,3 +1,4 @@
+import type { AffixesPrechecked } from '@shared/types'
 import type { StatFilter } from './types'
 
 /** Item classes that default to "Base" search mode on price check open.
@@ -74,21 +75,24 @@ export function applyBaseModeToFilters(
     // returns every Astral Plate regardless of strand count.
     if (f.id === 'misc.memory_level') return { ...f, enabled: true }
     if (f.type === 'implicit' || f.type === 'enchant') return { ...f, enabled: includeImplicits }
-    // Crafting Ready: keep the item's real explicit affixes ticked. Their value/min/max
-    // (incl. beneficial-negative max) are already set by the producer, so only flip enabled.
-    if (opts.keepExplicits && f.type === 'explicit') return { ...f, enabled: true }
-    if (isUnique && f.foulborn) return { ...f, enabled: true }
     // Forbidden Shako-style randomized supports: which supports the item rolled, and at
     // what level, IS what the item sells for -- a Base search that drops them prices a
     // GG Shako like a vendor one. The producer already decided their state (the higher
     // of two same-support rolls on, its twin off, since the trade index matches nothing
-    // when both are searched), so keep it rather than force-enabling (#564).
+    // when both are searched), so keep it rather than force-enabling (#564). Runs ahead
+    // of keepExplicits: "All" is the first keepExplicits caller that sees uniques, and a
+    // blanket force-enable would tick both twins.
     if (isUnique && f.randomSupport) return f
     // Uniques: a mod at or above its best possible roll (perfect, or over-rolled by
     // Vaal/corruption) is what makes this copy worth more, so enable it by default pinned
     // to that exact roll -- the search then finds equally-good-or-better copies. A learned
     // chip already returned above, so this defers to the user's own decision (issue #378).
+    // Ahead of keepExplicits so "All" keeps the pin instead of just ticking the row.
     if (isPerfectUniqueRoll(f, rarity)) return { ...f, enabled: true, min: f.value, max: null }
+    // Crafting Ready / All: keep the item's real explicit affixes ticked. Their value/min/max
+    // (incl. beneficial-negative max) are already set by the producer, so only flip enabled.
+    if (opts.keepExplicits && f.type === 'explicit') return { ...f, enabled: true }
+    if (isUnique && f.foulborn) return { ...f, enabled: true }
     // Premium mods (curated per-unique chase mods) are part of the base signature -- keep
     // them ticked through Base mode, otherwise the override computed in main is clobbered.
     if (f.premium) return { ...f, enabled: true }
@@ -106,6 +110,40 @@ export function applyBaseModeToFilters(
     )
       return f
     return { ...f, enabled: false }
+  })
+}
+
+/** Rows Base mode owns outright. "All" must not hand these back to the producer's state --
+ *  a unique whose producer shipped ilvl enabled would get it back, and a unique's roll pool
+ *  is fixed regardless of drop level, so an ilvl filter only drops valid listings. */
+const BASE_OWNED_IDS = new Set(['misc.basetype', 'misc.ilvl', 'misc.memory_level'])
+
+/** "All" preset: Base mode with every affix row ticked instead of unticked, so the user
+ *  unticks down to what they care about. Pseudo aggregates and every other non-affix row
+ *  family (weapon DPS, map yield chips, mercenary, defence) keep the producer's state --
+ *  "All" is about ticking affixes, not about unticking chips the producer already decided
+ *  price this item. The unique carve-outs Base owns (ilvl off, Shako twin split, perfect-roll
+ *  pins) still apply, and learned chips still win. */
+export function applyAllModsToFilters(
+  filters: StatFilter[],
+  rarity: string,
+  corrupted: boolean,
+  opts: { vestigial?: boolean } = {},
+): StatFilter[] {
+  return applyBaseModeToFilters(filters, rarity, corrupted, { ...opts, keepExplicits: true }).map((f, i) => {
+    if (f.learned) return f
+    // Affix rows: "All" ticks them whatever Base decided.
+    if (f.type === 'implicit' || f.type === 'enchant' || f.type === 'fractured') return { ...f, enabled: true }
+    // Rows Base already resolved the way "All" wants them: explicits (via keepExplicits,
+    // including the Shako twin split and perfect-roll pins), foulborn/premium, and the
+    // structural rows above.
+    if (f.type === 'explicit' || f.foulborn || f.premium || BASE_OWNED_IDS.has(f.id)) return f
+    // Everything else -- pseudo aggregates, weapon DPS, map yield chips, mercenary rows,
+    // defence percentiles -- hits Base's blanket disable. "All" is about ticking affixes,
+    // not about unticking the chips the producer already decided price this item, so hand
+    // those back at the producer's state. Base's map is 1:1 and order-preserving, so the
+    // index lines up.
+    return { ...f, enabled: filters[i]?.enabled ?? f.enabled }
   })
 }
 
@@ -157,4 +195,31 @@ export function isCraftingReadyState(filters: StatFilter[], includeImplicits: bo
         f.enabled,
     ).length === 0
   return basetypeOn && ilvlOn && rarityOk && explicitsAllOn && implicitsOk && noOtherModsOn
+}
+
+/** Which preset a freshly-opened price check starts from. */
+export type DefaultPreset = 'crafting-ready' | 'base' | 'all' | 'none'
+
+/** Resolves the opening preset and whether disabled rows stay visible above the fold.
+ *  Precedence: PoE2 Crafting Ready wins (it has its own opt-out toggle and is a superset
+ *  of Base), then the always-Base item classes (Blueprints/Contracts have no priceable
+ *  affixes, so "All" would be useless there), then the user's Affixes prechecked setting.
+ *  'default' is the historical smart behaviour: Base for uniques, producer state otherwise. */
+export function resolveDefaultPreset(opts: {
+  mode: AffixesPrechecked
+  craftingReadyDefault: boolean
+  isClassDefault: boolean
+  isUnique: boolean
+}): { preset: DefaultPreset; keepRowsVisible: boolean } {
+  const { mode, craftingReadyDefault, isClassDefault, isUnique } = opts
+  // Under mode 'default', Blueprints/Contracts are force-Based without expanding the rows --
+  // that was never a user choice, so it shouldn't drag the whole disabled list above the fold.
+  // Under mode 'base'/'all', the user did explicitly choose, so the rows expand even for
+  // those always-Base classes.
+  const keepRowsVisible = isUnique || mode !== 'default' || craftingReadyDefault
+  if (craftingReadyDefault) return { preset: 'crafting-ready', keepRowsVisible }
+  if (isClassDefault) return { preset: 'base', keepRowsVisible }
+  if (mode === 'base') return { preset: 'base', keepRowsVisible }
+  if (mode === 'all') return { preset: 'all', keepRowsVisible }
+  return { preset: isUnique ? 'base' : 'none', keepRowsVisible }
 }

@@ -13,6 +13,7 @@ export type {
   ConditionResult,
   TradePriceOption,
   AdaptiveMode,
+  AffixesPrechecked,
 } from './contracts/core'
 
 export type {

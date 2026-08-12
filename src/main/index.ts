@@ -152,7 +152,7 @@ const store = new Store<AppSettings>({
     previewVolume: 0.25,
     priceCheckDefaultPercent: 90,
     adaptiveDefaultsMode: 'eager',
-    tradeDefaultToBase: false,
+    tradeAffixesPrechecked: 'default',
     tradePoe2CraftingReadyDefault: true,
     chatCommands: [],
     appMacros: [],
@@ -191,6 +191,20 @@ if (store.get('adaptiveDefaultsMode') === undefined) store.set('adaptiveDefaults
 if (store.get('startInTray') === undefined) store.set('startInTray', true)
 if (store.get('pluginAutoUpdate') === undefined) store.set('pluginAutoUpdate', false)
 if (store.get('locale') === undefined) store.set('locale', 'en')
+
+// tradeDefaultToBase (boolean) became tradeAffixesPrechecked (three-way). Gate on the OLD
+// key's presence, not on the new one being undefined: the new key is in `defaults`, so
+// store.get() always resolves it and an undefined-check would never fire. The old key is
+// present in every pre-migration config and absent on a fresh install, and the delete
+// makes this a one-shot.
+{
+  const legacyStore = store as Store<AppSettings & { tradeDefaultToBase?: boolean }>
+  const legacyBase = legacyStore.get('tradeDefaultToBase')
+  if (legacyBase !== undefined) {
+    if (legacyBase === true) store.set('tradeAffixesPrechecked', 'base')
+    legacyStore.delete('tradeDefaultToBase')
+  }
+}
 
 initMainLocale(store, () => refreshTrayMenu())
 

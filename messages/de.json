@@ -93,7 +93,7 @@
   "settings_pc_default_percent": "Standard-Suchprozentsatz",
   "settings_pc_adaptive_defaults": "Adaptive Standardwerte",
   "settings_pc_additional": "Zusätzliche Einstellungen",
-  "settings_pc_default_base": "Alle Gegenstände standardmäßig auf \"Basis\" – erleichtert das Abwählen unerwünschter Mods",
+  "settings_pc_affixes_prechecked": "Vorausgewählte Affixe",
   "settings_pc_crafting_ready": "PoE2: Weiße/magische Gegenstände standardmäßig auf \"Crafting-bereit\" (Basis + ilvl + Affixe)",
   "settings_pc_keep_unchecked": "Abgewählte Mods nicht ausblenden",
   "settings_pc_never_autosearch": "Nie automatisch suchen",

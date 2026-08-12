@@ -1,6 +1,6 @@
-import type { AdaptiveMode } from '@shared/types'
+import type { AdaptiveMode, AffixesPrechecked } from '@shared/types'
 import { TRADE_PRICE_OPTIONS, type TradePriceOption, type TradePriceOptionEntry } from '@shared/trade-price-options'
-export type { AdaptiveMode }
+export type { AdaptiveMode, AffixesPrechecked }
 export { defaultPriceOption, normalizePriceOption } from '@shared/trade-price-options'
 
 export type ListedTime =
@@ -67,4 +67,12 @@ export const ADAPTIVE_MODE_OPTIONS: Array<{ value: AdaptiveMode; label: string }
   { value: 'eager', label: 'Eager' },
   { value: 'conservative', label: 'Conservative' },
   { value: 'off', label: 'Off (keeps learning quietly)' },
+]
+
+/** Trade default for how many affix rows arrive ticked on a fresh price check. The
+ *  one-line descriptions ride in the labels -- the select box has no help text slot. */
+export const AFFIXES_PRECHECKED_OPTIONS: Array<{ value: AffixesPrechecked; label: string }> = [
+  { value: 'default', label: 'Default - Smart, best effort' },
+  { value: 'base', label: 'Base - All unchecked' },
+  { value: 'all', label: 'All - All checked' },
 ]

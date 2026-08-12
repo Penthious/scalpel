@@ -1,6 +1,6 @@
 import type { MacroScope } from '../macro-scope'
 import type { ThemePalette } from '../theme/palette'
-import type { AppLocale, TradePriceOption, AdaptiveMode } from './core'
+import type { AppLocale, TradePriceOption, AdaptiveMode, AffixesPrechecked } from './core'
 import type { CheatSheetsSettings, OverlayAnchor } from './overlay'
 import type { RegexPreset } from './regex'
 import type { PoeProfile } from './profiles'
@@ -53,7 +53,7 @@ export interface AppSettings {
     | '2months'
   tradeResultsView?: 'default' | 'open-all' | 'shrinkydink'
   priceCheckDefaultPercent: number
-  tradeDefaultToBase: boolean
+  tradeAffixesPrechecked: AffixesPrechecked
   tradePoe2CraftingReadyDefault?: boolean
   tradeKeepUncheckedVisible?: boolean
   tradeNeverAutoSearch?: boolean

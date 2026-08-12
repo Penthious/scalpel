@@ -34,10 +34,12 @@ import { DismissibleTip } from '../../shared/DismissibleTip'
 import {
   BASE_DEFAULT_ITEM_CLASSES,
   CRAFTING_READY_EXCLUDED_CLASSES,
+  applyAllModsToFilters,
   applyBaseModeToFilters,
   applyCraftingReadyToFilters,
   isCraftingReadyState,
   isPerfectUniqueRoll,
+  resolveDefaultPreset,
   shouldIncludeImplicitsInBase,
 } from './base-mode'
 import { applyLearnedDecisions } from './learned-decisions'
@@ -267,10 +269,9 @@ export function PriceCheck({
     }
   }, [item.baseType, item.itemClass, item.rarity, poeVersion])
 
-  // Auto-apply Base mode:
-  //   - Item classes in BASE_DEFAULT_ITEM_CLASSES: always (e.g. Blueprints, Contracts)
-  //   - Uniques (for everyone): apply Base but keep the disabled rows visible above the fold
-  //   - Setting "Default all items to Base": same as uniques behavior for all items
+  // Opening preset (see resolveDefaultPreset): PoE2 Crafting Ready wins where eligible,
+  // then BASE_DEFAULT_ITEM_CLASSES force Base, then the "Affixes prechecked" setting --
+  // 'default' Bases uniques only, 'base' Bases everything, 'all' ticks every affix.
   const baseModeApplied = useRef(false)
   const baseModeExpandedIndices = useRef<Set<number> | null>(null)
   const keepUncheckedVisible = useRef(false)
@@ -297,13 +298,15 @@ export function PriceCheck({
       if (s.tradeDefaultListedTime !== undefined) setListedTime(s.tradeDefaultListedTime as ListedTime)
       if (s.tradeResultsView) setResultsView(s.tradeResultsView)
       setSettingsLoaded(true)
-      const isClassDefault = BASE_DEFAULT_ITEM_CLASSES.has(item.itemClass)
-      const isUnique = item.rarity === 'Unique'
       // Crafting Ready wins for eligible PoE2 white/magic items (it is a superset of
       // Base that keeps the affixes on). Gated by the global setting (default on).
       const craftingReadyDefault = craftingReadyEligible && (s.tradePoe2CraftingReadyDefault ?? true)
-      const keepRowsVisible = isUnique || !!s.tradeDefaultToBase || craftingReadyDefault
-      const useBaseMode = !craftingReadyDefault && (isClassDefault || keepRowsVisible)
+      const { preset, keepRowsVisible } = resolveDefaultPreset({
+        mode: s.tradeAffixesPrechecked ?? 'default',
+        craftingReadyDefault,
+        isClassDefault: BASE_DEFAULT_ITEM_CLASSES.has(item.itemClass),
+        isUnique: item.rarity === 'Unique',
+      })
       if (keepRowsVisible) {
         // Keep rows visible that are enabled pre-preset OR that learning will enable.
         baseModeExpandedIndices.current = new Set(
@@ -313,9 +316,11 @@ export function PriceCheck({
       // Learning is the final layer: apply it on top of the (optionally preset) defaults.
       setFilters((prev) => {
         let seeded = prev
-        if (craftingReadyDefault) seeded = applyCraftingReadyToFilters(prev, item.rarity, item.corrupted)
-        else if (useBaseMode)
+        if (preset === 'crafting-ready') seeded = applyCraftingReadyToFilters(prev, item.rarity, item.corrupted)
+        else if (preset === 'base')
           seeded = applyBaseModeToFilters(prev, item.rarity, item.corrupted, { vestigial: item.vestigial })
+        else if (preset === 'all')
+          seeded = applyAllModsToFilters(prev, item.rarity, item.corrupted, { vestigial: item.vestigial })
         return applyLearnedDecisions(seeded, learnedDecisions)
       })
       baseModeApplied.current = true
