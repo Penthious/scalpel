@@ -196,7 +196,9 @@ function runChatCommand(entry: ChatCommandConfig, autoSubmit: boolean, combo: Ke
   )
     return
   releaseHotkeyKey(combo)
-  sendChatCommand(entry.command, autoSubmit)
+  // Fire-and-forget: a paste that never got focus (or the clipboard) rejects
+  // rather than injecting, and that is a diagnostic, not a crash.
+  sendChatCommand(entry.command, autoSubmit).catch((e) => recordMainDiagnostic('chat-command', e))
 }
 
 function runAppMacro(entry: AppMacroConfig, combo: KeyCombo | null): void {
@@ -589,56 +591,121 @@ const AUTO_CLEAR = [
   '/', // Command
 ]
 
+/** How long to wait for PoE to actually reach the foreground. A normal handoff
+ *  lands in well under 100ms; past this, assume the game is gone or the OS
+ *  refused the request rather than injecting into someone else's window. */
+const FOCUS_WAIT_MS = 300
+const FOCUS_POLL_MS = 10
+/** How long the command stays on the clipboard after the keys are injected.
+ *  The client reads the clipboard when it *processes* Ctrl+V, which can be well
+ *  after SendInput returns - parsing a reloaded filter alone hitches it past
+ *  several frames. Hand the clipboard back too early and the game pastes the
+ *  user's own content instead, which the trailing Enter then broadcasts to
+ *  chat. 250ms covers a reload hitch; the borrow watchdog covers the rest. */
+const CLIPBOARD_HOLD_MS = 250
+/** Keys are out and the chat window has closed - let the next flow start. */
+const PASTE_SETTLE_MS = 50
+const CLIPBOARD_WRITE_TRIES = 3
+const CLIPBOARD_WRITE_RETRY_MS = 15
+
+const wait = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms))
+
+/** Resolve once the attached game owns OS focus; throw if it never does.
+ *  Injected keys go to whatever window is foreground when the OS routes them,
+ *  so firing during the handoff sprays Enter/Ctrl+V/Enter at the window the
+ *  user was just in - and burns the clipboard hold before the game can read
+ *  the paste. targetHasFocus is the same signal that authorizes every gameplay
+ *  hotkey (see hotkeyContextIsActive). */
+async function awaitGameFocus(): Promise<void> {
+  if (OverlayController.targetHasFocus) return
+  focusGameWindow()
+  for (let waited = 0; waited < FOCUS_WAIT_MS; waited += FOCUS_POLL_MS) {
+    await wait(FOCUS_POLL_MS)
+    if (OverlayController.targetHasFocus) return
+  }
+  throw new Error('PoE did not take focus - chat command not sent')
+}
+
+/** Put `text` on the clipboard and prove it landed before anything is injected.
+ *  A clipboard manager (Win+V history, Ditto) holding the clipboard open makes
+ *  Electron's write a silent no-op; pasting anyway submits whatever the user
+ *  had copied. */
+async function writeChatText(text: string): Promise<void> {
+  // Compared line-ending-insensitively: Windows stores CRLF, and a multi-line
+  // macro must not read back as a failed write.
+  const normalize = (s: string): string => s.replace(/\r\n/g, '\n')
+  for (let attempt = 0; attempt < CLIPBOARD_WRITE_TRIES; attempt++) {
+    clipboard.writeText(text)
+    if (normalize(clipboard.readText()) === normalize(text)) return
+    await wait(CLIPBOARD_WRITE_RETRY_MS)
+  }
+  throw new Error('clipboard write did not land - chat command not sent')
+}
+
 /**
  * Paste text into PoE chat via clipboard + uiohook keyTaps.
  * Layout-independent, near-instant.
+ *
+ * Both preconditions - game focused, command provably on the clipboard - are
+ * confirmed before a single key is injected. The paste ends with Enter, so
+ * anything we get wrong is broadcast to chat rather than quietly dropped.
  */
 let chatLocked = false
-function pasteToPoEChat(text: string, submit: boolean): Promise<void> {
-  if (chatLocked) return Promise.resolve()
+async function pasteToPoEChat(text: string, submit: boolean): Promise<void> {
+  if (chatLocked) return
   chatLocked = true
 
   const restoreClip = snapshotClipboard()
-  injecting = true
 
   // Injection is native (uiohook SendInput) and focusing the game reaches into
   // a window that may already be gone, so both can throw. Without this, a throw
   // would strand `chatLocked` true and silently kill every later chat command,
   // filter reload and filter switch for the rest of the session (#562).
   try {
-    // Focus PoE so keystrokes reach the game (only if it doesn't already have focus)
-    if (!OverlayController.targetHasFocus) focusGameWindow()
+    await awaitGameFocus()
 
-    // All keystrokes fire synchronously so the chat window
-    // opens and closes in a single frame, preventing visible flash
+    // Resolve the body and the chat-opening keys first so the clipboard write
+    // (and its verification) happens before any key goes out.
+    let body = text
+    let openChat: () => void
     if (text.startsWith(PLACEHOLDER_LAST)) {
       // Ctrl+Enter pre-fills @<lastwhisperer> in the chat input; paste body after
-      text = text.slice(`${PLACEHOLDER_LAST} `.length)
-      clipboard.writeText(text)
-      uIOhook.keyToggle(UiohookKey.Ctrl, 'down')
-      uIOhook.keyTap(UiohookKey.Enter)
-      uIOhook.keyToggle(UiohookKey.Ctrl, 'up')
-    } else if (text.endsWith(PLACEHOLDER_LAST)) {
-      // Ctrl+Enter pre-fills @CharName at position 0; Home x2 then Delete strips the @
-      text = text.slice(0, -PLACEHOLDER_LAST.length)
-      clipboard.writeText(text)
-      uIOhook.keyToggle(UiohookKey.Ctrl, 'down')
-      uIOhook.keyTap(UiohookKey.Enter)
-      uIOhook.keyToggle(UiohookKey.Ctrl, 'up')
-      uIOhook.keyTap(UiohookKey.Home)
-      // press twice to focus input when using controller
-      uIOhook.keyTap(UiohookKey.Home)
-      uIOhook.keyTap(UiohookKey.Delete)
-    } else {
-      clipboard.writeText(text)
-      uIOhook.keyTap(UiohookKey.Enter)
-      // PoE auto-clears the input when the text starts with a chat-prefix char
-      if (!AUTO_CLEAR.includes(text[0])) {
+      body = text.slice(`${PLACEHOLDER_LAST} `.length)
+      openChat = () => {
         uIOhook.keyToggle(UiohookKey.Ctrl, 'down')
-        uIOhook.keyTap(UiohookKey.A)
+        uIOhook.keyTap(UiohookKey.Enter)
         uIOhook.keyToggle(UiohookKey.Ctrl, 'up')
       }
+    } else if (text.endsWith(PLACEHOLDER_LAST)) {
+      // Ctrl+Enter pre-fills @CharName at position 0; Home x2 then Delete strips the @
+      body = text.slice(0, -PLACEHOLDER_LAST.length)
+      openChat = () => {
+        uIOhook.keyToggle(UiohookKey.Ctrl, 'down')
+        uIOhook.keyTap(UiohookKey.Enter)
+        uIOhook.keyToggle(UiohookKey.Ctrl, 'up')
+        uIOhook.keyTap(UiohookKey.Home)
+        // press twice to focus input when using controller
+        uIOhook.keyTap(UiohookKey.Home)
+        uIOhook.keyTap(UiohookKey.Delete)
+      }
+    } else {
+      openChat = () => {
+        uIOhook.keyTap(UiohookKey.Enter)
+        // PoE auto-clears the input when the text starts with a chat-prefix char
+        if (!AUTO_CLEAR.includes(text[0])) {
+          uIOhook.keyToggle(UiohookKey.Ctrl, 'down')
+          uIOhook.keyTap(UiohookKey.A)
+          uIOhook.keyToggle(UiohookKey.Ctrl, 'up')
+        }
+      }
     }
+
+    await writeChatText(body)
+
+    injecting = true
+    // All keystrokes fire synchronously so the chat window
+    // opens and closes in a single frame, preventing visible flash
+    openChat()
 
     uIOhook.keyToggle(UiohookKey.Ctrl, 'down')
     uIOhook.keyTap(UiohookKey.V)
@@ -655,15 +722,16 @@ function pasteToPoEChat(text: string, submit: boolean): Promise<void> {
     throw e
   }
 
-  // Restore clipboard and re-register hotkeys after paste completes
-  return new Promise((resolve) =>
-    setTimeout(() => {
-      restoreClip()
-      chatLocked = false
-      injecting = false
-      resolve()
-    }, 50),
-  )
+  // Hand the clipboard back on its own timer, decoupled from the promise, so
+  // the command outlives a client hitch without holding up the caller (a filter
+  // switch pastes twice). Overlapping borrows nest, so a flow that starts
+  // inside the hold still restores correctly.
+  setTimeout(restoreClip, CLIPBOARD_HOLD_MS).unref?.()
+
+  // Re-register hotkeys once the keys are out
+  await wait(PASTE_SETTLE_MS)
+  chatLocked = false
+  injecting = false
 }
 
 export function sendChatCommand(command: string, autoSubmit = true): Promise<void> {
@@ -675,7 +743,9 @@ export function sendChatCommand(command: string, autoSubmit = true): Promise<voi
   if (held.shift) uIOhook.keyToggle(held.shift, 'up')
   if (held.alt) uIOhook.keyToggle(held.alt, 'up')
   injecting = prevInjecting
-  return pasteToPoEChat(command, autoSubmit).then(() => restoreModifiers(held))
+  // finally, not then: an aborted paste must still re-press the modifiers the
+  // user is physically holding, or the game keeps thinking they let go.
+  return pasteToPoEChat(command, autoSubmit).finally(() => restoreModifiers(held))
 }
 
 /** Track physically held modifier keys via uiohook (ignores synthetic key events during injection) */

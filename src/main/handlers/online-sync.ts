@@ -88,17 +88,27 @@ export function register(store: Store<AppSettings>): void {
     },
   )
 
+  // The in-game switch aborts rather than injecting when PoE isn't focused or
+  // the clipboard isn't ours, so every caller reports that instead of throwing.
   ipcMain.handle('switch-ingame-filter', async (_event, filterName: string, currentFilter?: string) => {
-    await switchFilterInGame(filterName, currentFilter)
-    return { ok: true }
+    try {
+      await switchFilterInGame(filterName, currentFilter)
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, error: String(err) }
+    }
   })
 
   ipcMain.handle('check-online-update', async (): Promise<{ ok: boolean; error?: string }> => {
     const result = findOnlineFilter(store)
     if ('error' in result) return { ok: false, error: result.error }
 
-    // Switch to online filter (triggers PoE to download latest), then switch back to local
-    await switchFilterInGame(result.localFileName, result.onlineFilterName)
+    try {
+      // Switch to online filter (triggers PoE to download latest), then switch back to local
+      await switchFilterInGame(result.localFileName, result.onlineFilterName)
+    } catch (err) {
+      return { ok: false, error: String(err) }
+    }
     // Force an immediate hash check after a short delay to let PoE write the file
     setTimeout(() => checkOnlineSyncNow(), 2000)
     return { ok: true }

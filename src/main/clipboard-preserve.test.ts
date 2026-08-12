@@ -52,6 +52,9 @@ vi.mock('./overlay', () => ({
   isTypingInOverlay: () => false,
   focusGameWindow: vi.fn(() => {
     if (focusState.throwOnFocus) throw new Error('Object has been destroyed')
+    // A paste waits for the handoff to land before injecting, so the fake has
+    // to complete it.
+    overlayControllerState.targetHasFocus = true
   }),
   setOverlayVisibilityListener: vi.fn(),
 }))
@@ -140,10 +143,17 @@ describe('clipboard borrows', () => {
   })
 })
 
+/** A paste keeps the command on the clipboard for CLIPBOARD_HOLD_MS after the
+ *  keys go out, so the client can still read it through a reload hitch. The
+ *  hold outlives the promise on purpose - wait it out before asserting on what
+ *  the user got back. */
+const settleHold = (): Promise<void> => new Promise((r) => setTimeout(r, 300))
+
 describe('filter-refresh clipboard round trip', () => {
   it('restores the user clipboard after a filter switch', async () => {
     const { sendItemFilterCommand } = await freshHotkeys()
     await sendItemFilterCommand('MyFilter-local', 'MyFilter')
+    await settleHold()
     expect(clip.text).toBe('USER-COPIED-TEXT')
   })
 
@@ -163,6 +173,7 @@ describe('filter-refresh clipboard round trip', () => {
     const writes = clipboardMock.writeText.mock.calls.length
     await hk.sendReloadFilterToPoE()
     expect(clipboardMock.writeText.mock.calls.length).toBeGreaterThan(writes)
+    await settleHold()
     expect(clip.text).toBe('SECOND-USER-TEXT')
   })
 
@@ -178,6 +189,7 @@ describe('filter-refresh clipboard round trip', () => {
     await paste
     await new Promise((r) => setTimeout(r, 60))
     releaseCapture()
+    await settleHold()
     expect(clip.text).toBe('USER-COPIED-TEXT')
   })
 })

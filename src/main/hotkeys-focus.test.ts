@@ -67,16 +67,25 @@ const mock = vi.hoisted(() => {
     keyTap: vi.fn(),
   }
   const trigger = vi.fn()
-  return { state, registered, listeners, keycodes, uIOhook, trigger }
+  // Stateful: a chat paste refuses to inject until it can read its own command
+  // back off the clipboard, so a write-only stub would abort every paste.
+  const clip = { text: '' }
+  return { state, registered, listeners, keycodes, uIOhook, trigger, clip }
 })
 
 vi.mock('electron', () => ({
   clipboard: {
-    readText: vi.fn(() => ''),
+    readText: vi.fn(() => mock.clip.text),
     readHTML: vi.fn(() => ''),
-    writeText: vi.fn(),
-    write: vi.fn(),
-    clear: vi.fn(),
+    writeText: vi.fn((t: string) => {
+      mock.clip.text = t
+    }),
+    write: vi.fn((d: { text?: string }) => {
+      mock.clip.text = d.text ?? ''
+    }),
+    clear: vi.fn(() => {
+      mock.clip.text = ''
+    }),
   },
   globalShortcut: {
     register: vi.fn((accelerator: string, cb: () => void) => {
@@ -234,9 +243,11 @@ describe('contextual hotkey handlers', () => {
 
     mock.registered.get('F5')?.()
 
+    // Focus and the clipboard write are both confirmed before a key goes out,
+    // so the injection lands a few microtasks after the shortcut fires.
+    await vi.advanceTimersByTimeAsync(0)
     expect(mock.uIOhook.keyTap).toHaveBeenCalledWith(mock.keycodes.Enter)
-    vi.advanceTimersByTime(51)
-    await Promise.resolve()
+    await vi.advanceTimersByTimeAsync(300)
     vi.useRealTimers()
   })
 
