@@ -43,9 +43,21 @@ export function isPerfectUniqueRoll(f: StatFilter, rarity: string): boolean {
   return rarity === 'Unique' && !!f.perfectRoll
 }
 
+/** Quality a buyer cannot add themselves: past the 20% cap it takes Perfect Fossils or a
+ *  Hillock craft, so an over-qualitied item sells above an otherwise identical copy. The
+ *  producer already ties this to the basetype chip on white/magic bases; on rares and
+ *  uniques the chip ships off, so a Base search would price a 28% base against 0% ones.
+ *  20% or under carries no such signal (any whetstone gets there), so those rows keep the
+ *  producer's state. Gem quality (type 'gem') is the gem producer's row -- it decides its
+ *  own default and Base mode passes it through untouched. */
+export function isOverqualitiedRow(f: StatFilter): boolean {
+  return f.id === 'misc.quality' && f.type === 'misc' && (f.value ?? 0) > 20
+}
+
 /**
  * Transforms a filter list to the "Base" search state:
  *   - basetype enabled
+ *   - quality enabled when the item is over-qualitied (issue #586)
  *   - ilvl enabled for non-uniques (rare crafting bases key on ilvl); for
  *     uniques the roll pool is fixed per item regardless of drop level, so
  *     ilvl just over-constrains the search and filters out valid listings
@@ -69,6 +81,10 @@ export function applyBaseModeToFilters(
     // otherwise base mode would clobber the user's learned default (e.g. dex on a unique).
     if (f.learned) return f
     if (f.id === 'misc.basetype') return { ...f, enabled: true }
+    // Over-20% quality goes with the basetype chip: a base search is a search for this
+    // exact base, and quality above the cap is part of what that base is worth (#586).
+    // The producer already shipped min = the item's quality, so only `enabled` flips.
+    if (isOverqualitiedRow(f)) return { ...f, enabled: true }
     if (f.id === 'misc.ilvl') return { ...f, enabled: !isUnique, chipState: isUnique ? undefined : ('min' as const) }
     // Memory strands are an intrinsic property of the item base (like ilvl), so
     // preserve them in Base mode -- otherwise a base-search on a 40-strand chest
@@ -137,7 +153,9 @@ export function applyAllModsToFilters(
     // Rows Base already resolved the way "All" wants them: explicits (via keepExplicits,
     // including the Shako twin split and perfect-roll pins), foulborn/premium, and the
     // structural rows above.
-    if (f.type === 'explicit' || f.foulborn || f.premium || BASE_OWNED_IDS.has(f.id)) return f
+    // ...plus the over-quality pin: "All" is Base with every affix ticked, so the basetype
+    // chip is still on and the quality floor belongs with it (#586).
+    if (f.type === 'explicit' || f.foulborn || f.premium || BASE_OWNED_IDS.has(f.id) || isOverqualitiedRow(f)) return f
     // Everything else -- pseudo aggregates, weapon DPS, map yield chips, mercenary rows,
     // defence percentiles -- hits Base's blanket disable. "All" is about ticking affixes,
     // not about unticking the chips the producer already decided price this item, so hand

@@ -239,6 +239,37 @@ describe('applyBaseModeToFilters', () => {
     }
   })
 
+  it('enables an over-20% quality chip on a rare (#586)', () => {
+    // A 28% quality rare is a 28% quality BASE -- past the 20% cap the buyer cannot add it
+    // themselves, so a base search must keep the floor instead of pricing against 0% copies.
+    const input = [f({ id: 'misc.quality', type: 'misc', enabled: false, value: 28, min: 28 })]
+    const result = applyBaseModeToFilters(input, 'Rare', false)
+    expect(result[0].enabled).toBe(true)
+    expect(result[0].min).toBe(28)
+    expect(result[0].max).toBeNull()
+  })
+
+  it('enables an over-20% quality chip on a unique', () => {
+    const input = [f({ id: 'misc.quality', type: 'misc', enabled: false, value: 30, min: 30 })]
+    expect(applyBaseModeToFilters(input, 'Unique', false)[0].enabled).toBe(true)
+  })
+
+  it('leaves a 20%-or-under quality chip at the producer state', () => {
+    // Any whetstone reaches 20%, so the row carries no price signal for a base search.
+    const input = [
+      f({ id: 'misc.quality', type: 'misc', enabled: false, value: 20, min: 20 }),
+      f({ id: 'misc.quality', type: 'misc', enabled: false, value: 6, min: 6 }),
+    ]
+    const result = applyBaseModeToFilters(input, 'Rare', false)
+    expect(result[0].enabled).toBe(false)
+    expect(result[1].enabled).toBe(false)
+  })
+
+  it('leaves an over-20% GEM quality chip at the gem producer state', () => {
+    const input = [f({ id: 'misc.quality', type: 'gem', enabled: false, value: 23, min: 23 })]
+    expect(applyBaseModeToFilters(input, 'Rare', false)[0].enabled).toBe(false)
+  })
+
   it('preserves gem chips so base search on a transfigured gem still finds transfigured gems', () => {
     const input = [
       f({ id: 'misc.gem_level', type: 'gem', enabled: true }),
@@ -662,6 +693,13 @@ describe('applyAllModsToFilters', () => {
     const input = [f({ id: 'misc.ilvl', type: 'misc', enabled: true })]
     const out = applyAllModsToFilters(input, 'Unique', false)
     expect(out[0].enabled).toBe(false)
+  })
+
+  it('keeps the over-20% quality pin instead of handing it back to the producer (#586)', () => {
+    // "All" is Base plus every affix, so the basetype chip is still on and the quality
+    // floor belongs with it -- the non-affix restore must not undo Base's decision.
+    const input = [f({ id: 'misc.quality', type: 'misc', enabled: false, value: 28, min: 28 })]
+    expect(applyAllModsToFilters(input, 'Rare', false)[0].enabled).toBe(true)
   })
 
   it('keeps foulborn and premium unique rows enabled', () => {
