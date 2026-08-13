@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import type { ExchangeDetails } from '@shared/contracts/exchange'
 import { CurrencyIcon } from '../../shared/CurrencyIcon'
+import { ExternalLinkButton } from '../../shared/ExternalLinkButton'
 import { RateChart } from '../../shared/RateChart'
 import { angePortrait, faustusPortrait } from '../../shared/icons'
 import { formatRate } from '../../shared/utils'
@@ -54,12 +55,19 @@ export function ExchangePanel({ details, vendor, stackSize, onOpenNinja }: Props
          *  matching widths would give the two vendors different strip heights. */}
         <img src={portrait} alt="" className="h-[70px] w-auto shrink-0 block pointer-events-none select-none" />
 
-        {/* Label row pins to the top of the strip; the chips then center in
-         *  whatever space is left between it and the strip's bottom edge. No
-         *  bottom padding here on purpose -- it would shorten the box the chips
-         *  center within, biasing them upward against the hero's real bottom. */}
-        <div className="flex-1 min-w-0 self-stretch flex flex-col">
-          <div className="flex items-center justify-between gap-2">
+        {/* Two side-by-side columns, not two stacked rows: title and prices on
+         *  the left, controls on the right. Sharing rows put the controls'
+         *  height into the text's flow -- the pair switch carries the poe.ninja
+         *  link stacked beneath it, and those two rows pushed the title and the
+         *  chips down on every currency that has a switch, while Chaos and
+         *  Divine (single pair, no switch) stayed put. As its own column the
+         *  cluster can grow without moving anything on the left.
+         *  pb-2 sits on this row rather than the strip because the strip can
+         *  carry no bottom padding -- the portrait has to mount flush -- and
+         *  without it a hero taller than the portrait leaves the price chip
+         *  resting on the chart's top edge. */}
+        <div className="flex-1 min-w-0 self-stretch flex gap-2 pb-2">
+          <div className="flex-1 min-w-0 flex flex-col">
             {/* truncate + min-w-0: the strip's height is meant to be governed by
              *  the portrait, so the title must never wrap. On a narrow overlay it
              *  ellipsises instead of pushing the chart down -- at 16px an
@@ -67,6 +75,42 @@ export function ExchangePanel({ details, vendor, stackSize, onOpenNinja }: Props
             <div className="min-w-0 truncate text-[16px] font-semibold text-[#ffc83c] leading-tight">
               {vendor} Exchange Pricing
             </div>
+
+            {/* Prices sit in chips a step darker than the strip (bg-black/30 over
+             *  the strip's /20), matching InfoChip's shape so they read as part of
+             *  the same system. Volume lives in the chart's hover tooltip now --
+             *  it is context for a point in time, not a headline number. */}
+            <div className="flex-1 flex items-center">
+              <div className="flex items-center gap-[6px] flex-wrap">
+                <div className="inline-flex items-center gap-[5px] bg-black/30 rounded-full px-[10px] py-[3px]">
+                  <span data-testid="exchange-hero-rate" className="text-xl font-bold leading-none">
+                    {formatRate(pair.rate)}
+                  </span>
+                  <CurrencyIcon name={pair.currency} className="w-4 h-4" />
+                </div>
+
+                {stackSize != null && stackSize > 1 && (
+                  // Same chip metrics as the unit price -- padding, value size and
+                  // icon -- so the stack total reads as its equal. The "Nx" prefix
+                  // is a label, not a number, so it stays small and unweighted.
+                  <div className="inline-flex items-center gap-[5px] bg-black/30 rounded-full px-[10px] py-[3px]">
+                    <span className="text-[11px] font-normal leading-none text-text-dim">{stackSize}x</span>
+                    <span data-testid="exchange-stack" className="text-xl font-bold leading-none">
+                      {formatRate(pair.rate * stackSize)}
+                    </span>
+                    <CurrencyIcon name={pair.currency} className="w-4 h-4" />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Control column, top-right of the hero: the pair switch with the
+           *  poe.ninja link stacked under it. The link lives here rather than
+           *  under the chart so the card ends on the graph, and stacked rather
+           *  than beside the switch because side by side the two ate the whole
+           *  title row at a 260px overlay. */}
+          <div className="flex flex-col items-end gap-1 shrink-0">
             {details.pairs.length > 1 && (
               // Segmented switch rather than separate pills: one recessed track
               // with a single thumb that slides between positions, so the two
@@ -112,34 +156,13 @@ export function ExchangePanel({ details, vendor, stackSize, onOpenNinja }: Props
                 ))}
               </div>
             )}
-          </div>
-
-          {/* Prices sit in chips a step darker than the strip (bg-black/30 over
-           *  the strip's /20), matching InfoChip's shape so they read as part of
-           *  the same system. Volume lives in the chart's hover tooltip now --
-           *  it is context for a point in time, not a headline number. */}
-          <div className="flex-1 flex items-center">
-            <div className="flex items-center gap-[6px] flex-wrap">
-              <div className="inline-flex items-center gap-[5px] bg-black/30 rounded-full px-[10px] py-[3px]">
-                <span data-testid="exchange-hero-rate" className="text-xl font-bold leading-none">
-                  {formatRate(pair.rate)}
-                </span>
-                <CurrencyIcon name={pair.currency} className="w-4 h-4" />
-              </div>
-
-              {stackSize != null && stackSize > 1 && (
-                // Same chip metrics as the unit price -- padding, value size and
-                // icon -- so the stack total reads as its equal. The "Nx" prefix
-                // is a label, not a number, so it stays small and unweighted.
-                <div className="inline-flex items-center gap-[5px] bg-black/30 rounded-full px-[10px] py-[3px]">
-                  <span className="text-[11px] font-normal leading-none text-text-dim">{stackSize}x</span>
-                  <span data-testid="exchange-stack" className="text-xl font-bold leading-none">
-                    {formatRate(pair.rate * stackSize)}
-                  </span>
-                  <CurrencyIcon name={pair.currency} className="w-4 h-4" />
-                </div>
-              )}
-            </div>
+            {onOpenNinja && (
+              <ExternalLinkButton
+                label="View on Ninja"
+                title="Open the poe.ninja page for this item in your browser"
+                onClick={onOpenNinja}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -155,16 +178,6 @@ export function ExchangePanel({ details, vendor, stackSize, onOpenNinja }: Props
         <div className="h-[110px] flex items-center justify-center text-[11px] text-text-dim">No price history yet</div>
       ) : (
         <RateChart points={pair.history} currency={pair.currency} height={110} />
-      )}
-
-      {onOpenNinja && (
-        <button
-          type="button"
-          onClick={onOpenNinja}
-          className="self-start mx-3 mb-2 px-2 py-[3px] text-[10px] font-semibold bg-white/[0.06] text-text-dim border-none rounded-[3px] cursor-pointer"
-        >
-          Open on poe.ninja
-        </button>
       )}
     </div>
   )
