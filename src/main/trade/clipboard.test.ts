@@ -645,6 +645,38 @@ describe('parseItemText', () => {
       expect(item.corrupted).toBe(true)
     })
 
+    it('resolves a renamed Vaal half to the real gem name (Purity of Fire -> Vaal Impurity of Fire)', () => {
+      // A hybrid Vaal gem is named by its non-Vaal half, with the Vaal skill heading a
+      // later section. The Vaal half of Purity of Fire is "Vaal Impurity of Fire", not
+      // "Vaal Purity of Fire", so the prefix rule alone names a gem that does not
+      // exist and the price check returns nothing (#589).
+      const text = [
+        'Item Class: Skill Gems',
+        'Rarity: Gem',
+        'Purity of Fire',
+        '--------',
+        'Aura, Spell, AoE, Duration, Vaal, Fire',
+        'Level: 20 (Max)',
+        'Reservation: 35% Mana',
+        'Cast Time: Instant',
+        'Quality: +20% (augmented)',
+        '--------',
+        'Your aura grants +49% to Fire Resistance to you and your allies',
+        '--------',
+        'Vaal Impurity of Fire',
+        '--------',
+        'Souls Per Use: 40',
+        'Can Store 1 Use',
+        'Soul Gain Prevention: 0 sec',
+        '--------',
+        'Corrupted',
+      ].join('\n')
+      const item = parseItemText(text)!
+      expect(item.name).toBe('Vaal Impurity of Fire')
+      expect(item.baseType).toBe('Vaal Impurity of Fire')
+      expect(item.vaalGem).toBe(true)
+    })
+
     it('does not flag Vaal-related Support gems as vaalGem (regression: Vaal Temptation Support)', () => {
       // Support gems carry a "Vaal" tag because they *support* Vaal skills, but they are
       // not themselves Vaal skills -- no "Souls Per Use" mechanic, no Vaal-prefixed name

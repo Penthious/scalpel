@@ -8,6 +8,7 @@ import {
 import { SCRYING_ORB_AREAS, SCRYING_ORB_DISCRIMINATOR } from '@shared/data/trade/scrying-orbs'
 import tabletModMap from '@shared/data/trade/tablet-mods.json'
 import { TRANSFIGURED_GEM_DISC } from '@shared/data/trade/transfigured-gems'
+import { vaalGemType } from '@shared/data/trade/vaal-gems'
 import { getTradeUrls } from '@shared/endpoints'
 import { hasGeneratedName, isClusterJewel, isSkillGem, splitRuneTier } from '@shared/poe-item'
 import { recordMainBreadcrumb } from '../diagnostics'
@@ -1765,18 +1766,22 @@ export function parseFetchedListings(fetchedEntries: FetchEntry[]): TradeListing
 import { getBulkExchangeIdMap } from '@shared/data/trade/bulk-exchange-ids'
 
 /** Build the `type` field of a gem trade query. Returns the discriminator shape for
- *  transfigured gems (with "Vaal " prepended to the base when the gem has a Vaal alt),
- *  a plain string for non-transfigured gems. */
+ *  transfigured gems (resolved to the Vaal half when the gem has a Vaal alt), a plain
+ *  string for non-transfigured gems. */
 export function buildGemTypeField(
   baseType: string,
   vaalGem: boolean | undefined,
 ): string | { option: string; discriminator: string } {
   const disc = TRANSFIGURED_GEM_DISC[baseType]
   if (disc) {
-    const baseGem = baseType.slice(0, baseType.indexOf(' of '))
-    return { option: vaalGem ? `Vaal ${baseGem}` : baseGem, discriminator: disc }
+    // The transfiguration suffix is the LAST " of " -- base skills whose own name
+    // carries one (Wave of Conviction, Rain of Arrows, Eye of Winter, Orb of Storms)
+    // get cut down to a bare "Wave" on the first, which trade rejects with
+    // "Discriminator did not match the specified item base type" (#589).
+    const baseGem = baseType.slice(0, baseType.lastIndexOf(' of '))
+    return { option: vaalGem ? vaalGemType(baseGem) : baseGem, discriminator: disc }
   }
-  if (vaalGem && !baseType.startsWith('Vaal ')) return `Vaal ${baseType}`
+  if (vaalGem && !baseType.startsWith('Vaal ')) return vaalGemType(baseType)
   return baseType
 }
 

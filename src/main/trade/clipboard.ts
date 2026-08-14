@@ -1,6 +1,7 @@
 import { clipboard } from 'electron'
 import { getItemClasses } from '@shared/data/items/item-classes'
 import { MERCENARY_WARRANT_BASE_TYPE } from '@shared/data/trade/mercenary-warrants'
+import { vaalGemType } from '@shared/data/trade/vaal-gems'
 import { endgameAreaLevel, SKILL_GEM_CLASSES } from '@shared/poe-item'
 import type { AdvancedMod, ItemRarity, MercenarySkill, PoeItem } from '@shared/types'
 import { getPoeVersion } from '../game-state'
@@ -291,11 +292,12 @@ export function parseItemText(text: string): PoeItem | null {
   const cleanName = vestigial && name === rawBaseType ? name.replace(VESTIGIAL_PREFIX, '') : name
 
   const isGemClass = SKILL_GEM_CLASSES.has(itemClass)
-  const isVaalGem =
-    isGemClass &&
-    rarity === 'Gem' &&
-    !name.startsWith('Vaal ') &&
-    sections.some((s) => s.trim().startsWith(`Vaal ${name}`))
+  // A hybrid Vaal gem is named by its non-Vaal half, with the Vaal skill heading a
+  // later section. That section is usually "Vaal <name>", but GGG renamed a handful
+  // ("Purity of Fire" -> "Vaal Impurity of Fire"), so the Vaal name is looked up
+  // rather than built by prefixing (#589).
+  const vaalHalfName = isGemClass && rarity === 'Gem' && !name.startsWith('Vaal ') ? vaalGemType(name) : null
+  const isVaalGem = vaalHalfName != null && sections.some((s) => s.trim().startsWith(vaalHalfName))
 
   // Collect all text across sections for parsing
   const allText = sections.join('\n')
@@ -726,8 +728,8 @@ export function parseItemText(text: string): PoeItem | null {
   return {
     itemClass,
     rarity,
-    name: isVaalGem ? `Vaal ${cleanName}` : cleanName,
-    baseType: isVaalGem ? `Vaal ${baseType}` : baseType,
+    name: isVaalGem ? vaalGemType(cleanName) : cleanName,
+    baseType: isVaalGem ? vaalGemType(baseType) : baseType,
     mapTier,
     itemLevel,
     quality,

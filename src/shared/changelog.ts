@@ -9,6 +9,8 @@ export const CHANGELOG: { version: string; notes: string[] }[] = [
       'Fixed mods whose plural changes with the roll (like Death Rush\'s "for 2 seconds") matching nothing.',
       'Fixed Sanctum relic mods that spell out their count ("An additional Room") matching nothing.',
       'Fixed items with two abyssal socket grants (like Darkness Enthroned) returning no listings.',
+      'Fixed transfigured gems whose skill name has its own "of" returning no results (Wave of Conviction, Rain of Arrows, Eye of Winter, Orb of Storms), and added the transfigured gems that were missing from the list.',
+      'Fixed Vaal Impurity of Fire, Ice and Lightning and Vaal Domination returning no results.',
       "Fixed a belt's abyssal sockets drawing past the bottom of its art in trade results.",
       'Fixed chat commands pasting your own clipboard into chat.',
       'Fixed unidentified uniques leaving out candidates poe.ninja has no price for.',

@@ -124,6 +124,7 @@ import {
   type StatFilter,
 } from './trade'
 import { parseItemText } from './clipboard'
+import { TRANSFIGURED_GEM_DISC } from '@shared/data/trade/transfigured-gems'
 import { setPoeVersion } from '../game-state'
 import { getUniquesByBase, _setUniquesByBaseForTests } from './prices'
 import { matchItemMods, _setStatEntriesForTests } from './stat-matcher'
@@ -169,6 +170,70 @@ describe('buildGemTypeField', () => {
 
   it('does not double-prepend "Vaal " when baseType already starts with it', () => {
     expect(buildGemTypeField('Vaal Fireball', true)).toBe('Vaal Fireball')
+  })
+
+  // A base skill whose own name contains " of " makes the first " of " the wrong
+  // split point -- "Wave of Conviction of Trarthus" is Wave of Conviction, not Wave.
+  // The truncated option is rejected outright: "Discriminator did not match the
+  // specified item base type" (#589).
+  it.each([
+    ['Wave of Conviction of Trarthus', 'Wave of Conviction', 'alt_y'],
+    ['Eye of Winter of Finality', 'Eye of Winter', 'alt_x'],
+    ['Eye of Winter of Transience', 'Eye of Winter', 'alt_y'],
+    ['Orb of Storms of Squalls', 'Orb of Storms', 'alt_x'],
+    ['Rain of Arrows of Artillery', 'Rain of Arrows', 'alt_x'],
+    ['Rain of Arrows of Saturation', 'Rain of Arrows', 'alt_y'],
+  ])('splits %s on the transfiguration suffix, not the first " of "', (baseType, option, discriminator) => {
+    expect(buildGemTypeField(baseType, false)).toEqual({ option, discriminator })
+  })
+
+  // GGG renamed a handful of Vaal halves, so "Vaal " + base skill is a base type the
+  // trade API does not know ("Vaal Purity of Fire"). The clipboard names a hybrid gem
+  // by its non-Vaal half, which is what reaches buildGemTypeField (#589).
+  it.each([
+    ['Purity of Fire', 'Vaal Impurity of Fire'],
+    ['Purity of Ice', 'Vaal Impurity of Ice'],
+    ['Purity of Lightning', 'Vaal Impurity of Lightning'],
+    ['Dominating Blow', 'Vaal Domination'],
+  ])('resolves the renamed Vaal half of %s', (baseType, expected) => {
+    expect(buildGemTypeField(baseType, true)).toBe(expected)
+  })
+
+  it('resolves the renamed Vaal half of a transfigured gem', () => {
+    // Vaal Domination (Dominating Blow of Inspiring) on trade.
+    expect(buildGemTypeField('Dominating Blow of Inspiring', true)).toEqual({
+      option: 'Vaal Domination',
+      discriminator: 'alt_x',
+    })
+  })
+
+  it('knows the transfigured gems added after the map was last refreshed', () => {
+    expect(buildGemTypeField('Reap of Butchery', false)).toEqual({ option: 'Reap', discriminator: 'alt_x' })
+    expect(buildGemTypeField('Chain Hook of Angling', false)).toEqual({ option: 'Chain Hook', discriminator: 'alt_x' })
+    expect(buildGemTypeField('Divine Blast of Radiance', false)).toEqual({
+      option: 'Divine Blast',
+      discriminator: 'alt_x',
+    })
+    expect(buildGemTypeField('Holy Hammers of Spirals', false)).toEqual({
+      option: 'Holy Hammers',
+      discriminator: 'alt_x',
+    })
+    expect(buildGemTypeField('Holy Sweep of Hammerfalls', false)).toEqual({
+      option: 'Holy Sweep',
+      discriminator: 'alt_x',
+    })
+  })
+
+  // Generic guard for the truncation class above: whatever the map grows to, the
+  // option has to be the whole base skill and the remainder a single suffix.
+  it('derives a whole base skill for every transfigured gem in the map', () => {
+    for (const name of Object.keys(TRANSFIGURED_GEM_DISC)) {
+      const field = buildGemTypeField(name, false) as { option: string }
+      expect(field.option, name).not.toBe('')
+      expect(name.startsWith(`${field.option} of `), name).toBe(true)
+      const suffix = name.slice(field.option.length + 4)
+      expect(suffix.includes(' of '), name).toBe(false)
+    }
   })
 })
 
