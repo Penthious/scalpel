@@ -31,6 +31,7 @@ function copyItemToClipboard(d: Listing['itemData'] & {}, rarity: string, btn: H
   if (d.chartZone) lines.push(d.chartZone)
   if (d.ilvl) lines.push(`Item Level: ${d.ilvl}`)
   if (d.memoryStrands != null) lines.push(`Memory Strands: ${d.memoryStrands}`)
+  if (d.intangibility != null) lines.push(`Intangibility: ${d.intangibility}%`)
   if (d.grantedSkills?.length) {
     lines.push('--------')
     for (const gs of d.grantedSkills) lines.push(`Grants Skill: ${gs.text}`)
@@ -126,6 +127,13 @@ export function ExpandedListing({ listing: l, itemClass, itemName, itemRarity }:
         {d.memoryStrands != null && (
           <div className="text-[10px] text-text-dim">
             Memory Strands: <span className="text-[#00e0be] font-semibold">{d.memoryStrands}</span>
+          </div>
+        )}
+        {/* Same green the price-check row uses for this filter (MOD_COLORS.gem), so the
+         *  number reads as the same thing in both places. */}
+        {d.intangibility != null && (
+          <div className="text-[10px]" style={{ color: MOD_COLORS.gem }}>
+            Intangibility: <span className="font-semibold">{d.intangibility}%</span>
           </div>
         )}
         {/* Map properties (tier, IIQ, pack size, etc.) */}

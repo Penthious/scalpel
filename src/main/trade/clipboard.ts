@@ -383,6 +383,12 @@ export function parseItemText(text: string): PoeItem | null {
 
   const memoryStrands = extractNum(allLines, 'Memory Strands:')
 
+  // Allflame crafting (3.29) stamps a property line -- "Intangibility: 12%" -- on every
+  // item it touches, and each craft raises it. It is the chance the NEXT craft collapses
+  // to a single outcome, so a low number is what a crafting base sells on. Absent on
+  // anything that was never Allflame-crafted, which is why the chip is presence-gated.
+  const intangibility = extractNum(allLines, 'Intangibility:')
+
   // Heist blueprints: "Wings Revealed: 3/4"
   const wingsLine = allLines.find((l) => l.startsWith('Wings Revealed:'))
   const wingsParts = wingsLine?.split(':')[1]?.trim().split('/')
@@ -772,6 +778,7 @@ export function parseItemText(text: string): PoeItem | null {
     imbues,
     ...(grantedSkills.length > 0 ? { grantedSkills } : {}),
     ...(memoryStrands != null ? { memoryStrands } : {}),
+    ...(intangibility != null ? { intangibility } : {}),
     ...(advancedMods.length > 0 ? { advancedMods } : {}),
     ...(mapQuantity != null ? { mapQuantity } : {}),
     ...(mapRarity != null ? { mapRarity } : {}),

@@ -455,6 +455,25 @@ describe('parseFetchedListings', () => {
     expect(data.memoryStrands).toBe(26)
   })
 
+  it('extracts Allflame intangibility, whose property name ships in raw tag form (#588)', () => {
+    // Real shape from /api/trade/fetch: GGG has not localised this one yet, so the
+    // name arrives as "[Intangibility|Intangibility]" -- type 110 is what to match on.
+    const entry: FetchEntry = {
+      id: 'f8',
+      listing: baseListing,
+      item: {
+        name: 'Oblivion Grip',
+        baseType: 'Manifold Ring',
+        typeLine: 'Manifold Ring',
+        frameType: 2,
+        properties: [{ name: '[Intangibility|Intangibility]', values: [['67%', 0]], type: 110 }],
+      },
+    }
+
+    const [listing] = parseFetchedListings([entry])
+    expect(listing.itemData!.intangibility).toBe(67)
+  })
+
   it('carries a Mercenary Warrant kit onto the listing, supports and tiers intact', () => {
     // Real shape from /api/trade/fetch: `mercenarySkills`, each with an icon and
     // the supports linked to it. An aura ships with no `supports` array at all.
@@ -977,6 +996,30 @@ describe('searchTrade filter-group dispatch', () => {
     expect(body.query.name).toBe('Tabula Rasa')
     expect(body.query.type).toBe('Simple Robe')
     expect(body.query.filters.misc_filters?.filters.vestigial).toEqual({ option: 'true' })
+  })
+
+  it('an enabled intangibility row sends misc_filters.intangibility as a bare max (#588)', async () => {
+    setPoeVersion(1)
+    const craftedRing = { name: '', baseType: 'Diamond Ring', itemClass: 'Rings', rarity: 'Rare' }
+    const filters: StatFilter[] = [
+      { id: 'misc.intangibility', text: 'Intangibility', type: 'gem', enabled: true, value: 12, min: null, max: 12 },
+    ]
+    await searchTrade('Allflame', craftedRing, filters, { tradeStatus: 'any' })
+    const body = parseCapturedBody(capturedRequests.find((r) => r.url.includes('/search/')))
+    // No min: listings that never got Allflame-crafted carry no Intangibility property
+    // at all, and a min would drop those -- they are the best comps, not the worst.
+    expect(body.query.filters.misc_filters?.filters.intangibility).toEqual({ max: 12 })
+  })
+
+  it('leaves intangibility out of the query while the row is off', async () => {
+    setPoeVersion(1)
+    const craftedRing = { name: '', baseType: 'Diamond Ring', itemClass: 'Rings', rarity: 'Rare' }
+    const filters: StatFilter[] = [
+      { id: 'misc.intangibility', text: 'Intangibility', type: 'gem', enabled: false, value: 12, min: null, max: 12 },
+    ]
+    await searchTrade('Allflame', craftedRing, filters, { tradeStatus: 'any' })
+    const body = parseCapturedBody(capturedRequests.find((r) => r.url.includes('/search/')))
+    expect(body.query.filters.misc_filters?.filters.intangibility).toBeUndefined()
   })
 
   it('flipping the vestigial chip to "no" sends misc_filters.vestigial with option false', async () => {

@@ -14,6 +14,7 @@ type MiscItemInfo = {
   identified?: boolean
   influence?: string[]
   memoryStrands?: number
+  intangibility?: number
   isSynthetic?: boolean
   unidentifiedTier?: number
   vestigial?: boolean
@@ -212,6 +213,25 @@ export function buildMiscFilters(
       max: null,
       enabled: true,
       type: 'pseudo',
+    })
+  }
+
+  // Intangibility (3.29 Allflame). Every Allflame craft raises it, and it is the chance
+  // the next craft on that item collapses to a single outcome -- so unlike every other
+  // numeric row here, LOW is what sells. The row ships as a cap at the item's own value:
+  // enabling it prices against copies that are at least as unspoilt. A `max` is also the
+  // only safe direction on the trade index -- listings with no Intangibility property at
+  // all (never Allflame-crafted, i.e. the best copies) pass a max filter and would be
+  // excluded by a min. Off by default: most buyers don't care, only crafters do (#588).
+  if (itemInfo.intangibility != null) {
+    out.push({
+      id: 'misc.intangibility',
+      text: 'Intangibility',
+      value: itemInfo.intangibility,
+      min: null,
+      max: itemInfo.intangibility,
+      enabled: false,
+      type: 'gem',
     })
   }
 

@@ -6,6 +6,8 @@ export const CHANGELOG: { version: string; notes: string[] }[] = [
       'Updated plugin sdk with some new features.',
       'Replaced the price check\'s "Default all items to Base" toggle with an "Affixes prechecked" trade default: Default (smart, best effort), Base (all unchecked), or All (all checked).',
       "Sanctum relic price checks now search the roll's count, not just its presence.",
+      "Allflame-crafted items now price-check with an Intangibility row (off by default) that caps the search at your item's value, so you only see copies with at least as much crafting left in them.",
+      'Trade listings now show their Intangibility.',
       'Fixed mods whose plural changes with the roll (like Death Rush\'s "for 2 seconds") matching nothing.',
       'Fixed Sanctum relic mods that spell out their count ("An additional Room") matching nothing.',
       'Fixed items with two abyssal socket grants (like Darkness Enthroned) returning no listings.',

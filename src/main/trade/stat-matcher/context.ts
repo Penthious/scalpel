@@ -35,6 +35,7 @@ export interface ItemInfo {
   runes?: string[]
   grantedSkills?: string[]
   memoryStrands?: number
+  intangibility?: number
   physDamageMin?: number
   physDamageMax?: number
   eleDamageAvg?: number

@@ -101,3 +101,29 @@ describe('buildMiscFilters level requirement row (#570)', () => {
     expect(reqLevelRow({ requiredLevel: 0 })).toBeUndefined()
   })
 })
+
+describe('buildMiscFilters intangibility row (#588)', () => {
+  const intangRow = (
+    overrides: Partial<Parameters<typeof buildMiscFilters>[0]>,
+  ): ReturnType<typeof buildMiscFilters>[number] | undefined =>
+    buildMiscFilters({ ...baseInfo, itemClass: 'Rings', rarity: 'Rare', ...overrides }, undefined, []).find(
+      (f) => f.id === 'misc.intangibility',
+    )
+
+  it('caps the search at the item value and ships off', () => {
+    // Low intangibility is what a crafting base sells on, so the row is a max, not
+    // a min -- and it stays off because most buyers are not crafters.
+    const row = intangRow({ intangibility: 12 })
+    expect(row).toMatchObject({ value: 12, min: null, max: 12, enabled: false, type: 'gem' })
+  })
+
+  it('is emitted for a pristine 0% item too', () => {
+    // An item that prints "Intangibility: 0%" is a fully craftable base -- the most
+    // valuable state -- so the cap has to be available there as well.
+    expect(intangRow({ intangibility: 0 })).toMatchObject({ max: 0 })
+  })
+
+  it('is absent on items that were never Allflame-crafted', () => {
+    expect(intangRow({})).toBeUndefined()
+  })
+})

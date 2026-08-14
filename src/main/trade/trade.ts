@@ -219,6 +219,7 @@ interface TradeListing {
     templeObstructedRooms?: string[]
     storedExperience?: number
     memoryStrands?: number
+    intangibility?: number
     modTiers?: Record<string, { tier: string; name: string; ranges: string }>
     rarity?: string
     mapProperties?: Array<{ name: string; value: string }>
@@ -1022,6 +1023,9 @@ export async function searchTrade(
     if (f.id === 'misc.memory_level' && f.enabled) miscQuery.memory_level = minMaxValue(f)
     if (f.id === 'misc.area_level' && f.enabled) miscQuery.area_level = minMaxValue(f)
     if (f.id === 'misc.stored_experience' && f.enabled) miscQuery.stored_experience = minMaxValue(f)
+    // Allflame intangibility (#588). Ships as a cap, so the search keeps listings with no
+    // Intangibility property at all -- those are the uncrafted copies, the best ones.
+    if (f.id === 'misc.intangibility' && f.enabled) miscQuery.intangibility = minMaxValue(f)
     // Influence filters (misc_filters for traditional influences)
     if (f.id.startsWith('misc.influence_') && f.enabled) {
       const influenceKeyMap: Record<string, string> = {
@@ -1623,6 +1627,14 @@ export function parseFetchedListings(fetchedEntries: FetchEntry[]): TradeListing
             memoryStrands: r.item.properties?.find((p) => p.name === 'Memory Strands')?.values?.[0]?.[0]
               ? parseInt(r.item.properties.find((p) => p.name === 'Memory Strands')!.values[0][0], 10)
               : undefined,
+            // Allflame intangibility, printed as "12%". GGG ships the name in raw tag form
+            // ("[Intangibility|Intangibility]") on this one, so match its property type code
+            // 110 first and keep a name test as the fallback (#588).
+            intangibility: (() => {
+              const v = r.item.properties?.find((p) => p.type === 110 || p.name.includes('Intangibility'))
+                ?.values?.[0]?.[0]
+              return v ? parseInt(v.replace('%', ''), 10) : undefined
+            })(),
             areaLevel: r.item.properties?.find((p) => p.name === 'Area Level')?.values?.[0]?.[0]
               ? parseInt(r.item.properties.find((p) => p.name === 'Area Level')!.values[0][0], 10)
               : undefined,

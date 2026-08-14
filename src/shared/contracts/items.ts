@@ -121,6 +121,9 @@ export interface PoeItem {
   imbues: string[]
   grantedSkills?: string[]
   memoryStrands?: number
+  /** Allflame crafting (3.29): the chance the item's next craft collapses to a single
+   *  outcome, in whole percent. Rises with every craft, so lower is better. */
+  intangibility?: number
   unidentifiedItemTier?: number
   areaLevel?: number
   advancedMods?: AdvancedMod[]

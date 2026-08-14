@@ -91,6 +91,38 @@ describe('parseItemText', () => {
       expect(item.itemLevel).toBe(83)
     })
 
+    it('parses Allflame intangibility off the property block (#588)', () => {
+      // 3.29 prints it with the property block, as a percentage.
+      const text = [
+        'Item Class: Rings',
+        'Rarity: Rare',
+        'Oblivion Grip',
+        'Manifold Ring',
+        '--------',
+        'Quality (Life and Mana Modifiers): +20% (augmented)',
+        'Intangibility: 67%',
+        '--------',
+        'Item Level: 84',
+        '--------',
+        '+42 to maximum Life',
+      ].join('\n')
+
+      expect(parseItemText(text)!.intangibility).toBe(67)
+    })
+
+    it('leaves intangibility undefined on an item that never saw an Allflame craft', () => {
+      const text = [
+        'Item Class: Rings',
+        'Rarity: Rare',
+        'Storm Knuckle',
+        'Ruby Ring',
+        '--------',
+        'Item Level: 75',
+      ].join('\n')
+
+      expect(parseItemText(text)!.intangibility).toBeUndefined()
+    })
+
     it('parses the level requirement from the requirements section', () => {
       const text = [
         'Item Class: Helmets',
