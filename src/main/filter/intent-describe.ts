@@ -1,6 +1,8 @@
 import type {
   Intent,
   MoveBaseTypePayload,
+  RemoveBaseTypePayload,
+  AddBaseTypePayload,
   SetActionPayload,
   SetThresholdPayload,
   SetVisibilityPayload,
@@ -12,6 +14,14 @@ export function describeIntent(intent: Intent): { description: string; itemName?
   if (intent.type === 'move-basetype') {
     const p = intent.payload as MoveBaseTypePayload
     return { description: `Moved to ${tier}`, itemName: p.value }
+  }
+  if (intent.type === 'remove-basetype') {
+    const p = intent.payload as RemoveBaseTypePayload
+    return { description: `Removed from ${tier}`, itemName: p.value }
+  }
+  if (intent.type === 'add-basetype') {
+    const p = intent.payload as AddBaseTypePayload
+    return { description: `Hidden in ${tier}`, itemName: p.value }
   }
   if (intent.type === 'set-visibility') {
     const p = intent.payload as SetVisibilityPayload

@@ -261,5 +261,13 @@
   "overlay_no_filter_title": "No filter loaded",
   "overlay_no_filter_body": "Select your .filter file to get started.",
   "overlay_open_filter_settings": "Open Filter Settings",
-  "overlay_no_item_title": "Search for an item"
+  "overlay_no_item_title": "Search for an item",
+  "filterbanner_edits_not_reapplied": "Filter updated — {count} edits could not be reapplied",
+  "removeitem_hide": "Hide",
+  "removeitem_hide_in": "Hides the item by adding it to tier: {tier}",
+  "removeitem_hide_none": "No hidden tier is available for this item",
+  "removeitem_hide_already": "Already hidden — nothing to change",
+  "removeitem_hide_plain": "Hides the item by removing it from {count} tier(s) that show it",
+  "hideitem_title": "Hide Item",
+  "hideitem_button": "Hide \"{item}\""
 }

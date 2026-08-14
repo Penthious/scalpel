@@ -1,11 +1,15 @@
 import { ipcMain } from 'electron'
 import type Store from 'electron-store'
-import type { AppSettings, FilterAction, FilterBlock, FilterChange, PoeItem } from '@shared/types'
+import type { AppSettings, FilterAction, FilterBlock, FilterChange, PoeItem, RemovalPreview } from '@shared/types'
 import { evaluateAndSend } from '../evaluation'
+import { planHide, planRemoval } from '../filter/removal-plan'
+import { findMatchingBlocks } from '../filter/matcher'
 import { describeIntent } from '../filter/intent-describe'
 import { getIntents, record } from '../filter/intent-recorder'
 import {
   moveBaseTypeBetweenTiers,
+  addBaseTypeToTier,
+  removeBaseTypeFromTiers,
   updateQualityThresholds,
   updateStackThresholds,
   updateStrandThresholds,
@@ -198,6 +202,166 @@ export function register(store: Store<AppSettings>): void {
       }
     },
   )
+
+  // What a removal would do: which tiers it strips, which it cannot, and where the
+  // item ends up. The renderer cannot work any of this out -- its match list stops
+  // at the active block and it has no view of the rest of the filter.
+  ipcMain.handle('preview-fall-through', (_event, _blockIndex: number, itemJson: string): RemovalPreview => {
+    const empty: RemovalPreview = {
+      landsOn: null,
+      tierCount: 0,
+      skipped: [],
+      hideDestination: null,
+      alreadyHidden: false,
+    }
+    const currentFilter = getCurrentFilter()
+    if (!currentFilter || !itemJson) return empty
+    try {
+      const item = JSON.parse(itemJson) as PoeItem
+      const active = findMatchingBlocks(currentFilter, item).find((m) => m.isFirstMatch)
+      const typePath = active?.block.tierTag?.typePath
+      const plan = typePath
+        ? planHide(currentFilter, item, item.baseType, typePath)
+        : { ...planRemoval(currentFilter, item, item.baseType), alreadyHidden: false, destination: null }
+      return {
+        landsOn: plan.landsOn,
+        tierCount: plan.targets.length,
+        skipped: plan.skipped.map((s) => ({ tier: s.tierTag?.tier ?? `block #${s.blockIndex + 1}`, reason: s.reason })),
+        hideDestination: plan.destination?.tierTag?.tier ?? null,
+        alreadyHidden: plan.alreadyHidden,
+      }
+    } catch {
+      return empty
+    }
+  })
+
+  /**
+   * Hide an item outright: strip it from every tier that names it, then add it to
+   * the nearest Hide tier. The strip is required -- appending alone would not work
+   * when an earlier tier still names the base, since the first matching block wins.
+   */
+  ipcMain.handle('hide-item', (_event, baseType: string, itemJson: string) => {
+    const currentFilter = getCurrentFilter()
+    if (!currentFilter) return { ok: false, error: 'No filter loaded' }
+    if (!itemJson) return { ok: false, error: 'No item supplied' }
+    try {
+      const item: PoeItem = JSON.parse(itemJson)
+      const active = findMatchingBlocks(currentFilter, item).find((m) => m.isFirstMatch)
+      const typePath = active?.block.tierTag?.typePath
+      if (!typePath) return { ok: false, error: 'Active tier has no type path' }
+
+      const plan = planHide(currentFilter, item, baseType, typePath)
+      const destination = plan.destination
+      if (!plan.alreadyHidden && !destination?.tierTag) {
+        return { ok: false, error: `No hidden tier available for "${baseType}"` }
+      }
+      if (plan.targets.length === 0 && plan.alreadyHidden) {
+        return { ok: false, error: `"${baseType}" is already hidden` }
+      }
+
+      // Never strip the destination itself, in case it already names the base.
+      const targets = plan.targets.filter((t) => t.blockIndex !== destination?.blockIndex)
+
+      const tiers = targets.map((t) => t.tierTag?.tier ?? `block #${t.blockIndex + 1}`)
+      const where = destination?.tierTag ? ` in ${destination.tierTag.tier}` : ''
+      captureSnapshot(currentFilter.path, 'basetype-remove', `Hid "${baseType}"${where}`, baseType)
+
+      const now = Date.now()
+      for (const target of targets) {
+        if (!target.tierTag) continue
+        record({
+          type: 'remove-basetype',
+          target: { typePath: target.tierTag.typePath, tier: target.tierTag.tier },
+          payload: { value: baseType },
+          timestamp: now,
+        })
+      }
+      // No destination when the strip alone leaves the item on a Hide block.
+      if (destination?.tierTag) {
+        record({
+          type: 'add-basetype',
+          target: { typePath: destination.tierTag.typePath, tier: destination.tierTag.tier },
+          payload: { value: baseType },
+          timestamp: now + 1,
+        })
+      }
+
+      // Add first, then strip: removing an emptied BaseType line shifts later line
+      // numbers, and removeBaseTypeFromTiers already orders its own writes.
+      if (destination) addBaseTypeToTier(currentFilter, baseType, destination.blockIndex)
+      removeBaseTypeFromTiers(
+        currentFilter,
+        baseType,
+        targets.map((t) => t.blockIndex),
+      )
+
+      const path = getProfileBackedSetting(store, 'filterPath')
+      if (path) loadFilter(path)
+      if (getCurrentFilter()) evaluateAndSend(item)
+      if (store.get('reloadOnSave') !== false) reloadFilterInGame()
+
+      return { ok: true, hiddenIn: destination?.tierTag?.tier ?? null, removedFrom: tiers }
+    } catch (err) {
+      return { ok: false, error: String(err) }
+    }
+  })
+
+  ipcMain.handle('remove-item-from-tier', (_event, baseType: string, _blockIndex: number, itemJson: string) => {
+    const currentFilter = getCurrentFilter()
+    if (!currentFilter) return { ok: false, error: 'No filter loaded' }
+    if (!itemJson) return { ok: false, error: 'No item supplied' }
+    try {
+      const item: PoeItem = JSON.parse(itemJson)
+      // Re-planned main-side: the renderer's copy can be stale after an out-of-band
+      // reload, and the guard must not live only in the button's disabled state.
+      const plan = planRemoval(currentFilter, item, baseType)
+      if (plan.targets.length === 0) {
+        // Name why, so the failure is diagnosable from a log or a bug report.
+        const why = plan.skipped.length
+          ? plan.skipped.map((s) => `${s.tierTag?.tier ?? `block #${s.blockIndex + 1}`} (${s.reason})`).join(', ')
+          : 'no tier names it'
+        return { ok: false, error: `Cannot remove "${baseType}" from any tier that catches it: ${why}` }
+      }
+
+      const tiers = plan.targets.map((t) => t.tierTag?.tier ?? `block #${t.blockIndex + 1}`)
+      captureSnapshot(currentFilter.path, 'basetype-remove', `Removed "${baseType}" from ${tiers.join(', ')}`, baseType)
+
+      // One intent per tier, so each replays independently through the existing
+      // tier -> typePath -> conflict ladder on the next sync.
+      const now = Date.now()
+      for (const target of plan.targets) {
+        if (!target.tierTag) continue
+        record({
+          type: 'remove-basetype',
+          target: { typePath: target.tierTag.typePath, tier: target.tierTag.tier },
+          payload: { value: baseType },
+          timestamp: now,
+        })
+      }
+
+      removeBaseTypeFromTiers(
+        currentFilter,
+        baseType,
+        plan.targets.map((t) => t.blockIndex),
+      )
+
+      const path = getProfileBackedSetting(store, 'filterPath')
+      if (path) loadFilter(path)
+
+      const freshFilter = getCurrentFilter()
+      if (freshFilter) evaluateAndSend(item)
+
+      if (store.get('reloadOnSave') !== false) reloadFilterInGame()
+
+      return {
+        ok: true,
+        removedFrom: tiers,
+        skipped: plan.skipped.map((s) => ({ tier: s.tierTag?.tier ?? `block #${s.blockIndex + 1}`, reason: s.reason })),
+      }
+    } catch (err) {
+      return { ok: false, error: String(err) }
+    }
+  })
 
   ipcMain.handle(
     'batch-move-item-tier',

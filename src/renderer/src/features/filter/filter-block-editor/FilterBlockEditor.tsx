@@ -139,6 +139,10 @@ export function FilterBlockEditor({
     return null
   }
 
+  // Where the item lands once this tier stops naming it. Resolved in the main
+  // process: the renderer's match list stops at the active block, so it has no
+  // view of what follows. `undefined` while in flight, `null` when nothing else
+  // catches the item.
   const rawTierHeading = block.tierTag ? formatTierLabel(block.tierTag.tier) : `Block #${blockIndex + 1}`
   const tierHeading = rawTierHeading.replace(/\b\w/g, (c) => c.toUpperCase())
   const typePathLabel = block.tierTag?.typePath?.replace(/->/g, ' > ')

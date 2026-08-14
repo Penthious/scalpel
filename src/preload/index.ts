@@ -12,6 +12,7 @@ import type {
   GameVariant,
   HistoryEntry,
   Manifest,
+  RemovalPreview,
   OverlayData,
   PoeProfileSummary,
   ProfileSettingKey,
@@ -149,6 +150,19 @@ export const api = {
     itemJson: string,
   ): Promise<{ ok: boolean; error?: string }> =>
     ipcRenderer.invoke('move-item-tier', baseType, fromBlockIndex, toBlockIndex, itemJson),
+  removeItemFromTier: (
+    baseType: string,
+    blockIndex: number,
+    itemJson: string,
+  ): Promise<{ ok: boolean; error?: string; removedFrom?: string[]; skipped?: { tier: string; reason: string }[] }> =>
+    ipcRenderer.invoke('remove-item-from-tier', baseType, blockIndex, itemJson),
+  hideItem: (
+    baseType: string,
+    itemJson: string,
+  ): Promise<{ ok: boolean; error?: string; hiddenIn?: string; removedFrom?: string[] }> =>
+    ipcRenderer.invoke('hide-item', baseType, itemJson),
+  previewFallThrough: (blockIndex: number, itemJson: string): Promise<RemovalPreview> =>
+    ipcRenderer.invoke('preview-fall-through', blockIndex, itemJson),
   batchMoveItemTier: (
     baseTypes: string[],
     fromBlockIndex: number,

@@ -30,6 +30,7 @@ export type {
   Zone,
   EvaluatedCondition,
   MatchResult,
+  RemovalPreview,
   TierSibling,
   TierGroup,
   StackSizeBreakpoint,

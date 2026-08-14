@@ -58,12 +58,28 @@ export function calcMaxDust(baseType: string): number | null {
   return Math.round(baseDust * 125 * 20)
 }
 
+/** Turn a raw tier slug into readable text.
+ *
+ *  FilterBlade's PoE1 filters number their tiers (`t1`, `t2top`), but PoE2 filters
+ *  name them (`ring_light`, `exoticheistbases`). Without humanising the fallback
+ *  those slugs leak into user-facing copy verbatim -- e.g. "moving it to tier:
+ *  ring_light". */
 export function formatTierLabel(tier: string): string {
-  const m = tier.match(/^t(\d+)(.*)/)
-  if (m) return `T${m[1]}${m[2] ? ` ${m[2]}` : ''}`
   if (tier === 'exhide') return 'Hidden'
   if (tier === 'restex') return 'Rest'
-  return tier
+  const m = tier.match(/^t(\d+)(.*)/)
+  if (m) return `T${m[1]}${m[2] ? ` ${humanizeTier(m[2])}` : ''}`
+  return humanizeTier(tier)
+}
+
+/** Split a slug on separators and title-case it. Run-on slugs with no separator
+ *  (`exoticheistbases`) cannot be split, but title-casing still stops them
+ *  reading as raw identifiers. */
+function humanizeTier(slug: string): string {
+  return slug
+    .replace(/[_-]+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 // Log-scale slider helpers: position (0-1000) <-> actual value

@@ -11,6 +11,7 @@ interface Props {
 const ACTION_FALLBACK_ICONS: Record<HistoryEntry['action'], string> = {
   'block-edit': '✏',
   'tier-move': '↕',
+  'basetype-remove': '✖',
   'stack-threshold': '📊',
   'strand-threshold': '📊',
 }

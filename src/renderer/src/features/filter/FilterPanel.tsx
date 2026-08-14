@@ -1,8 +1,11 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
+import type { RemovalPreview } from '@shared/types'
+import { checkRemovable } from '@shared/filter-removal'
 import { getActiveMatch } from '../../shared/activeMatch'
 import { ItemSummary } from '../../components/ItemSummary'
 import { FilterBlockEditor, type SaveState } from './filter-block-editor'
-import { TierNavigator } from './TierNavigator'
+import { HideItemSection } from './filter-block-editor/HideItemSection'
+import { TierNavigator, switchableSiblings } from './TierNavigator'
 import { getItemIconUrl, RARITY_COLORS } from './filter-panel/constants'
 import { CollapsedHeader } from './filter-panel/CollapsedHeader'
 import { SaveButton } from './filter-panel/SaveButton'
@@ -96,24 +99,41 @@ export function FilterPanel({
   })()
   const continuePreamble = activeChain?.slice(0, -1).map((m) => m.block) ?? []
 
-  // Label text reserved for future tooltip/aria -- kept inline since it's UI copy,
-  // not domain logic. See getActiveMatch for the match/tierGroup itself.
-  let displayLabel: string | null = null
-  if (hasStrandBreakpoints && selectedStrandBpIndex !== null) {
-    const bp = strandBreakpoints[selectedStrandBpIndex]
-    const rangeLabel = bp.max === Infinity ? `${bp.min}+` : bp.min === bp.max ? `${bp.min}` : `${bp.min}\u2013${bp.max}`
-    displayLabel = `strands ${rangeLabel}`
-  } else if (hasQualityBreakpoints && selectedQualityBpIndex !== null) {
-    const bp = qualityBreakpoints[selectedQualityBpIndex]
-    const rangeLabel =
-      bp.max === Infinity ? `${bp.min}%+` : bp.min === bp.max ? `${bp.min}%` : `${bp.min}\u2013${bp.max}%`
-    displayLabel = `quality ${rangeLabel}`
-  } else if (hasBreakpoints && selectedBpIndex !== null) {
-    const bp = stackBreakpoints[selectedBpIndex]
-    const rangeLabel = bp.max === Infinity ? `${bp.min}+` : bp.min === bp.max ? `${bp.min}` : `${bp.min}\u2013${bp.max}`
-    displayLabel = `stack ${rangeLabel}`
-  }
-  void displayLabel
+  // Where this item lands once the active tier stops naming it. Resolved in the
+  // main process: the renderer's match list stops at the active block, so it has
+  // no view of what follows. `undefined` while in flight, `null` when nothing
+  // else catches the item.
+  const [preview, setPreview] = useState<RemovalPreview | undefined>(undefined)
+  // Keyed by value, not object identity, so a fresh `item` reference per render
+  // cannot fire an IPC round trip per render.
+  const itemJson = useMemo(() => JSON.stringify(item), [item])
+  const activeBlockIndex = displayMatch?.blockIndex
+  useEffect(() => {
+    if (activeBlockIndex === undefined) return
+    let cancelled = false
+    setPreview(undefined)
+    window.api
+      .previewFallThrough(activeBlockIndex, itemJson)
+      .then((r) => {
+        if (!cancelled) setPreview(r)
+      })
+      .catch(() => {
+        if (!cancelled)
+          setPreview({ landsOn: null, tierCount: 0, skipped: [], hideDestination: null, alreadyHidden: false })
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [activeBlockIndex, itemJson])
+
+  const removalCheck = displayMatch ? checkRemovable(displayMatch.block, item.baseType) : undefined
+  // The navigator hosts the removal row. It renders whenever it has something to
+  // offer -- which now includes a lone tier, since the Remove row is itself a
+  // choice. It still bails when there is no tier group at all (no tier tag, or
+  // siblings differing only by threshold so the slider owns navigation), and for
+  // a locked exception tier with no removal available. Those cases fall back to
+  // the standalone card so the capability never silently vanishes.
+  const navigatorWillRender = !!activeTierGroup && (switchableSiblings(activeTierGroup).length > 0 || !!removalCheck)
 
   const iconUrl = getItemIconUrl(item)
   const rarityColor = RARITY_COLORS[item.rarity] ?? '#c8c8c8'
@@ -165,6 +185,9 @@ export function FilterPanel({
               baseType={item.baseType}
               item={item}
               onMoved={() => {}}
+              preview={preview}
+              removal={removalCheck}
+              onRemoved={() => {}}
               continuePreamble={continuePreamble}
             />
           )}
@@ -193,6 +216,11 @@ export function FilterPanel({
               )}
             </div>
           )}
+
+          {/* Removal lives in the tier dropdown when there is one. Without a
+           *  switchable sibling set the dropdown never renders, so it falls back
+           *  to its own card here rather than disappearing. */}
+          {!navigatorWillRender && displayMatch && <HideItemSection item={item} preview={preview} />}
 
           {displayMatch?.block.conditions.some((c) => c.type === 'Rarity' && c.values.some((v) => v === 'Unique')) && (
             <UniquesForBase baseType={item.baseType} itemClass={item.itemClass} />

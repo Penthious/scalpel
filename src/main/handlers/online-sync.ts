@@ -164,6 +164,10 @@ export function register(store: Store<AppSettings>): void {
         skippedForValidity?: number
       }
       conflicts?: Array<{ description: string; actionType: string }>
+      /** Recorded edits that could not be re-applied to the new upstream content.
+       *  Surfaced to the user -- a silently dropped removal would look like the
+       *  item coming back on its own. */
+      unresolved?: string[]
     }> => {
       const info = findOnlineFilter(store)
       if ('error' in info) return { ok: false, error: info.error }
@@ -176,6 +180,7 @@ export function register(store: Store<AppSettings>): void {
         const intentLog = getIntents()
 
         let skippedForValidity = 0
+        let unresolved: string[] = []
         if (intentLog.intents.length === 0) {
           // No intents - overwrite with upstream
           writeFileSync(info.localPath, localContent, 'utf-8')
@@ -183,6 +188,7 @@ export function register(store: Store<AppSettings>): void {
           const result = replayIntents(localContent, info.localPath, intentLog, { forceApply: true })
           const { fallbackBlocks } = writeFilterSelective(result.filter, result.modifiedBlocks, result.removedBlocks)
           skippedForValidity = fallbackBlocks.length
+          unresolved = result.conflicts.map((c) => c.description)
           if (fallbackBlocks.length > 0 && process.env.SCALPEL_DEBUG_LOG) {
             console.warn(
               '[online-sync] quick-update dropped edits to keep filter valid:',
@@ -215,6 +221,7 @@ export function register(store: Store<AppSettings>): void {
             removed: 0,
             skippedForValidity,
           },
+          unresolved,
         }
       } catch (err) {
         return { ok: false, error: String(err) }
@@ -234,6 +241,7 @@ export function register(store: Store<AppSettings>): void {
       error?: string
       conflicts?: Array<{ description: string; intentIndex: number; options: Array<{ label: string; action: string }> }>
       stats?: { applied: number; skipped: number; conflicts: number; skippedForValidity?: number }
+      unresolved?: string[]
     } => {
       try {
         const upstreamContent = readFileSync(onlinePath, 'utf-8')
@@ -280,7 +288,14 @@ export function register(store: Store<AppSettings>): void {
         const currentPath = getProfileBackedSetting(store, 'filterPath')
         if (currentPath === localPath) loadFilter(localPath, 'Online Filter Merged')
 
-        return { ok: true, stats: { ...result.stats, skippedForValidity: fallbackBlocks.length } }
+        // Removal conflicts carry `options: []`, so they never entered
+        // `actionableConflicts` above and never block the merge -- they are
+        // reported here instead, matching the quick-update path.
+        return {
+          ok: true,
+          stats: { ...result.stats, skippedForValidity: fallbackBlocks.length },
+          unresolved: result.conflicts.map((c) => c.description),
+        }
       } catch (err) {
         return { ok: false, error: String(err) }
       }

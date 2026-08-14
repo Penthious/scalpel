@@ -1,15 +1,43 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import type { FilterBlock, PoeItem, TierGroup, TierSibling } from '@shared/types'
+import type { FilterBlock, PoeItem, RemovalPreview, TierGroup, TierSibling } from '@shared/types'
+import type { RemovalCheck } from '@shared/filter-removal'
+import { m } from '@shared/paraglide/messages.js'
 import { Down, Up, SortThree } from '@icon-park/react'
 import { IP } from '../../shared/constants'
 import { LootLabel, HiddenLootLabel, extractLabelStyle } from '../../shared/LootLabel'
+import { formatTierLabel } from '../price-audit/constants'
+
+/** Ex/exotic (exception) tiers are locked - no tier switching allowed. */
+const isExTier = (t: string): boolean => /^(ex\d*|exhide|exshow|2x\d*)$/.test(t) || t.startsWith('exotic')
+
+/**
+ * Siblings to show in the list: every non-exception tier, plus the current one
+ * even when it is an exception tier.
+ *
+ * The lock is one-way. Exception tiers are not valid *destinations* -- they are
+ * special-purpose and FilterBlade owns what lands in them -- but sitting on one
+ * must not strand the item, so moving OUT of one is allowed. Rare bases often sit
+ * on an exception tier whose only escape is a hidden sibling.
+ *
+ * Exported so the panel can tell whether this control will render at all -- when
+ * it won't, the removal control needs its own home.
+ */
+export function switchableSiblings(group: TierGroup): TierSibling[] {
+  return group.siblings.filter((s) => !isExTier(s.tier) || s.tier === group.currentTier)
+}
 
 interface Props {
   group: TierGroup
   baseType: string
   item: PoeItem
   onMoved: (newTier: string) => void
+  /** What a removal would do: how many tiers it strips, where the item lands,
+   *  and any tier that keeps it anyway. `undefined` while still resolving. */
+  preview?: RemovalPreview
+  /** Whether the base may be stripped from the current tier, and why not if not. */
+  removal?: RemovalCheck
+  onRemoved?: () => void
   /** Continue blocks that match this item earlier in the filter, in file order.
    *  Passed to the label preview so sibling tiers show the same decorator overlays
    *  the game would actually paint. Siblings between Continue blocks are an edge
@@ -18,7 +46,16 @@ interface Props {
   continuePreamble?: FilterBlock[]
 }
 
-export function TierNavigator({ group, baseType, item, onMoved, continuePreamble = [] }: Props): JSX.Element {
+export function TierNavigator({
+  group,
+  baseType,
+  item,
+  onMoved,
+  preview,
+  removal,
+  onRemoved,
+  continuePreamble = [],
+}: Props): JSX.Element {
   const [moving, setMoving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
@@ -30,11 +67,11 @@ export function TierNavigator({ group, baseType, item, onMoved, continuePreamble
   const currentSib = group.siblings.find((s) => s.tier === group.currentTier)
   const hasStackSize = group.siblings.some((s) => s.block.conditions.some((c) => c.type === 'StackSize'))
 
-  // Ex/exotic (exception) tiers are locked - no tier switching allowed
-  const isExTier = (t: string): boolean => /^(ex\d*|exhide|exshow|2x\d*)$/.test(t) || t.startsWith('exotic')
-  const currentIsEx = currentSib ? isExTier(currentSib.tier) : false
-  const filteredSiblings = currentIsEx ? [] : group.siblings.filter((s) => !isExTier(s.tier))
-  if (filteredSiblings.length <= 1) return <></>
+  const filteredSiblings = switchableSiblings(group)
+  // A locked exception tier has nothing to switch to, but the list should still
+  // show where the item currently sits, in the same row shape as any other tier.
+  // Selecting it is already a no-op in handleSelect.
+  const displayedSiblings = filteredSiblings.length > 0 ? filteredSiblings : currentSib ? [currentSib] : []
 
   // Compute the max label height so the toggle doesn't resize when switching tiers
   const maxScaledSize = Math.max(
@@ -46,7 +83,9 @@ export function TierNavigator({ group, baseType, item, onMoved, continuePreamble
   )
   const minLabelHeight = Math.round(maxScaledSize * 1.2 + 6) // lineHeight 1.2 + padding + border
 
-  // Close dropdown on outside click
+  // Close dropdown on outside click. Declared before the early return below so the
+  // hook runs on every render -- gating it on render conditions would reorder hooks
+  // when `removal` flips.
   useEffect(() => {
     if (!open) return
     const handler = (e: MouseEvent): void => {
@@ -61,6 +100,10 @@ export function TierNavigator({ group, baseType, item, onMoved, continuePreamble
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
+
+  // Nothing to offer: a locked tier the user cannot switch away from, with no
+  // removal available either.
+  if (filteredSiblings.length === 0 && !removal) return <></>
 
   const handleSelect = async (sib: TierSibling): Promise<void> => {
     if (sib.tier === group.currentTier || moving) {
@@ -84,6 +127,47 @@ export function TierNavigator({ group, baseType, item, onMoved, continuePreamble
       setError(result.error ?? 'Failed to move')
     }
   }
+
+  /**
+   * Actually stop seeing the item: strip every tier that names it, then add it to
+   * the nearest Hide tier that wins the first-match race.
+   *
+   * A bare removal is not offered as a separate action -- it only drops the item
+   * to a catch-all, and in FilterBlade those are usually `Show`, so it de-tiers
+   * without hiding and reads as doing nothing.
+   */
+  const handleHide = async (): Promise<void> => {
+    if (moving || !canHide) return
+    setMoving(true)
+    setError(null)
+    setOpen(false)
+
+    const result = await window.api.hideItem(baseType, JSON.stringify(item))
+    setMoving(false)
+
+    if (!result.ok) setError(result.error ?? 'Failed to hide')
+    else onRemoved?.()
+  }
+
+  /**
+   * Hiding is possible when there is something to change and the end state is
+   * hidden. `alreadyHidden` means stripping alone lands the item on a Hide block,
+   * so no destination is needed -- but with nothing to strip either, there is
+   * nothing to do at all.
+   */
+  const canHide =
+    preview !== undefined && (preview.alreadyHidden ? preview.tierCount > 0 : preview.hideDestination !== null)
+
+  const hideDetail =
+    preview === undefined
+      ? ''
+      : preview.alreadyHidden
+        ? preview.tierCount > 0
+          ? m.removeitem_hide_plain({ count: preview.tierCount })
+          : m.removeitem_hide_already()
+        : preview.hideDestination
+          ? m.removeitem_hide_in({ tier: formatTierLabel(preview.hideDestination) })
+          : m.removeitem_hide_none()
 
   return (
     <div className="bg-bg-card rounded">
@@ -155,7 +239,7 @@ export function TierNavigator({ group, baseType, item, onMoved, continuePreamble
                 boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
               }}
             >
-              {filteredSiblings.map((sib) => {
+              {displayedSiblings.map((sib) => {
                 const isCurrent = sib.tier === group.currentTier
                 const isHidden = sib.visibility === 'Hide'
 
@@ -205,6 +289,46 @@ export function TierNavigator({ group, baseType, item, onMoved, continuePreamble
                   </div>
                 )
               })}
+
+              {/* Remove -- the item stops being named by this tier and falls through
+               *  to whatever catches it next. Separated from the tiers above because
+               *  it is a removal, not a destination. Height tracks the sibling rows
+               *  (which are sized by their loot-label preview) so it reads as part of
+               *  the same list. */}
+              {/* Hide -- the only action that reliably stops the item being drawn.
+               *  A plain removal only drops it to a catch-all, and those are usually
+               *  Show, so it is not offered as a separate choice. */}
+              {removal && (
+                <div
+                  onClick={() => {
+                    if (canHide) void handleHide()
+                  }}
+                  className="flex items-center gap-2 border-t border-border"
+                  style={{
+                    padding: '8px 10px',
+                    minHeight: minLabelHeight + 12,
+                    borderLeft: '3px solid transparent',
+                    cursor: canHide ? 'pointer' : 'default',
+                    opacity: canHide ? 1 : 0.55,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (canHide) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent'
+                  }}
+                >
+                  <span
+                    className="text-[11px] font-bold w-[60px] shrink-0 overflow-hidden text-ellipsis whitespace-nowrap"
+                    // Same red the app uses for hidden tiers and the [HIDDEN] badge,
+                    // so "hidden" reads consistently across the panel.
+                    style={{ color: canHide ? 'var(--hide-color)' : 'var(--text-dim)' }}
+                  >
+                    {m.removeitem_hide()}
+                  </span>
+                  <span className="text-[10px] text-text-dim flex-1 min-w-0 leading-[1.3]">{hideDetail}</span>
+                </div>
+              )}
             </div>,
             document.body,
           )}
@@ -226,15 +350,4 @@ function getStackMin(block: FilterBlock): number | null {
 function _getLabelHeight(block: FilterBlock): number {
   const { fontSize } = extractLabelStyle(block)
   return Math.round(fontSize * 0.48 * 1.2) + 4
-}
-
-function formatTierLabel(tier: string): string {
-  const m = tier.match(/^t(\d+)(.*)/)
-  if (m) {
-    const suffix = m[2] ? ` ${m[2]}` : ''
-    return `T${m[1]}${suffix}`
-  }
-  if (tier === 'exhide') return 'Hidden'
-  if (tier === 'restex') return 'Rest'
-  return tier
 }

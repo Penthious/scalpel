@@ -15,11 +15,15 @@ export function useBreakpointHoming(
   value: number,
   onSelect: (index: number) => void,
 ): void {
-  // Deliberately depend only on [active, value]: including breakpoints/onSelect
-  // would re-fire on unrelated renders and clobber a manually dragged segment.
+  // Deliberately depend only on [active, value, count]: including the breakpoints
+  // array or onSelect would re-fire on unrelated renders and clobber a manually
+  // dragged segment. The count is safe -- a drag never changes it -- and is needed
+  // because editing the filter can drop a segment, leaving the parent's selected
+  // index dangling past the end of the new array.
+  const count = breakpoints?.length ?? 0
   useEffect(() => {
     if (!active || !breakpoints) return
     const idx = breakpoints.findIndex((bp) => value >= bp.min && value <= bp.max)
     onSelect(idx >= 0 ? idx : 0)
-  }, [active, value])
+  }, [active, value, count])
 }

@@ -7,6 +7,7 @@ import { parseFilterFile } from './parser'
 import {
   detectIndent,
   moveBaseTypeBetweenTiers,
+  removeBaseTypeFromTier,
   renderFilterSelective,
   serializeBlock,
   writeBlockEdit,
@@ -180,5 +181,69 @@ describe('renderFilterSelective removedBlocks', () => {
     })
     const line = serializeBlock(b, '\t').find((l) => l.includes('BaseType'))
     expect(line).toContain('"Weird#Name"')
+  })
+})
+
+describe('removeBaseTypeFromTier', () => {
+  it('strips the value and leaves the rest of the file byte-identical', () => {
+    const content = [
+      '# Section header',
+      'Show # $type->rings $tier->t1',
+      '\tClass "Rings"',
+      '\tBaseType == "Sapphire Ring" "Ruby Ring"',
+      '\tSetFontSize 40',
+      '',
+      'Show # $type->rings $tier->t2',
+      '\tBaseType == "Sapphire Ring"',
+      '\tSetFontSize 32',
+      '',
+    ].join('\n')
+    const path = join(mkdtempSync(join(tmpdir(), 'writer-remove-')), 'f.filter')
+    const filter = parseFilterFile(path, content)
+
+    removeBaseTypeFromTier(filter, 'Sapphire Ring', 0)
+
+    const out = readFileSync(path, 'utf-8').split('\n')
+    expect(out[3]).toBe('\tBaseType == "Ruby Ring"')
+    // Untouched neighbours, including the other block's copy of the same base.
+    expect(out[0]).toBe('# Section header')
+    expect(out[4]).toBe('\tSetFontSize 40')
+    expect(out[7]).toBe('\tBaseType == "Sapphire Ring"')
+  })
+
+  it('deletes a BaseType line left with no values', () => {
+    const content = [
+      'Show # $type->rings $tier->t1',
+      '\tClass "Rings"',
+      '\tBaseType == "Sapphire Ring"',
+      '\tSetFontSize 40',
+      '',
+    ].join('\n')
+    const path = join(mkdtempSync(join(tmpdir(), 'writer-remove-')), 'f.filter')
+    const filter = parseFilterFile(path, content)
+
+    removeBaseTypeFromTier(filter, 'Sapphire Ring', 0)
+
+    const out = readFileSync(path, 'utf-8')
+    expect(out).not.toContain('BaseType')
+    expect(out).toContain('\tClass "Rings"')
+  })
+
+  it('removes every occurrence across multiple BaseType lines in the block', () => {
+    const content = [
+      'Show # $type->rings $tier->t1',
+      '\tBaseType == "Sapphire Ring" "Ruby Ring"',
+      '\tBaseType == "Sapphire Ring" "Topaz Ring"',
+      '',
+    ].join('\n')
+    const path = join(mkdtempSync(join(tmpdir(), 'writer-remove-')), 'f.filter')
+    const filter = parseFilterFile(path, content)
+
+    removeBaseTypeFromTier(filter, 'Sapphire Ring', 0)
+
+    const out = readFileSync(path, 'utf-8')
+    expect(out).not.toContain('Sapphire Ring')
+    expect(out).toContain('"Ruby Ring"')
+    expect(out).toContain('"Topaz Ring"')
   })
 })

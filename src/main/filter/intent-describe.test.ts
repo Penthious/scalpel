@@ -13,6 +13,16 @@ describe('describeIntent', () => {
     expect(describeIntent(intent)).toEqual({ description: 'Moved to t1', itemName: 'Chaos Orb' })
   })
 
+  it('describes a remove-basetype intent', () => {
+    const intent: Intent = {
+      type: 'remove-basetype',
+      target: { typePath: 'rings', tier: 't1' },
+      payload: { value: 'Sapphire Ring' },
+      timestamp: 0,
+    }
+    expect(describeIntent(intent)).toEqual({ description: 'Removed from t1', itemName: 'Sapphire Ring' })
+  })
+
   it('describes a set-visibility', () => {
     const intent: Intent = {
       type: 'set-visibility',
@@ -51,5 +61,17 @@ describe('describeIntent', () => {
       timestamp: 1,
     } as unknown as Intent
     expect(describeIntent(intent)).toEqual({ description: 'Changed x/y' })
+  })
+})
+
+describe('describeIntent add-basetype', () => {
+  it('reads as hiding, not as an edit to the destination tier', () => {
+    const intent: Intent = {
+      type: 'add-basetype',
+      target: { typePath: 'currency', tier: 'twisdom' },
+      payload: { value: 'Chaos Orb' },
+      timestamp: 0,
+    }
+    expect(describeIntent(intent)).toEqual({ description: 'Hidden in twisdom', itemName: 'Chaos Orb' })
   })
 })

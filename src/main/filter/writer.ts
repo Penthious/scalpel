@@ -121,6 +121,42 @@ export function moveBaseTypeBetweenTiers(
   filterFile.rawLines = lines
 }
 
+/**
+ * Strip a BaseType value from one block, leaving every other block alone.
+ * Edits raw lines directly so formatting and comments are preserved.
+ * Callers must have already cleared the removal with `checkRemovable` -- this
+ * function does not guard against emptying the block.
+ */
+export function removeBaseTypeFromTier(filterFile: FilterFile, baseType: string, blockIndex: number): void {
+  removeBaseTypeFromTiers(filterFile, baseType, [blockIndex])
+}
+
+/**
+ * Strip a BaseType value from several blocks in one pass.
+ *
+ * Blocks are edited in descending file order: deleting an emptied BaseType line
+ * shifts every later block's recorded line numbers, so the later blocks must be
+ * done first while their `lineStart`/`lineEnd` are still accurate. Same reasoning
+ * as `moveBaseTypeBetweenTiers`. One write, so the file is never left partially
+ * edited on disk.
+ */
+export function removeBaseTypeFromTiers(filterFile: FilterFile, baseType: string, blockIndexes: number[]): void {
+  const ordered = [...new Set(blockIndexes)].sort((a, b) => b - a)
+  const lines = [...filterFile.rawLines]
+  let touched = false
+
+  for (const idx of ordered) {
+    const block = filterFile.blocks[idx]
+    if (!block) continue
+    removeBaseTypeFromRawLines(lines, block, baseType)
+    touched = true
+  }
+
+  if (!touched) return
+  writeFileSync(filterFile.path, lines.join(filterFile.eol ?? '\n'), 'utf-8')
+  filterFile.rawLines = lines
+}
+
 function removeBaseTypeFromRawLines(lines: string[], block: FilterBlock, baseType: string): void {
   const escaped = escapeRegex(baseType)
   for (let i = block.lineStart - 1; i < block.lineEnd; i++) {
@@ -147,6 +183,25 @@ function removeBaseTypeFromRawLines(lines: string[], block: FilterBlock, baseTyp
       lines[i] = line.replace(/ {2,}/g, ' ')
     }
   }
+}
+
+/**
+ * Append a BaseType value to one block.
+ *
+ * Refuses a block with no BaseType line: creating one would narrow a class-rules
+ * block from "everything of this class" to "only this base". Callers pick
+ * destinations with `findHideDestination`, which already enforces that.
+ */
+export function addBaseTypeToTier(filterFile: FilterFile, baseType: string, blockIndex: number): boolean {
+  const block = filterFile.blocks[blockIndex]
+  if (!block) return false
+  if (!block.conditions.some((c) => c.type === 'BaseType')) return false
+
+  const lines = [...filterFile.rawLines]
+  addBaseTypeToRawLines(lines, block, baseType)
+  writeFileSync(filterFile.path, lines.join(filterFile.eol ?? '\n'), 'utf-8')
+  filterFile.rawLines = lines
+  return true
 }
 
 function addBaseTypeToRawLines(lines: string[], block: FilterBlock, baseType: string): void {

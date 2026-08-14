@@ -10,6 +10,10 @@ interface FilterInfoBannerProps {
   onQuickUpdate: () => Promise<{
     ok: boolean
     stats?: { userOnly: number; upstreamOnly: number; bothChanged: number; added: number; removed: number }
+    /** Recorded edits the sync could not re-apply. Reported instead of the plain
+     *  success message so a dropped removal never looks like the item returning
+     *  on its own. */
+    unresolved?: string[]
   }>
   onCheckForUpdate: () => Promise<void>
   onFilterUpdated: (activeFile: string) => void
@@ -92,8 +96,13 @@ export function FilterInfoBanner({
                 onFilterUpdated(activeFile)
                 const s = result.stats
                 const changes = s ? s.userOnly || s.upstreamOnly + s.bothChanged + s.added + s.removed : 0
+                const failed = result.unresolved?.length ?? 0
                 onMergeMessage(
-                  changes > 0 ? m.filterbanner_changes_reapplied({ changes }) : m.filterbanner_filter_updated(),
+                  failed > 0
+                    ? m.filterbanner_edits_not_reapplied({ count: failed })
+                    : changes > 0
+                      ? m.filterbanner_changes_reapplied({ changes })
+                      : m.filterbanner_filter_updated(),
                 )
                 if (mergeMsgTimer.current) clearTimeout(mergeMsgTimer.current)
                 mergeMsgTimer.current = setTimeout(() => onMergeMessage(null), 10000)

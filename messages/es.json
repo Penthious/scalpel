@@ -261,5 +261,13 @@
   "overlay_no_filter_title": "Ningún filtro cargado",
   "overlay_no_filter_body": "Selecciona tu archivo .filter para empezar.",
   "overlay_open_filter_settings": "Abrir ajustes de filtro",
-  "overlay_no_item_title": "Busca un objeto"
+  "overlay_no_item_title": "Busca un objeto",
+  "filterbanner_edits_not_reapplied": "Filtro actualizado: no se pudieron reaplicar {count} cambios",
+  "removeitem_hide": "Ocultar",
+  "removeitem_hide_in": "Oculta el objeto añadiéndolo al nivel: {tier}",
+  "removeitem_hide_none": "No hay ningún nivel oculto disponible para este objeto",
+  "removeitem_hide_already": "Ya está oculto: no hay nada que cambiar",
+  "removeitem_hide_plain": "Oculta el objeto quitándolo de {count} nivel(es) que lo muestran",
+  "hideitem_title": "Ocultar objeto",
+  "hideitem_button": "Ocultar \"{item}\""
 }

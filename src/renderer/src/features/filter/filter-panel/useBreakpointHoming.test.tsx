@@ -40,6 +40,22 @@ describe('useBreakpointHoming', () => {
     expect(onSelect).not.toHaveBeenCalled()
   })
 
+  it('re-homes when the segment count shrinks, so no stale index survives', () => {
+    // Removing a base from a StackSize-gated tier drops one of its segments. The
+    // item's value is unchanged, so without a count dependency the parent keeps a
+    // selected index pointing past the end of the new array -- which crashed the
+    // panel when it indexed straight into it.
+    const onSelect = vi.fn()
+    const { rerender } = renderHook(({ bpsRef }) => useBreakpointHoming(true, bpsRef, 15, onSelect), {
+      initialProps: { bpsRef: bps },
+    })
+    expect(onSelect).toHaveBeenLastCalledWith(2)
+    onSelect.mockClear()
+
+    rerender({ bpsRef: [{ min: 1, max: Number.POSITIVE_INFINITY }] })
+    expect(onSelect).toHaveBeenLastCalledWith(0)
+  })
+
   it('falls back to index 0 when no segment contains the value', () => {
     const onSelect = vi.fn()
     renderHook(() =>

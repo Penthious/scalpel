@@ -67,7 +67,11 @@ function persist(): void {
 }
 
 function compact(): void {
-  const intents = currentLog.intents
+  currentLog.intents = compactIntents(currentLog.intents)
+}
+
+/** Collapse superseded intents. Pure -- exported for tests. */
+export function compactIntents(intents: Intent[]): Intent[] {
   const compacted: Intent[] = []
 
   // Process in timestamp order
@@ -76,6 +80,12 @@ function compact(): void {
   for (const intent of sorted) {
     if (intent.type === 'move-basetype') {
       const p = intent.payload as import('./intents').MoveBaseTypePayload
+      // A move re-homes the base, superseding any pending removal of it.
+      const removalIdx = compacted.findIndex(
+        (i) =>
+          i.type === 'remove-basetype' && (i.payload as import('./intents').RemoveBaseTypePayload).value === p.value,
+      )
+      if (removalIdx !== -1) compacted.splice(removalIdx, 1)
       // Remove any prior move-basetype for the same value that targets a different tier
       const priorIdx = compacted.findIndex(
         (i) => i.type === 'move-basetype' && (i.payload as import('./intents').MoveBaseTypePayload).value === p.value,
@@ -96,6 +106,33 @@ function compact(): void {
         })
         continue
       }
+      compacted.push(intent)
+    } else if (intent.type === 'remove-basetype') {
+      const p = intent.payload as import('./intents').RemoveBaseTypePayload
+      // A removal is terminal for this base: any pending move of it is moot.
+      const moveIdx = compacted.findIndex(
+        (i) => i.type === 'move-basetype' && (i.payload as import('./intents').MoveBaseTypePayload).value === p.value,
+      )
+      if (moveIdx !== -1) compacted.splice(moveIdx, 1)
+      // Same base out of the same tier: keep the latest.
+      const key = `${intent.target.typePath}/${intent.target.tier}/${p.value}`
+      const priorIdx = compacted.findIndex((i) => {
+        if (i.type !== 'remove-basetype') return false
+        const ip = i.payload as import('./intents').RemoveBaseTypePayload
+        return `${i.target.typePath}/${i.target.tier}/${ip.value}` === key
+      })
+      if (priorIdx !== -1) compacted.splice(priorIdx, 1)
+      compacted.push(intent)
+    } else if (intent.type === 'add-basetype') {
+      const p = intent.payload as import('./intents').AddBaseTypePayload
+      // Same base into the same tier twice: keep the latest.
+      const key = `${intent.target.typePath}/${intent.target.tier}/${p.value}`
+      const priorIdx = compacted.findIndex((i) => {
+        if (i.type !== 'add-basetype') return false
+        const ip = i.payload as import('./intents').AddBaseTypePayload
+        return `${i.target.typePath}/${i.target.tier}/${ip.value}` === key
+      })
+      if (priorIdx !== -1) compacted.splice(priorIdx, 1)
       compacted.push(intent)
     } else if (intent.type === 'set-visibility') {
       // Same target: keep latest
@@ -128,5 +165,5 @@ function compact(): void {
     }
   }
 
-  currentLog.intents = compacted
+  return compacted
 }

@@ -1,10 +1,13 @@
 // src/main/filter/intent-replay.ts
 
 import type { ActionType, ComparisonOperator, FilterBlock, FilterFile } from '@shared/types'
+import { checkRemovable } from '@shared/filter-removal'
 import type {
   Intent,
   IntentLog,
   MoveBaseTypePayload,
+  RemoveBaseTypePayload,
+  AddBaseTypePayload,
   SetActionPayload,
   SetThresholdPayload,
   SetVisibilityPayload,
@@ -57,6 +60,25 @@ function findBaseTypeInFilter(filter: FilterFile, value: string): { block: Filte
   return null
 }
 
+/** First block under `typePath` that names `value` exactly. Fallback for a renamed tier. */
+function findBlockByTypePathListing(
+  filter: FilterFile,
+  typePath: string,
+  value: string,
+): { block: FilterBlock; index: number } | null {
+  const target = value.toLowerCase()
+  for (let i = 0; i < filter.blocks.length; i++) {
+    const b = filter.blocks[i]
+    if (b.tierTag?.typePath !== typePath) continue
+    for (const cond of b.conditions) {
+      if (cond.type === 'BaseType' && cond.values.some((v) => v.toLowerCase() === target)) {
+        return { block: b, index: i }
+      }
+    }
+  }
+  return null
+}
+
 export function replayIntents(
   upstreamContent: string,
   upstreamPath: string,
@@ -74,6 +96,95 @@ export function replayIntents(
   for (let i = 0; i < intentLog.intents.length; i++) {
     const intent = intentLog.intents[i]
     const { typePath, tier } = intent.target
+
+    if (intent.type === 'add-basetype') {
+      const p = intent.payload as AddBaseTypePayload
+      const resolved = findBlockByTierTag(filter, typePath, tier)
+      if (!resolved) {
+        conflicts.push({
+          intent,
+          description: `Couldn't re-hide "${p.value}": ${typePath}/${tier} no longer exists.`,
+          options: [],
+        })
+        skipped++
+        continue
+      }
+
+      const targetBaseType = resolved.block.conditions.find((c) => c.type === 'BaseType')
+      if (!targetBaseType) {
+        // Creating a BaseType line here would narrow a class-rules block to this
+        // one base. Refuse rather than silently break the tier.
+        conflicts.push({
+          intent,
+          description: `Couldn't re-hide "${p.value}": ${typePath}/${tier} no longer lists bases by name.`,
+          options: [],
+        })
+        skipped++
+        continue
+      }
+
+      if (!targetBaseType.values.includes(p.value)) {
+        targetBaseType.values.push(p.value)
+        modifiedBlocks.add(resolved.index)
+      }
+      applied++
+      continue
+    }
+
+    if (intent.type === 'remove-basetype') {
+      const p = intent.payload as RemoveBaseTypePayload
+      // Ladder: exact tag, then same typePath, then give up loudly. A resolved tag
+      // that no longer lists the value means the removal is already satisfied -- we
+      // deliberately do NOT then hunt the base down in a sibling tier, because the
+      // user scoped this removal to one tier.
+      const resolved =
+        findBlockByTierTag(filter, typePath, tier) ?? findBlockByTypePathListing(filter, typePath, p.value)
+
+      if (!resolved) {
+        conflicts.push({
+          intent,
+          description: `Couldn't re-apply: "${p.value}" is no longer in ${typePath}/${tier}.`,
+          options: [],
+        })
+        skipped++
+        continue
+      }
+
+      const check = checkRemovable(resolved.block, p.value)
+
+      if (!check.removable && check.reason === 'not-by-name') {
+        // Upstream already dropped it. Nothing to do.
+        applied++
+        continue
+      }
+
+      if (!check.removable) {
+        const why =
+          check.reason === 'last-base'
+            ? `removing it would leave ${typePath}/${tier} matching its whole item class`
+            : `${typePath}/${tier} now catches it via the pattern "${check.token}"`
+        conflicts.push({
+          intent,
+          description: `Couldn't re-apply the removal of "${p.value}": ${why}.`,
+          options: [],
+        })
+        skipped++
+        continue
+      }
+
+      for (const cond of resolved.block.conditions) {
+        if (cond.type === 'BaseType') {
+          cond.values = cond.values.filter((v) => !check.exact.includes(v))
+        }
+      }
+      resolved.block.conditions = resolved.block.conditions.filter(
+        (c) => !(c.type === 'BaseType' && c.values.length === 0),
+      )
+      modifiedBlocks.add(resolved.index)
+      applied++
+      continue
+    }
+
     const match = findBlockByTierTag(filter, typePath, tier)
 
     if (!match) {

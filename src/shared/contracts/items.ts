@@ -211,6 +211,26 @@ export interface MatchResult {
   hasUnknowns: boolean
 }
 
+/** What a "remove this base" action would do, resolved in the main process.
+ *  A base is often named by several tiers at once (stacked currency is tiered by
+ *  StackSize), so removal spans every tier that catches the item -- `tierCount`
+ *  is how many, and `skipped` are the ones that keep it anyway. */
+export interface RemovalPreview {
+  /** The block that still catches the item afterwards, or null for none. */
+  landsOn: MatchResult | null
+  /** How many tiers the base will be stripped from. */
+  tierCount: number
+  /** Tiers that name the item but cannot be stripped, so it stays visible. */
+  skipped: { tier: string; reason: 'token' | 'last-base' }[]
+  /** Hide tier the item will be added to, or null when none is needed or none
+   *  exists. */
+  hideDestination: string | null
+  /** True when stripping the naming tiers is enough on its own -- the item then
+   *  lands on a Hide block. Landing on nothing is NOT hidden: the game draws it
+   *  with default styling. */
+  alreadyHidden: boolean
+}
+
 export interface TierSibling {
   tier: string
   visibility: Visibility

@@ -51,7 +51,10 @@ export function buildTierGroup(filter: FilterFile, activeMatch: MatchResult, ite
     }
   }
 
-  if (siblings.length <= 1) return undefined
+  // A lone tier still gets a group: the dropdown's Remove row is itself a choice,
+  // so a one-entry list is not an empty one. Only a block with no tier tag at all
+  // (handled above) has nothing to show.
+  if (siblings.length === 0) return undefined
 
   // If siblings with this base type are differentiated only by threshold conditions
   // (StackSize, Quality, MemoryStrands), the slider handles navigation - hide the dropdown.

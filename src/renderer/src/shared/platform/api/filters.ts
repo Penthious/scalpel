@@ -6,7 +6,7 @@
  * screens.
  */
 
-import type { FilterBlock, FilterListEntry } from '@shared/contracts/items'
+import type { FilterBlock, FilterListEntry, RemovalPreview } from '@shared/contracts/items'
 import type { HistoryEntry, FilterChange, FilterVersion } from '@shared/contracts/history'
 
 // ── Filter files ──────────────────────────────────────────────────────────────
@@ -72,6 +72,25 @@ export function moveItemTier(
   itemJson: string,
 ): Promise<{ ok: boolean; error?: string }> {
   return window.api.moveItemTier(baseType, fromBlockIndex, toBlockIndex, itemJson)
+}
+
+export function removeItemFromTier(
+  baseType: string,
+  blockIndex: number,
+  itemJson: string,
+): Promise<{ ok: boolean; error?: string; removedFrom?: string[]; skipped?: { tier: string; reason: string }[] }> {
+  return window.api.removeItemFromTier(baseType, blockIndex, itemJson)
+}
+
+export function hideItem(
+  baseType: string,
+  itemJson: string,
+): Promise<{ ok: boolean; error?: string; hiddenIn?: string; removedFrom?: string[] }> {
+  return window.api.hideItem(baseType, itemJson)
+}
+
+export function previewFallThrough(blockIndex: number, itemJson: string): Promise<RemovalPreview> {
+  return window.api.previewFallThrough(blockIndex, itemJson)
 }
 
 export function batchMoveItemTier(
@@ -183,6 +202,7 @@ export function quickUpdateFilter(): Promise<{
     removed: number
   }
   conflicts?: Array<{ description: string; actionType: string }>
+  unresolved?: string[]
 }> {
   return window.api.quickUpdateFilter()
 }
