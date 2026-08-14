@@ -66,6 +66,17 @@ export interface OverlaySpec {
    *  For overlays whose content is state-dependent (pinned-zone) so a blind
    *  show can't surface an empty-but-mouse-interactive transparent window. */
   gateShow?: () => boolean
+  /** Optional: fired when the overlay is explicitly shown or hidden - hotkey
+   *  toggle, close button, or an Esc sweep. Deliberately NOT fired for the
+   *  transient PoE-blur hide and its auto-restore: alt-tabbing out of the game
+   *  and back is not the user closing the window, and a consumer that resets
+   *  its state on hide would otherwise throw away work the user still wants.
+   *  Only fires on an actual transition, never twice for the same state.
+   *
+   *  Note this skips the very first show too: that one goes through
+   *  ensureWin's did-finish-load handler rather than showState, and a freshly
+   *  loaded renderer has nothing to reset. Use `onFirstShow` for that edge. */
+  onVisibilityChange?: (visible: boolean) => void
 }
 
 /** Multiply an anchor against a rect, returning a rect in the same coordinate
@@ -452,6 +463,9 @@ function showState(state: OverlayState): void {
   if (state.spec.gateShow && !state.spec.gateShow()) return
   if (state.spec.repositionOnShow) applyAnchorBounds(state)
   win.show()
+  // Guarded by the isVisible() bail above, so this only fires on a real
+  // hidden -> visible transition.
+  state.spec.onVisibilityChange?.(true)
 }
 
 function hideState(state: OverlayState): void {
@@ -459,7 +473,11 @@ function hideState(state: OverlayState): void {
   // Explicit user-driven hide: clear the auto-restore memory so PoE
   // refocusing doesn't bring it back. Only PoE alt-tab cycles restore.
   state.wasVisibleBeforeFocusLoss = false
+  // isVisible() reflects the opacity-hide (installOpacityHideShow overrides
+  // it), so an already-hidden overlay doesn't re-notify.
+  const wasVisible = state.win.isVisible()
   state.win.hide()
+  if (wasVisible) state.spec.onVisibilityChange?.(false)
 }
 
 // Secondary overlays hide-instead-of-close so their hotkey can re-show them.

@@ -72,7 +72,20 @@ function ensureZoneFanout(): void {
 function registerPluginOverlayInternal(pluginId: string, spec: OverlaySpec): SecondaryOverlay {
   const existing = overlays.get(pluginId)
   if (existing) return existing
-  const overlay = registerSecondaryOverlay(spec)
+  const overlay = registerSecondaryOverlay({
+    ...spec,
+    // Tell the plugin's own window when the user opens or closes it. The
+    // overlay is hidden by dropping its opacity, not by destroying the window
+    // (installOpacityHideShow), so the plugin's renderer stays mounted and has
+    // no DOM-level way to notice - no visibilitychange, and the window is
+    // never focused. This IPC is that signal. Lazy lookup because the map
+    // entry is written just below, after registerSecondaryOverlay returns.
+    onVisibilityChange: (visible) => {
+      const win = overlays.get(pluginId)?.getWindow()
+      if (!win || win.isDestroyed()) return
+      win.webContents.send('plugin-overlay:visibility', visible)
+    },
+  })
   overlays.set(pluginId, overlay)
   ensureZoneFanout()
   // Log lines forward through a plain array (no EventEmitter listener limit),

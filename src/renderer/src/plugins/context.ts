@@ -55,6 +55,11 @@ export function createPluginContext(deps: PluginContextFactoryDeps): ScalpelPlug
     },
     openOverlay: () => deps.openOverlay(deps.pluginId),
     closeOverlay: () => deps.closeOverlay(deps.pluginId),
+    // Inert here for the same reason as setInteractiveRegion below: the overlay
+    // render only ever runs in the pop-out window's process, so only that copy
+    // of the plugin has anything to reset when the window is reopened.
+    // use-activate-plugin supplies the real subscription there.
+    onOverlayVisibility: () => () => {},
     // Interactive regions are owned by the annotation-overlay window process
     // (see use-activate-plugin); the main-overlay context never renders the
     // annotation surface, so this is inert here.

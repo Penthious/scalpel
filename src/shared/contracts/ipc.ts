@@ -254,6 +254,7 @@ export const IPC_CHANNELS = {
     HOTKEYS_CHANGED_EVENT: 'plugin-hotkeys-changed',
     TABS_CHANGED_EVENT: 'plugin-tabs-changed',
     OVERLAY_INIT_EVENT: 'plugin-overlay:init',
+    OVERLAY_VISIBILITY_EVENT: 'plugin-overlay:visibility',
   },
 
   GAME_SWITCH: {

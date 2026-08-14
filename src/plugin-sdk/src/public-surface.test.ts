@@ -102,6 +102,7 @@ const EXPECTED_CONTEXT_KEYS = [
   'onCurrentZone',
   'onLeagueChange',
   'onLogLine',
+  'onOverlayVisibility',
   'openExternal',
   'openOverlay',
   'openTab',

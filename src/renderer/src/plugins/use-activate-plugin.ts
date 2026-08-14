@@ -68,6 +68,7 @@ export function useActivatePlugin(pluginId: string): ActivatedPlugin {
         closeOverlay: () => {
           void window.api.pluginCloseOverlay(pluginId)
         },
+        onOverlayVisibility: (h) => window.api.onPluginOverlayVisibility(h),
         setInteractiveRegion: (rect) => {
           // Report the rect (in this window's CSS px) as an interactive panel so
           // the main-process uiohook hit-test flips THIS overlay window clickable

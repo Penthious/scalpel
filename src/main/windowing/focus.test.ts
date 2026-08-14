@@ -51,9 +51,13 @@ function fakeState(opts: {
   gateShow?: () => boolean
   userPinned?: boolean
   snapGhostActive?: boolean
+  onVisibilityChange?: (visible: boolean) => void
 }): OverlayState {
   return {
-    spec: { gateShow: opts.gateShow } as unknown as OverlayState['spec'],
+    spec: {
+      gateShow: opts.gateShow,
+      onVisibilityChange: opts.onVisibilityChange,
+    } as unknown as OverlayState['spec'],
     win: {
       isDestroyed: () => false,
       isVisible: () => opts.visible,
@@ -185,6 +189,39 @@ describe('hideFocusedOrAnyVisibleSecondaryOverlay - persistOverOthers', () => {
   beforeEach(() => {
     overlays.clear()
     focusHolder.current = null
+  })
+
+  // An Esc sweep is the user closing the window - overlays that reset
+  // themselves on close (plugin overlays) have to hear about it. The transient
+  // PoE-blur hide is the one that stays silent; see hideAllOnPoeBlur.
+  it('reports the close to an overlay hidden by the Esc sweep', () => {
+    const onVisibilityChange = vi.fn()
+    overlays.set('calc', fakeState({ visible: true, onVisibilityChange }))
+    expect(hideFocusedOrAnyVisibleSecondaryOverlay()).toBe(true)
+    expect(onVisibilityChange).toHaveBeenCalledWith(false)
+  })
+
+  it('reports the close when Esc hits the focused overlay branch', () => {
+    const onVisibilityChange = vi.fn()
+    const calc = fakeState({ visible: true, onVisibilityChange })
+    overlays.set('calc', calc)
+    focusHolder.current = calc.win
+    expect(hideFocusedOrAnyVisibleSecondaryOverlay()).toBe(true)
+    expect(onVisibilityChange).toHaveBeenCalledWith(false)
+  })
+
+  it('does not report a close for an overlay the sweep never hid', () => {
+    const onVisibilityChange = vi.fn()
+    overlays.set('persistent', fakeState({ visible: true, persist: true, onVisibilityChange }))
+    expect(hideFocusedOrAnyVisibleSecondaryOverlay()).toBe(false)
+    expect(onVisibilityChange).not.toHaveBeenCalled()
+  })
+
+  it('stays silent when PoE blur hides an overlay, since it expects to restore it', () => {
+    const onVisibilityChange = vi.fn()
+    overlays.set('calc', fakeState({ visible: true, onVisibilityChange }))
+    hideAllOnPoeBlur()
+    expect(onVisibilityChange).not.toHaveBeenCalled()
   })
 
   it('does not hide a persistent visible overlay via the any-visible sweep', () => {

@@ -180,7 +180,14 @@ export function hideFocusedOrAnyVisibleSecondaryOverlay(): boolean {
 function hideOverlayState(state: import('./state').OverlayState): void {
   if (!state.win || state.win.isDestroyed()) return
   state.wasVisibleBeforeFocusLoss = false
+  // Same deliberate-hide notification showState/hideState do: an Esc sweep is
+  // the user closing the window, so an overlay that resets itself on close
+  // must hear about it. hideAllOnPoeBlur stays silent by contrast - it hides
+  // in place and expects to restore. Guarded on the transition so an
+  // already-hidden overlay caught by the sweep doesn't re-notify.
+  const wasVisible = state.win.isVisible()
   state.win.hide()
+  if (wasVisible) state.spec.onVisibilityChange?.(false)
 }
 
 /** Hide every secondary overlay because PoE itself exited. Used by the

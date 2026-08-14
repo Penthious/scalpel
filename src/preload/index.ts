@@ -999,6 +999,11 @@ export const api = {
     ipcRenderer.on('plugin-overlay:init', handler)
     return () => ipcRenderer.removeListener('plugin-overlay:init', handler)
   },
+  onPluginOverlayVisibility: (cb: (visible: boolean) => void): (() => void) => {
+    const handler = (_: Electron.IpcRendererEvent, visible: boolean): void => cb(visible)
+    ipcRenderer.on('plugin-overlay:visibility', handler)
+    return () => ipcRenderer.removeListener('plugin-overlay:visibility', handler)
+  },
   pluginTriggerMainHotkey: (opts?: {
     showOverlay?: boolean
     dispatch?: boolean

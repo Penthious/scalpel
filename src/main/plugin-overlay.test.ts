@@ -8,6 +8,8 @@ type CapturedSpec = {
   defaultAnchor: () => unknown
   storedAnchor?: () => unknown
   onAnchorChanged?: (anchor: unknown) => void
+  onVisibilityChange?: (visible: boolean) => void
+  onFirstShow?: (win: unknown) => void
 }
 const registeredSpecs: CapturedSpec[] = []
 const fakeOverlay = {
@@ -210,5 +212,39 @@ describe('plugin-overlay registry', () => {
     const spec = registeredSpecs.at(-1)
     expect(spec?.storedAnchor).toBeUndefined()
     expect(spec?.onAnchorChanged).toBeUndefined()
+  })
+
+  // The overlay window is opacity-hidden, never destroyed, so the plugin's
+  // renderer sees no DOM-level open/close signal. These forward one.
+  it('tells the plugin window when the user opens or closes it', () => {
+    const send = vi.fn()
+    fakeOverlay.getWindow.mockReturnValue({ isDestroyed: () => false, webContents: { send } } as never)
+    registerPluginOverlay('vis-demo', { title: 'Vis' })
+
+    registeredSpecs.at(-1)?.onVisibilityChange?.(false)
+    expect(send).toHaveBeenCalledWith('plugin-overlay:visibility', false)
+
+    registeredSpecs.at(-1)?.onVisibilityChange?.(true)
+    expect(send).toHaveBeenCalledWith('plugin-overlay:visibility', true)
+  })
+
+  it('annotation overlays report visibility too', () => {
+    const send = vi.fn()
+    fakeOverlay.getWindow.mockReturnValue({ isDestroyed: () => false, webContents: { send } } as never)
+    registerPluginAnnotationOverlay('anno-vis')
+
+    registeredSpecs.at(-1)?.onVisibilityChange?.(false)
+    expect(send).toHaveBeenCalledWith('plugin-overlay:visibility', false)
+  })
+
+  it('drops the visibility signal when the window is gone rather than throwing', () => {
+    fakeOverlay.getWindow.mockReturnValue(null)
+    registerPluginOverlay('vis-nowin', { title: 'NoWin' })
+    expect(() => registeredSpecs.at(-1)?.onVisibilityChange?.(true)).not.toThrow()
+
+    const send = vi.fn()
+    fakeOverlay.getWindow.mockReturnValue({ isDestroyed: () => true, webContents: { send } } as never)
+    expect(() => registeredSpecs.at(-1)?.onVisibilityChange?.(false)).not.toThrow()
+    expect(send).not.toHaveBeenCalled()
   })
 })
