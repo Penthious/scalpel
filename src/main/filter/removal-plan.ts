@@ -1,6 +1,6 @@
 import type { FilterFile, MatchResult, PoeItem, TierTag } from '@shared/types'
 import { checkRemovable } from '@shared/filter-removal'
-import { evaluateBlock } from './matcher'
+import { evaluateBlock, findMatchingBlocks } from './matcher'
 
 export interface RemovalTarget {
   blockIndex: number
@@ -108,6 +108,38 @@ export interface HidePlan extends RemovalPlan {
   alreadyHidden: boolean
   /** Hide tier to add the base to, or null when none is needed or available. */
   destination: RemovalTarget | null
+  /** The tier to flip to `Hide` outright, when it names this base and nothing
+   *  else. Takes precedence over `destination`: see `findFlipTarget`. */
+  flip: RemovalTarget | null
+}
+
+/**
+ * The tier the item is on, when that tier names this base and nothing else.
+ *
+ * Such a tier is not a list the item happens to be in -- it *is* the item, so
+ * hiding the item and hiding the tier are the same act. Flipping its visibility
+ * beats every other route: no base moves, no other tier is touched, and the
+ * change is undone by flipping it back.
+ *
+ * It also rescues the one case the strip-and-add route cannot handle at all. A
+ * tier naming a single base is exactly `checkRemovable`'s `last-base` refusal --
+ * the base cannot be stripped without widening the tier to everything its
+ * remaining conditions allow. FilterBlade's PoE2 trial coins are this shape:
+ * `ItemLevel >= 80` over one base, four bands deep.
+ *
+ * Note the blast radius is the tier's own definition, not this single item: the
+ * 80+ band hides for every Djinn Barya at that level. That is inherent -- the
+ * format has no per-item exception -- and it is what makes the tier the right
+ * thing to flip.
+ */
+function findFlipTarget(filter: FilterFile, item: PoeItem, baseType: string): RemovalTarget | null {
+  const active = findMatchingBlocks(filter, item).find((m) => m.isFirstMatch)
+  if (!active || active.block.visibility === 'Hide') return null
+  const named = active.block.conditions.filter((c) => c.type === 'BaseType').flatMap((c) => c.values)
+  if (named.length === 0) return null
+  const target = baseType.toLowerCase()
+  if (!named.every((v) => v.toLowerCase() === target)) return null
+  return { blockIndex: active.blockIndex, tierTag: active.block.tierTag }
 }
 
 /**
@@ -122,10 +154,18 @@ export function planHide(filter: FilterFile, item: PoeItem, baseType: string, fr
   const plan = planRemoval(filter, item, baseType)
   const alreadyHidden = plan.landsOn?.block.visibility === 'Hide'
   const beforeIndex = plan.landsOn?.blockIndex ?? filter.blocks.length
+
+  // A tier that names only this base is the item, so flipping it is the whole
+  // job -- and it is checked first because it needs neither a strip nor a
+  // destination, and works on tiers the strip route has to refuse.
+  const flip = findFlipTarget(filter, item, baseType)
+  if (flip) return { ...plan, alreadyHidden: false, destination: null, flip }
+
   return {
     ...plan,
     alreadyHidden,
     destination: alreadyHidden ? null : findHideDestination(filter, item, fromTypePath, beforeIndex),
+    flip: null,
   }
 }
 

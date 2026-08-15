@@ -3,12 +3,12 @@ import { OverlayController } from 'electron-overlay-window'
 import type Store from 'electron-store'
 import { isTownOrHideout } from '@shared/is-town-or-hideout'
 import { IPC_CHANNELS } from '@shared/contracts/ipc'
-import type { AppSettings, FilterFile, MatchResult, OverlayData, PoeItem, TierGroup, TierSibling } from '@shared/types'
+import type { AppSettings, OverlayData, PoeItem } from '@shared/types'
+import { buildTierGroup } from './filter/tier-group'
 import { getCurrentZone } from './client-log'
 import { snapshotClipboard } from './clipboard-preserve'
 import { getProfileBackedSetting } from './profiles/profile-settings'
 import {
-  evaluateBlock,
   findMatchingBlocks,
   findQualityBreakpoints,
   findStackSizeBreakpoints,
@@ -23,69 +23,6 @@ import { readItemFromClipboard } from './trade/clipboard'
 import { buildUnidCandidates, lookupItemPrice, lookupPrice, lookupPriceForItem, refreshPrices } from './trade/prices'
 import { ensureStatsLoaded, matchItemMods } from './trade/trade'
 import { beginSession, decisionsForSession } from './learning'
-
-// ---- Tier group builder ----------------------------------------------------
-
-export function buildTierGroup(filter: FilterFile, activeMatch: MatchResult, item: PoeItem): TierGroup | undefined {
-  const tag = activeMatch.block.tierTag
-  if (!tag) return undefined
-
-  const siblings: TierSibling[] = []
-  for (let i = 0; i < filter.blocks.length; i++) {
-    const b = filter.blocks[i]
-    if (b.tierTag && b.tierTag.typePath === tag.typePath) {
-      const evaluation = evaluateBlock(b, item)
-      siblings.push({
-        tier: b.tierTag.tier,
-        visibility: b.visibility,
-        blockIndex: i,
-        block: b,
-        match: {
-          block: b,
-          blockIndex: i,
-          isFirstMatch: i === activeMatch.blockIndex,
-          evaluatedConditions: evaluation.evaluatedConditions,
-          hasUnknowns: evaluation.hasUnknowns,
-        },
-      })
-    }
-  }
-
-  // A lone tier still gets a group: the dropdown's Remove row is itself a choice,
-  // so a one-entry list is not an empty one. Only a block with no tier tag at all
-  // (handled above) has nothing to show.
-  if (siblings.length === 0) return undefined
-
-  // If siblings with this base type are differentiated only by threshold conditions
-  // (StackSize, Quality, MemoryStrands), the slider handles navigation - hide the dropdown.
-  // But if different tiers have different base type lists, that's normal tiering.
-  const baseType = item.baseType
-  const siblingsWithBaseType = siblings.filter((s) =>
-    s.block.conditions.some((c) => c.type === 'BaseType' && c.values.includes(baseType)),
-  )
-  if (siblingsWithBaseType.length > 1) {
-    // Check if these siblings have the same base type list (threshold-only differentiation)
-    const thresholdTypes = new Set(['StackSize', 'Quality', 'MemoryStrands'])
-    const allSameBaseTypes = siblingsWithBaseType.every((s) => {
-      const btValues = s.block.conditions
-        .filter((c) => c.type === 'BaseType')
-        .flatMap((c) => c.values)
-        .sort()
-        .join(',')
-      const firstBtValues = siblingsWithBaseType[0].block.conditions
-        .filter((c) => c.type === 'BaseType')
-        .flatMap((c) => c.values)
-        .sort()
-        .join(',')
-      return btValues === firstBtValues
-    })
-    const differByThresholdOnly =
-      allSameBaseTypes && siblingsWithBaseType.some((s) => s.block.conditions.some((c) => thresholdTypes.has(c.type)))
-    if (differByThresholdOnly) return undefined
-  }
-
-  return { typePath: tag.typePath, siblings, currentTier: tag.tier }
-}
 
 // ---- Shared evaluation helper ----------------------------------------------
 

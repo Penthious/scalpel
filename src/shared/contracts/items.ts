@@ -232,7 +232,38 @@ export interface RemovalPreview {
    *  lands on a Hide block. Landing on nothing is NOT hidden: the game draws it
    *  with default styling. */
   alreadyHidden: boolean
+  /** Set when the tier the item is on names this base and nothing else, so the
+   *  tier simply *is* the item: hiding it means flipping that block to `Hide`,
+   *  with no base moved anywhere. Preferred over every other route when
+   *  available -- it is the only one that leaves the base lists untouched, and it
+   *  is the one case a `last-base` tier can be hidden at all. */
+  flipTier: string | null
 }
+
+/**
+ * Why a sibling tier cannot receive this item. Such tiers are dropped from the
+ * dropdown rather than shown, so this is a filtering reason, not a display one.
+ *
+ * - `conditions` -- the tier's non-BaseType conditions rule the item out. PoE2's
+ *   trial-coin tiers are `ItemLevel` bands over a single base, so an ilvl 83
+ *   Djinn Barya belongs to exactly one of them by definition; the others are not
+ *   somewhere it can be moved to, whatever they name.
+ * - `no-basetype` -- the tier catches by class rules and lists no bases. Adding a
+ *   `BaseType` line would narrow it from "everything of this class" to "only this
+ *   base" -- the mirror of the widening hazard behind `SourceLockReason`.
+ * - `outranked` -- the source tier cannot give the base up and sits earlier in the
+ *   file, so it keeps winning the first-match race.
+ */
+export type MoveBlockedReason = 'conditions' | 'no-basetype' | 'outranked'
+
+/**
+ * Why the tier an item currently sits on cannot be stripped. Mirrors
+ * `checkRemovable`'s refusals: taking the last named base off a block deletes its
+ * `BaseType` line, widening the block to everything its remaining conditions
+ * allow -- a `Show` tier gated only on `ItemLevel >= 80` then lights up every
+ * high-level drop in the game.
+ */
+export type SourceLockReason = 'last-base' | 'token'
 
 export interface TierSibling {
   tier: string
@@ -244,6 +275,7 @@ export interface TierSibling {
 
 export interface TierGroup {
   typePath: string
+  /** Only tiers that could actually receive the item, plus the one it is on. */
   siblings: TierSibling[]
   currentTier: string
 }

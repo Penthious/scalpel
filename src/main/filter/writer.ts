@@ -1,5 +1,6 @@
 import { writeFileSync } from 'node:fs'
 import type { FilterBlock, FilterFile } from '@shared/types'
+import { checkRemovable } from '@shared/filter-removal'
 import { NUMERIC_CONDITION_TYPES } from './condition-types'
 import { validateBlock } from './validate'
 
@@ -89,36 +90,67 @@ export function writeBlockEdit(filterFile: FilterFile, blockIndex: number, updat
   }
 }
 
+/** What a tier move actually did to the file. */
+export interface TierMoveResult {
+  /** The base now appears on the destination's BaseType line. */
+  added: boolean
+  /** The base no longer appears on the source's BaseType line. */
+  stripped: boolean
+}
+
 /**
  * Move an item's BaseType from one tier block to another.
  * Edits the raw lines directly so formatting and comments are preserved.
+ *
+ * Both ends are guarded against changing what the tier catches beyond this one
+ * base, and the guards are hard invariants rather than caller courtesies:
+ *
+ * - The source is left alone when the base is the last one it names. Deleting the
+ *   emptied `BaseType` line would widen the block to everything its remaining
+ *   conditions allow -- FilterBlade's `trialkeysanctumtop` is `ItemLevel >= 80`
+ *   plus one base, and stripping the base turned it into "show every ilvl 80+
+ *   item in the game" (see `checkRemovable`).
+ * - The destination is left alone when it lists no bases at all. Creating a
+ *   `BaseType` line on a class-rules tier narrows it from "everything of this
+ *   class" to "only this base" -- the same damage in the other direction.
+ *
+ * Callers must check the result: a move that neither added nor stripped changed
+ * nothing, and one that only did half the job may not take effect.
  */
 export function moveBaseTypeBetweenTiers(
   filterFile: FilterFile,
   baseType: string,
   fromBlockIndex: number,
   toBlockIndex: number,
-): void {
-  if (fromBlockIndex === toBlockIndex) return
+): TierMoveResult {
+  if (fromBlockIndex === toBlockIndex) return { added: false, stripped: false }
 
   const fromBlock = filterFile.blocks[fromBlockIndex]
   const toBlock = filterFile.blocks[toBlockIndex]
 
+  const canAdd = toBlock.conditions.some((c) => c.type === 'BaseType')
+  const canStrip = checkRemovable(fromBlock, baseType).removable
+  if (!canAdd && !canStrip) return { added: false, stripped: false }
+
   // Work on raw lines — process the later block first so line numbers stay valid
   const lines = [...filterFile.rawLines]
+  let added = false
 
   if (fromBlock.lineStart < toBlock.lineStart) {
     // Source is before target: add first (to target), then remove (from source)
-    addBaseTypeToRawLines(lines, toBlock, baseType)
-    removeBaseTypeFromRawLines(lines, fromBlock, baseType)
+    if (canAdd) added = addBaseTypeToRawLines(lines, toBlock, baseType)
+    if (canStrip) removeBaseTypeFromRawLines(lines, fromBlock, baseType)
   } else {
     // Target is before source: remove first, then add
-    removeBaseTypeFromRawLines(lines, fromBlock, baseType)
-    addBaseTypeToRawLines(lines, toBlock, baseType)
+    if (canStrip) removeBaseTypeFromRawLines(lines, fromBlock, baseType)
+    if (canAdd) added = addBaseTypeToRawLines(lines, toBlock, baseType)
   }
+
+  if (!added && !canStrip) return { added: false, stripped: false }
 
   writeFileSync(filterFile.path, lines.join(filterFile.eol ?? '\n'), 'utf-8')
   filterFile.rawLines = lines
+  return { added, stripped: canStrip }
 }
 
 /**
@@ -204,14 +236,16 @@ export function addBaseTypeToTier(filterFile: FilterFile, baseType: string, bloc
   return true
 }
 
-function addBaseTypeToRawLines(lines: string[], block: FilterBlock, baseType: string): void {
+/** True when the value was appended; false when it was already there or the
+ *  block has no BaseType line to append to. */
+function addBaseTypeToRawLines(lines: string[], block: FilterBlock, baseType: string): boolean {
   const quoted = `"${baseType}"`
   for (let i = block.lineStart - 1; i < block.lineEnd; i++) {
     const stripped = lines[i].replace(/#.*/, '').trim()
     if (!stripped.startsWith('BaseType')) continue
 
     // Check if already present — don't duplicate
-    if (stripped.includes(`"${baseType}"`)) return
+    if (stripped.includes(`"${baseType}"`)) return false
 
     // Append the new value
     const commentIdx = lines[i].indexOf('#')
@@ -220,12 +254,13 @@ function addBaseTypeToRawLines(lines: string[], block: FilterBlock, baseType: st
     } else {
       lines[i] = `${lines[i].trimEnd()} ${quoted}`
     }
-    return
+    return true
   }
 
-  // No BaseType line found — add one after the Show/Hide line
-  lines.splice(block.lineStart, 0, `\tBaseType == ${quoted}`)
-  block.lineEnd++
+  // No BaseType line: nothing to append to, and creating one would narrow a
+  // class-rules tier to this single base. Both callers already refuse such a
+  // destination; this is the backstop.
+  return false
 }
 
 function escapeRegex(str: string): string {

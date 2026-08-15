@@ -20,6 +20,24 @@ interface UseAuditStateArgs {
   item?: PoeItem
 }
 
+/**
+ * Report what a batch move actually did. A tier never gives up its last named
+ * base -- deleting the emptied `BaseType` line would widen it to everything its
+ * remaining conditions allow -- so "move all of these" can legitimately leave
+ * one behind, and claiming the full count would be a lie.
+ */
+function describeBatchMove(
+  result: { ok: boolean; error?: string; moved?: number; stranded?: string[] },
+  requested: number,
+  tier: string,
+): string {
+  if (!result.ok) return result.error ?? 'Move failed'
+  const moved = result.moved ?? requested
+  const stranded = result.stranded ?? []
+  if (stranded.length === 0) return `Moved ${moved} items to ${tier}`
+  return `Moved ${moved} items to ${tier}, ${stranded.join(', ')} stayed (last base in this tier)`
+}
+
 export interface AuditState {
   // Fetched data
   items: AuditItem[]
@@ -248,9 +266,8 @@ export function useAuditState({ block, blockIndex, tierGroup, item }: UseAuditSt
     const target = tiersBelow.find((s) => s.blockIndex === effectiveBelowTarget)
     if (!target) return
     setMoving(true)
-    const count = belowThreshold.length
     const tier = formatTierLabel(target.tier)
-    await window.api.batchMoveItemTier(
+    const result = await window.api.batchMoveItemTier(
       belowThreshold.map((it) => it.name),
       blockIndex,
       target.blockIndex,
@@ -258,8 +275,10 @@ export function useAuditState({ block, blockIndex, tierGroup, item }: UseAuditSt
     )
     setMoving(false)
     setItems([])
-    setLastMovedBelow(`Moved ${count} items to ${tier}`)
-    setMovedBelow(`Moved ${count} items to ${tier}`)
+    // A tier will not give up its last named base -- report what actually moved.
+    const message = describeBatchMove(result, belowThreshold.length, tier)
+    setLastMovedBelow(message)
+    setMovedBelow(message)
   }
 
   const handleMoveAbove = async (): Promise<void> => {
@@ -267,9 +286,8 @@ export function useAuditState({ block, blockIndex, tierGroup, item }: UseAuditSt
     const target = tiersAbove.find((s) => s.blockIndex === effectiveAboveTarget)
     if (!target) return
     setMoving(true)
-    const count = aboveThreshold.length
     const tier = formatTierLabel(target.tier)
-    await window.api.batchMoveItemTier(
+    const result = await window.api.batchMoveItemTier(
       aboveThreshold.map((it) => it.name),
       blockIndex,
       target.blockIndex,
@@ -277,8 +295,9 @@ export function useAuditState({ block, blockIndex, tierGroup, item }: UseAuditSt
     )
     setMoving(false)
     setItems([])
-    setLastMovedAbove(`Moved ${count} items to ${tier}`)
-    setMovedAbove(`Moved ${count} items to ${tier}`)
+    const message = describeBatchMove(result, aboveThreshold.length, tier)
+    setLastMovedAbove(message)
+    setMovedAbove(message)
   }
 
   return {

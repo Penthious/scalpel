@@ -245,39 +245,75 @@ export function replayIntents(
         continue
       }
 
+      // Both ends get the same guards the live writer applies, because a replayed
+      // move rewrites the file exactly as the original one did -- an unguarded
+      // replay re-inflicts the damage on every sync, even after the user repairs
+      // the file by hand.
+      const moveCheck = checkRemovable(current.block, p.value)
+      // Taking the last name off a tier is only safe when nothing is left to
+      // match on: that tier stops existing, which is honest. When the tier has
+      // OTHER conditions, the same strip silently widens it to everything those
+      // allow -- `ItemLevel >= 80` on its own lights up every high-level drop in
+      // the game. That is the one case this must refuse.
+      const emptiesBlock =
+        !moveCheck.removable &&
+        moveCheck.reason === 'last-base' &&
+        current.block.conditions.every((c) => c.type === 'BaseType')
+
+      if (!moveCheck.removable && !emptiesBlock) {
+        const fromTier = current.block.tierTag?.tier ?? `block #${current.index + 1}`
+        const why =
+          moveCheck.reason === 'last-base'
+            ? `it is the only base ${fromTier} names, so removing it would leave that tier matching everything its other conditions allow`
+            : moveCheck.reason === 'token'
+              ? `${fromTier} now catches it via the pattern "${moveCheck.token}"`
+              : `${fromTier} no longer names it`
+        conflicts.push({
+          intent,
+          description: `Couldn't re-apply the move of "${p.value}": ${why}.`,
+          options: [],
+        })
+        skipped++
+        continue
+      }
+
+      // Creating a BaseType line on a class-rules tier would narrow it from
+      // "everything of this class" to this one base -- the same damage inverted.
+      const targetBaseType = match.block.conditions.find((c) => c.type === 'BaseType')
+      if (!targetBaseType) {
+        conflicts.push({
+          intent,
+          description: `Couldn't move "${p.value}" to ${typePath}/${tier}: it no longer lists bases by name.`,
+          options: [],
+        })
+        skipped++
+        continue
+      }
+
       // Apply the move: remove from current location, add to target
-      // Remove from current block's BaseType condition
+      const strip = moveCheck.removable ? moveCheck.exact : [p.value]
       for (const cond of current.block.conditions) {
         if (cond.type === 'BaseType') {
-          cond.values = cond.values.filter((v) => v !== p.value)
+          cond.values = cond.values.filter((v) => !strip.includes(v))
         }
       }
       // Drop any BaseType condition that is now empty so we never serialize a
-      // dangling "BaseType ==" line (PoE parse error).
+      // dangling "BaseType ==" line (PoE parse error). The guard above has
+      // already ruled out the case where that would widen the block.
       current.block.conditions = current.block.conditions.filter(
         (c) => !(c.type === 'BaseType' && c.values.length === 0),
       )
       if (current.block.conditions.length === 0) {
-        // The move emptied the block's only condition; a condition-less block is a
-        // catch-all that matches every item. Drop the whole block instead.
+        // Nothing left to match on. A condition-less block is a catch-all that
+        // matches every item, so the block goes rather than the tier becoming one.
         removedBlocks.add(current.index)
         modifiedBlocks.delete(current.index)
       } else {
         modifiedBlocks.add(current.index)
       }
-      // Add to target block's BaseType condition
-      const targetBaseType = match.block.conditions.find((c) => c.type === 'BaseType')
-      if (targetBaseType) {
-        if (!targetBaseType.values.includes(p.value)) {
-          targetBaseType.values.push(p.value)
-        }
-      } else {
-        match.block.conditions.push({
-          type: 'BaseType',
-          operator: '==',
-          values: [p.value],
-          explicitOperator: true,
-        })
+
+      if (!targetBaseType.values.includes(p.value)) {
+        targetBaseType.values.push(p.value)
       }
       modifiedBlocks.add(match.index)
       applied++

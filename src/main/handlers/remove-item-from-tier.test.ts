@@ -207,6 +207,106 @@ describe('remove-item-from-tier', () => {
     expect(getIntents().intents).toHaveLength(0)
   })
 
+  it('hides a tier that names only this base by flipping it, touching nothing else', () => {
+    // The PoE2 trial-coin shape: the tier is an ItemLevel band over one base, so
+    // the tier *is* the item. Flipping it is the whole job -- and it is the only
+    // route that works here, since the base cannot be stripped (`last-base`)
+    // without widening the block to every ilvl 80+ drop in the game.
+    const before = [
+      'Show # %HS4 $type->miscmapitemsextra $tier->trialkeysanctumtop !fragments_c',
+      '\tItemLevel >= 80',
+      '\tBaseType == "Djinn Barya"',
+      '\tSetFontSize 42',
+      '',
+    ]
+    const path = writeFilter(before)
+    loadFilter(path)
+    loadIntents(path, 'test')
+
+    const coin = itemJson({ baseType: 'Djinn Barya', itemClass: 'Trial Coins', rarity: 'Currency', itemLevel: 83 })
+    const result = handlerFor('hide-item', path)(null, 'Djinn Barya', coin) as {
+      ok: boolean
+      hiddenIn?: string
+      error?: string
+    }
+
+    expect(result.ok).toBe(true)
+    expect(result.hiddenIn).toBe('trialkeysanctumtop')
+
+    // Only the visibility keyword changed -- conditions, actions, the tier tag
+    // and the base list all survive the round-trip untouched.
+    const after = readFileSync(path, 'utf-8').split('\n')
+    expect(after).toEqual(before.map((l) => l.replace(/^Show /, 'Hide ')))
+
+    const intents = getIntents().intents
+    expect(intents).toHaveLength(1)
+    expect(intents[0].type).toBe('set-visibility')
+    expect(intents[0].target).toEqual({ typePath: 'miscmapitemsextra', tier: 'trialkeysanctumtop' })
+  })
+
+  it('reports the flip in the preview so the row can describe it', () => {
+    const path = writeFilter([
+      'Show # $type->miscmapitemsextra $tier->trialkeysanctumtop',
+      '\tItemLevel >= 80',
+      '\tBaseType == "Djinn Barya"',
+      '',
+    ])
+    loadFilter(path)
+    loadIntents(path, 'test')
+
+    const coin = itemJson({ baseType: 'Djinn Barya', itemClass: 'Trial Coins', rarity: 'Currency', itemLevel: 83 })
+    const preview = handlerFor('preview-fall-through', path)(null, 0, coin) as unknown as {
+      flipTier: string | null
+      hideDestination: string | null
+    }
+
+    expect(preview.flipTier).toBe('trialkeysanctumtop')
+    // The flip replaces the strip-and-add route rather than sitting alongside it.
+    expect(preview.hideDestination).toBeNull()
+  })
+
+  it('does not flip a tier that names other bases too', () => {
+    // Flipping here would hide Divine Orb as collateral. The strip-and-add route
+    // is the correct one, and it stays in charge.
+    const path = writeFilter([
+      'Show # $type->currency $tier->t1',
+      '\tBaseType == "Chaos Orb" "Divine Orb"',
+      '',
+      'Hide # $type->currency $tier->twisdom',
+      '\tBaseType == "Scroll of Wisdom"',
+      '',
+    ])
+    loadFilter(path)
+    loadIntents(path, 'test')
+
+    const chaos = itemJson({ baseType: 'Chaos Orb', itemClass: 'Stackable Currency', rarity: 'Normal', stackSize: 1 })
+    const result = handlerFor('hide-item', path)(null, 'Chaos Orb', chaos) as { ok: boolean; hiddenIn?: string }
+
+    expect(result.ok).toBe(true)
+    expect(result.hiddenIn).toBe('twisdom')
+    const out = readFileSync(path, 'utf-8')
+    expect(out).toContain('Show # $type->currency $tier->t1')
+    expect(out).toContain('BaseType == "Divine Orb"')
+  })
+
+  it('refuses when the tier is already hidden rather than flipping it twice', () => {
+    const before = [
+      'Hide # $type->miscmapitemsextra $tier->trialkeysanctum3',
+      '\tItemLevel <= 79',
+      '\tBaseType == "Djinn Barya"',
+      '',
+    ]
+    const path = writeFilter(before)
+    loadFilter(path)
+    loadIntents(path, 'test')
+
+    const coin = itemJson({ baseType: 'Djinn Barya', itemClass: 'Trial Coins', rarity: 'Currency', itemLevel: 70 })
+    const result = handlerFor('hide-item', path)(null, 'Djinn Barya', coin)
+
+    expect(result.ok).toBe(false)
+    expect(readFileSync(path, 'utf-8')).toBe(before.join('\n'))
+  })
+
   it('refuses when the base is the last one named, leaving the file untouched', () => {
     const before = ['Show # $type->rings $tier->t1', '\tClass "Rings"', '\tBaseType == "Sapphire Ring"', '']
     const path = writeFilter(before)

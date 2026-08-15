@@ -92,6 +92,7 @@ const mkPreview = (
   skipped: [],
   hideDestination,
   alreadyHidden: false,
+  flipTier: null,
 })
 
 const withRemoval = (g: TierGroup, preview: RemovalPreview | undefined = mkPreview(restex)) => ({
@@ -148,4 +149,17 @@ export const CaughtByPattern: Story = {
  *  so one click strips all of them. */
 export const SpansSeveralTiers: Story = {
   args: withRemoval(group(TIERS, 't4chaos'), mkPreview(restex, 3)),
+}
+
+/**
+ * The tier lists only this item -- PoE2's trial coins are an ItemLevel band over
+ * one base. Hiding it is a visibility flip on that block: no base moves, no Hide
+ * tier is needed, and it works where stripping cannot (taking the last name off a
+ * tier would widen it to everything its other conditions allow).
+ */
+export const HideByFlippingTier: Story = {
+  args: withRemoval(group([{ tier: 'trialkeysanctumtop', values: ['Chaos Orb'] }], 'trialkeysanctumtop'), {
+    ...mkPreview(null, 0, null),
+    flipTier: 'trialkeysanctumtop',
+  }),
 }

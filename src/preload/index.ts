@@ -168,7 +168,7 @@ export const api = {
     fromBlockIndex: number,
     toBlockIndex: number,
     itemJson: string,
-  ): Promise<{ ok: boolean; error?: string }> =>
+  ): Promise<{ ok: boolean; error?: string; moved?: number; stranded?: string[] }> =>
     ipcRenderer.invoke('batch-move-item-tier', baseTypes, fromBlockIndex, toBlockIndex, itemJson),
   updateStackThresholds: (
     oldBoundary: number,

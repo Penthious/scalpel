@@ -151,23 +151,26 @@ export function TierNavigator({
 
   /**
    * Hiding is possible when there is something to change and the end state is
-   * hidden. `alreadyHidden` means stripping alone lands the item on a Hide block,
-   * so no destination is needed -- but with nothing to strip either, there is
-   * nothing to do at all.
+   * hidden. `flipTier` is the simplest route and always works. `alreadyHidden`
+   * means stripping alone lands the item on a Hide block, so no destination is
+   * needed -- but with nothing to strip either, there is nothing to do at all.
    */
   const canHide =
-    preview !== undefined && (preview.alreadyHidden ? preview.tierCount > 0 : preview.hideDestination !== null)
+    preview !== undefined &&
+    (preview.flipTier !== null || (preview.alreadyHidden ? preview.tierCount > 0 : preview.hideDestination !== null))
 
   const hideDetail =
     preview === undefined
       ? ''
-      : preview.alreadyHidden
-        ? preview.tierCount > 0
-          ? m.removeitem_hide_plain({ count: preview.tierCount })
-          : m.removeitem_hide_already()
-        : preview.hideDestination
-          ? m.removeitem_hide_in({ tier: formatTierLabel(preview.hideDestination) })
-          : m.removeitem_hide_none()
+      : preview.flipTier
+        ? m.removeitem_hide_flip({ tier: formatTierLabel(preview.flipTier) })
+        : preview.alreadyHidden
+          ? preview.tierCount > 0
+            ? m.removeitem_hide_plain({ count: preview.tierCount })
+            : m.removeitem_hide_already()
+          : preview.hideDestination
+            ? m.removeitem_hide_in({ tier: formatTierLabel(preview.hideDestination) })
+            : m.removeitem_hide_none()
 
   return (
     <div className="bg-bg-card rounded">

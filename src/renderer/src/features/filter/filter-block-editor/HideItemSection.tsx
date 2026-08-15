@@ -18,27 +18,32 @@ interface HideItemSectionProps {
  * Stop an item being drawn, for items whose tier has no switchable group -- the
  * dropdown's Hide row covers every other case.
  *
- * Two steps under the hood: strip every tier that names the item, then add it to
- * a Hide tier that wins the first-match race. A bare removal is not offered,
- * because it only drops the item to a catch-all and those are usually `Show`.
+ * Usually two steps under the hood: strip every tier that names the item, then
+ * add it to a Hide tier that wins the first-match race. A bare removal is not
+ * offered, because it only drops the item to a catch-all and those are usually
+ * `Show`. When the tier names this base and nothing else it is one step instead
+ * -- the tier is the item, so it is simply flipped to `Hide`.
  */
 export function HideItemSection({ item, preview, onHidden }: HideItemSectionProps): JSX.Element {
   const [hiding, setHiding] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const canHide =
-    preview !== undefined && (preview.alreadyHidden ? preview.tierCount > 0 : preview.hideDestination !== null)
+    preview !== undefined &&
+    (preview.flipTier !== null || (preview.alreadyHidden ? preview.tierCount > 0 : preview.hideDestination !== null))
 
   const detail =
     preview === undefined
       ? null
-      : preview.alreadyHidden
-        ? preview.tierCount > 0
-          ? m.removeitem_hide_plain({ count: preview.tierCount })
-          : m.removeitem_hide_already()
-        : preview.hideDestination
-          ? m.removeitem_hide_in({ tier: formatTierLabel(preview.hideDestination) })
-          : m.removeitem_hide_none()
+      : preview.flipTier
+        ? m.removeitem_hide_flip({ tier: formatTierLabel(preview.flipTier) })
+        : preview.alreadyHidden
+          ? preview.tierCount > 0
+            ? m.removeitem_hide_plain({ count: preview.tierCount })
+            : m.removeitem_hide_already()
+          : preview.hideDestination
+            ? m.removeitem_hide_in({ tier: formatTierLabel(preview.hideDestination) })
+            : m.removeitem_hide_none()
 
   const hide = async (): Promise<void> => {
     setHiding(true)

@@ -268,6 +268,7 @@
   "removeitem_hide_none": "Für diesen Gegenstand ist keine ausgeblendete Stufe verfügbar",
   "removeitem_hide_already": "Bereits ausgeblendet — nichts zu ändern",
   "removeitem_hide_plain": "Blendet den Gegenstand aus, indem er aus {count} Stufe(n) entfernt wird, die ihn anzeigen",
+  "removeitem_hide_flip": "Blendet die Stufe {tier} aus, die nur diesen Gegenstand enthält",
   "hideitem_title": "Gegenstand ausblenden",
   "hideitem_button": "\"{item}\" ausblenden"
 }

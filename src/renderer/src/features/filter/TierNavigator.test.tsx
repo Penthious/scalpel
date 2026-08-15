@@ -57,6 +57,7 @@ function mkPreview(over: Partial<RemovalPreview> = {}): RemovalPreview {
     skipped: [],
     hideDestination: 'twisdom',
     alreadyHidden: false,
+    flipTier: null,
     ...over,
   }
 }
@@ -171,6 +172,23 @@ describe('TierNavigator hide row', () => {
     expect(screen.getByText(/already hidden/i)).toBeTruthy()
     fireEvent.click(screen.getByText('Hide'))
     expect(hide).not.toHaveBeenCalled()
+  })
+
+  it('offers the flip when the tier lists only this item', () => {
+    // The tier is the item, so hiding it is a visibility change on that block --
+    // no base moves and no Hide tier is needed anywhere else.
+    open({ preview: mkPreview({ flipTier: 'trialkeysanctumtop', hideDestination: null }) })
+    expect(screen.getByText(/lists only this item/i)).toBeTruthy()
+  })
+
+  it('stays actionable on the flip route even with no hide destination', async () => {
+    const hide = vi.fn(async () => ({ ok: true }))
+    ;(window as unknown as { api: Partial<typeof window.api> }).api = { hideItem: hide }
+
+    open({ preview: mkPreview({ flipTier: 'trialkeysanctumtop', hideDestination: null, tierCount: 0 }) })
+    fireEvent.click(screen.getByText('Hide'))
+
+    await waitFor(() => expect(hide).toHaveBeenCalledWith('Chaos Orb', JSON.stringify(item)))
   })
 
   it('claims nothing while the plan is still resolving', () => {

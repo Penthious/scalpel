@@ -27,6 +27,7 @@ function preview(over: Partial<RemovalPreview> = {}): RemovalPreview {
     skipped: [],
     hideDestination: 'twisdom',
     alreadyHidden: false,
+    flipTier: null,
     ...over,
   }
 }

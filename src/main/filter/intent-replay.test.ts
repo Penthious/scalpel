@@ -54,7 +54,12 @@ describe('replayIntents move-basetype', () => {
     for (const b of reparsed.blocks) expect(validateBlock(b)).toEqual([])
   })
 
-  it('keeps the block (dropping only the empty condition) when it has other conditions', () => {
+  it('refuses the move when stripping the last base would widen the source tier', () => {
+    // Dropping the emptied BaseType line here leaves `Rarity Normal` alone, and
+    // that block then catches every normal-rarity item in the game. This is the
+    // PoE2 trial-coin damage (`ItemLevel >= 80` with its only base stripped)
+    // arriving through the replay path, which re-inflicts it on every sync --
+    // even after the user repairs the file by hand.
     const upstream = [
       'Show # $type->currency $tier->src',
       '\tRarity Normal',
@@ -68,13 +73,41 @@ describe('replayIntents move-basetype', () => {
     ].join('\n')
 
     const res = replayIntents(upstream, 't.filter', moveLog('Chaos Orb', 'src', 'dst'), { forceApply: true })
+
     const srcIndex = res.filter.blocks.findIndex((b) => b.tierTag?.tier === 'src')
-    expect(res.removedBlocks.has(srcIndex)).toBe(false)
-    expect(res.modifiedBlocks.has(srcIndex)).toBe(true)
     const src = res.filter.blocks[srcIndex]
-    expect(src.conditions.some((c) => c.type === 'BaseType')).toBe(false) // empty BaseType dropped
-    expect(src.conditions.some((c) => c.type === 'Rarity')).toBe(true) // other condition kept
+    expect(src.conditions.find((c) => c.type === 'BaseType')?.values).toEqual(['Chaos Orb'])
+    expect(res.removedBlocks.has(srcIndex)).toBe(false)
+    expect(res.modifiedBlocks.has(srcIndex)).toBe(false)
+    // Nothing lands on the destination either -- a half-applied move would leave
+    // the base named in both tiers.
+    const dst = res.filter.blocks.find((b) => b.tierTag?.tier === 'dst')!
+    expect(dst.conditions.find((c) => c.type === 'BaseType')!.values).toEqual(['Divine Orb'])
+    // Reported rather than swallowed, so the merge UI can surface it.
+    expect(res.stats.conflicts).toBe(1)
+    expect(res.conflicts[0].description).toContain('only base')
     expect(validateBlock(src)).toEqual([])
+  })
+
+  it('refuses to move into a tier that no longer lists bases by name', () => {
+    // Creating a BaseType line on a class-rules tier narrows it from "everything
+    // of this class" to this one base -- the same damage inverted.
+    const upstream = [
+      'Show # $type->currency $tier->src',
+      '\tBaseType == "Chaos Orb" "Divine Orb"',
+      '',
+      'Show # $type->currency $tier->dst',
+      '\tClass "Stackable Currency"',
+      '',
+    ].join('\n')
+
+    const res = replayIntents(upstream, 't.filter', moveLog('Chaos Orb', 'src', 'dst'), { forceApply: true })
+
+    const dst = res.filter.blocks.find((b) => b.tierTag?.tier === 'dst')!
+    expect(dst.conditions.some((c) => c.type === 'BaseType')).toBe(false)
+    const src = res.filter.blocks.find((b) => b.tierTag?.tier === 'src')!
+    expect(src.conditions.find((c) => c.type === 'BaseType')!.values).toContain('Chaos Orb')
+    expect(res.stats.conflicts).toBe(1)
   })
 })
 

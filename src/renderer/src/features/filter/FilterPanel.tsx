@@ -119,7 +119,14 @@ export function FilterPanel({
       })
       .catch(() => {
         if (!cancelled)
-          setPreview({ landsOn: null, tierCount: 0, skipped: [], hideDestination: null, alreadyHidden: false })
+          setPreview({
+            landsOn: null,
+            tierCount: 0,
+            skipped: [],
+            hideDestination: null,
+            alreadyHidden: false,
+            flipTier: null,
+          })
       })
     return () => {
       cancelled = true

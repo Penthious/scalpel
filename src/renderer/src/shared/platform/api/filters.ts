@@ -98,7 +98,7 @@ export function batchMoveItemTier(
   fromBlockIndex: number,
   toBlockIndex: number,
   itemJson: string,
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{ ok: boolean; error?: string; moved?: number; stranded?: string[] }> {
   return window.api.batchMoveItemTier(baseTypes, fromBlockIndex, toBlockIndex, itemJson)
 }
 
