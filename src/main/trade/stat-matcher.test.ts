@@ -2247,6 +2247,47 @@ describe('matchItemMods', () => {
     })
   })
 
+  describe('minimum-only added damage fold (#587)', () => {
+    // #587. Tulfall prints both ends of its added-damage roll ("Adds 50 to 70 Cold
+    // Damage to Spells per Power Charge") but GGG publishes the stat text with only
+    // the minimum in it ("Adds # minimum Cold Damage to Spells per Power Charge",
+    // explicit.stat_3408048164), so the line matched nothing and the wand lost the
+    // row entirely. The id is indexed as an ordinary min-max range despite that text:
+    // probed on Allflame, value 50 returns 0 listings and 60 (the average of 50 and
+    // 70) returns 113. Tulborn's twin mod is published with both #s, so the fold must
+    // not fire on it.
+    const FOLD_STATS = [
+      {
+        id: 'explicit.stat_3408048164',
+        text: 'Adds # minimum Cold Damage to Spells per Power Charge',
+        type: 'explicit',
+      },
+      {
+        id: 'explicit.stat_4085417083',
+        text: 'Adds # to # Lightning Damage to Spells per Power Charge',
+        type: 'explicit',
+      },
+    ]
+    const runWand = (mods: string[]) =>
+      matchItemMods(mods, [], undefined, makeItemInfo({ rarity: 'Unique', itemClass: 'Wands', baseType: 'Opal Wand' }))
+
+    it('matches a two-ended roll to the minimum-only stat, averaged (#587)', () => {
+      _setStatEntriesForTests(FOLD_STATS)
+      const f = runWand(['Adds 50 to 70 Cold Damage to Spells per Power Charge']).find(
+        (x) => x.id === 'explicit.stat_3408048164',
+      )
+      expect(f).toBeDefined()
+      expect(f?.value).toBe(60)
+    })
+
+    it('leaves an ordinary two-# added-damage stat on its own id (negative control)', () => {
+      _setStatEntriesForTests(FOLD_STATS)
+      const filters = runWand(['Adds 10 to 20 Lightning Damage to Spells per Power Charge'])
+      expect(filters.find((x) => x.id === 'explicit.stat_4085417083')?.value).toBe(15)
+      expect(filters.find((x) => x.id === 'explicit.stat_3408048164')).toBeUndefined()
+    })
+  })
+
   describe('catalyst quality scales implicit magnitude (#477)', () => {
     // Catalyst quality on jewellery scales the magnitude of both explicit AND
     // implicit mods of the relevant tag; GGG annotates each scaled mod's advanced

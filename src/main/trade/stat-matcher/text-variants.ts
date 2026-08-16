@@ -111,6 +111,21 @@ function generateTextVariants(text: string): string[] {
     variants.push(chanceToMatch[1])
   }
 
+  // One PoE1 added-damage stat is published with only the minimum end in its text:
+  // Tulfall's "Adds 50 to 70 Cold Damage to Spells per Power Charge" is indexed as
+  // "Adds # minimum Cold Damage to Spells per Power Charge" (explicit.stat_3408048164),
+  // so the two-ended clipboard line matched nothing and the wand lost the row (#587).
+  // That id is still indexed as an ordinary min-max range despite the wording -- probed
+  // on Allflame, value 50 returns 0 listings and 60 (the average of the two ends)
+  // returns 113 -- so the folded variant carries the average, which the ordinary
+  // numeric capture reads straight back out. Only used as a fallback: every stat that
+  // publishes both #s matches the unstripped text (variant 0) first.
+  const addsRangeMatch = text.match(/^Adds (\d+(?:\.\d+)?) to (\d+(?:\.\d+)?) (.+)$/i)
+  if (addsRangeMatch) {
+    const average = (parseFloat(addsRangeMatch[1]) + parseFloat(addsRangeMatch[2])) / 2
+    variants.push(`Adds ${average} minimum ${addsRangeMatch[3]}`)
+  }
+
   // Oxford comma: the PoE2 clipboard writes three-item lists as "A, B, and C"
   // (e.g. "Global Armour, Evasion, and Energy Shield") but the trade API stat
   // text drops the comma before "and" ("A, B and C"). Strip it so they match.
