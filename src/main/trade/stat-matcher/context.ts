@@ -42,7 +42,7 @@ export interface ItemInfo {
   chaosDamageAvg?: number
   attacksPerSecond?: number
   critChance?: number
-  heistJob?: { skill: string; level: number }
+  heistJobs?: Array<{ skill: string; level: number }>
   heistTarget?: string
   monsterLevel?: number
   wingsRevealed?: number

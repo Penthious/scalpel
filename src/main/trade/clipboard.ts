@@ -308,10 +308,12 @@ export function parseItemText(text: string): PoeItem | null {
 
   // Extract map/waystone tier from header line like "Map (Tier 12)" or "Waystone (Tier 5)"
   const tierMatch = name.match(/\(Tier (\d+)\)/) ?? baseType.match(/\(Tier (\d+)\)/)
-  // Heist job skill requirement: "Requires Engineering (Level 3)" or "(Level 3 (unmet))"
-  const heistJobLine = allLines.find((l) => /^Requires \w+.*\(Level \d+/.test(l))
-  const heistJobMatch = heistJobLine?.match(/^Requires (\w[\w -]*?)\s*\(Level (\d+)/)
-  const heistJob = heistJobMatch ? { skill: heistJobMatch[1].trim(), level: parseInt(heistJobMatch[2], 10) } : undefined
+  // Heist job skill requirements: "Requires Engineering (Level 3)" or "(Level 3 (unmet))".
+  // A contract prints exactly one; a blueprint prints one per revealed wing job (#591).
+  const heistJobs = allLines
+    .map((l) => l.match(/^Requires (\w[\w -]*?)\s*\(Level (\d+)/))
+    .filter((m): m is RegExpMatchArray => m != null)
+    .map((m) => ({ skill: m[1].trim(), level: parseInt(m[2], 10) }))
 
   // Monster level (maps) or Area Level (heist contracts/blueprints)
   const monsterLevel = extractNum(allLines, 'Monster Level:') ?? extractNum(allLines, 'Area Level:')
@@ -805,7 +807,7 @@ export function parseItemText(text: string): PoeItem | null {
     ...(attacksPerSecond != null ? { attacksPerSecond } : {}),
     ...(critChance != null ? { critChance } : {}),
     ...(itemSize ? { width: itemSize[0], height: itemSize[1] } : {}),
-    ...(heistJob ? { heistJob } : {}),
+    ...(heistJobs.length > 0 ? { heistJobs } : {}),
     ...(heistTarget ? { heistTarget } : {}),
     ...(monsterLevel != null ? { monsterLevel } : {}),
     ...(wingsRevealed != null ? { wingsRevealed, wingsTotal } : {}),

@@ -2351,7 +2351,7 @@ describe('parseItemText', () => {
         'Item Level: 83',
       ].join('\n')
       const item = parseItemText(text)!
-      expect(item.heistJob).toEqual({ skill: 'Engineering', level: 3 })
+      expect(item.heistJobs).toEqual([{ skill: 'Engineering', level: 3 }])
     })
 
     it('parses heist job requirement from a contract with "(unmet)" suffix', () => {
@@ -2365,7 +2365,33 @@ describe('parseItemText', () => {
         'Item Level: 83',
       ].join('\n')
       const item = parseItemText(text)!
-      expect(item.heistJob).toEqual({ skill: 'Engineering', level: 3 })
+      expect(item.heistJobs).toEqual([{ skill: 'Engineering', level: 3 }])
+    })
+
+    it('parses every job requirement from a blueprint (#591)', () => {
+      const text = [
+        'Item Class: Blueprints',
+        'Rarity: Rare',
+        'Chimeric Pledge',
+        'Blueprint: Bunker',
+        '--------',
+        'Area Level: 83',
+        'Wings Revealed: 1/3',
+        'Escape Routes Revealed: 1/6',
+        'Reward Rooms Revealed: 3/21',
+        'Requires Demolition (Level 2)',
+        'Requires Counter-Thaumaturgy (Level 5)',
+        'Requires Trap Disarmament (Level 1)',
+        'Item Quantity: +58%',
+        '--------',
+        'Item Level: 84',
+      ].join('\n')
+      const item = parseItemText(text)!
+      expect(item.heistJobs).toEqual([
+        { skill: 'Demolition', level: 2 },
+        { skill: 'Counter-Thaumaturgy', level: 5 },
+        { skill: 'Trap Disarmament', level: 1 },
+      ])
     })
 
     it('parses wings revealed and total from a blueprint', () => {

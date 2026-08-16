@@ -519,7 +519,7 @@ export function PriceCheck({
         maxStackSize={item.maxStackSize}
         dustInfo={getDustInfo(item)}
         areaLevel={item.monsterLevel}
-        heistJob={item.heistJob}
+        heistJobs={item.heistJobs}
         onOpenWiki={onOpenWiki}
         onOpenPoeDb={onOpenPoeDb}
         onOpenNinja={onOpenNinja}

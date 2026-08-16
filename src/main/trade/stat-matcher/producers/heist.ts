@@ -2,7 +2,7 @@ import { getPoeVersion } from '@main/game-state'
 import type { StatFilter } from '../../trade'
 
 type HeistItemInfo = {
-  heistJob?: { skill: string; level: number }
+  heistJobs?: Array<{ skill: string; level: number }>
   heistTarget?: string
   monsterLevel?: number
   wingsRevealed?: number
@@ -25,24 +25,48 @@ export function isEnchantedBlueprint(itemInfo: HeistItemInfo | undefined): boole
   return lines.some((l) => HEIST_TARGETS_ALWAYS.test(l))
 }
 
-// Heist job skill requirement (contracts only; blueprints have multiple jobs that don't filter search)
+/** Trade `heist_filters` key per job name. Lowercasing and swapping spaces for
+ *  underscores gets eight of the nine right, but Counter-Thaumaturgy's hyphen
+ *  survives that rule and yields a key the API doesn't have, so the mapping is
+ *  spelled out rather than derived. */
+const HEIST_JOB_KEYS: Record<string, string> = {
+  Lockpicking: 'heist_lockpicking',
+  'Brute Force': 'heist_brute_force',
+  Perception: 'heist_perception',
+  Demolition: 'heist_demolition',
+  'Counter-Thaumaturgy': 'heist_counter_thaumaturgy',
+  'Trap Disarmament': 'heist_trap_disarmament',
+  Agility: 'heist_agility',
+  Deception: 'heist_deception',
+  Engineering: 'heist_engineering',
+}
+
+// Heist job skill requirements (contracts and blueprints)
 // Area level chip (for heist contracts/blueprints)
 // Heist blueprint wings revealed
 // Exclude Enchanted chip (blueprints only)
 export function buildHeistFilters(itemInfo: HeistItemInfo | undefined): StatFilter[] {
   const out: StatFilter[] = []
 
-  if (itemInfo?.heistJob && itemInfo.itemClass === 'Contracts') {
-    const skillKey = itemInfo.heistJob.skill.toLowerCase().replace(/\s+/g, '_')
-    out.push({
-      id: `heist.heist_${skillKey}`,
-      text: `Requires ${itemInfo.heistJob.skill} (Level ${itemInfo.heistJob.level})`,
-      value: itemInfo.heistJob.level,
-      min: 1,
-      max: null,
-      enabled: true,
-      type: 'heist',
-    })
+  // A contract is defined by its single job, so that row searches for the job at
+  // any level (min 1) and rides along by default. A blueprint carries one job per
+  // revealed wing and is not priced on them, so those rows default off and pin the
+  // item's own level as the min for when the user does want them (#591).
+  if (itemInfo?.itemClass === 'Contracts' || itemInfo?.itemClass === 'Blueprints') {
+    const isContract = itemInfo.itemClass === 'Contracts'
+    for (const job of itemInfo.heistJobs ?? []) {
+      const key = HEIST_JOB_KEYS[job.skill]
+      if (!key) continue
+      out.push({
+        id: `heist.${key}`,
+        text: `Requires ${job.skill} (Level ${job.level})`,
+        value: job.level,
+        min: isContract ? 1 : job.level,
+        max: null,
+        enabled: isContract,
+        type: 'heist',
+      })
+    }
   }
 
   // Area level chip (for heist contracts/blueprints)

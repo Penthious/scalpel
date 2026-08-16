@@ -148,7 +148,9 @@ export interface PoeItem {
   critChance?: number
   width?: number
   height?: number
-  heistJob?: { skill: string; level: number }
+  /** Heist job requirements. One entry on a contract, one per revealed wing job
+   *  on a blueprint. */
+  heistJobs?: Array<{ skill: string; level: number }>
   /** Heist blueprint target, e.g. "Currency" or "Enchanted Armaments". */
   heistTarget?: string
   monsterLevel?: number

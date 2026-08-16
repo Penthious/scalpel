@@ -22,7 +22,7 @@ export function ItemHeader({
   maxStackSize,
   dustInfo,
   areaLevel,
-  heistJob,
+  heistJobs,
   onOpenWiki,
   onOpenPoeDb,
   onOpenNinja,
@@ -39,7 +39,7 @@ export function ItemHeader({
   maxStackSize?: number
   dustInfo?: { value: number; upTo?: boolean } | null
   areaLevel?: number
-  heistJob?: { skill: string; level: number }
+  heistJobs?: Array<{ skill: string; level: number }>
   onOpenWiki?: () => void
   onOpenPoeDb?: () => void
   onOpenNinja?: () => void
@@ -69,18 +69,18 @@ export function ItemHeader({
           {heroName}
         </div>
         {heroName !== baseType && <div className="text-text-dim text-[11px]">{baseType}</div>}
-        {(areaLevel || heistJob) && (
-          <div className="text-text-dim text-[10px] flex gap-2 mt-[2px]">
+        {(areaLevel || (heistJobs?.length ?? 0) > 0) && (
+          <div className="text-text-dim text-[10px] flex gap-2 mt-[2px] flex-wrap">
             {areaLevel && (
               <span>
                 Area Level: <span className="text-text font-semibold">{areaLevel}</span>
               </span>
             )}
-            {heistJob && (
-              <span>
-                {heistJob.skill}: <span className="text-text font-semibold">Lv{heistJob.level}</span>
+            {heistJobs?.map((job) => (
+              <span key={job.skill}>
+                {job.skill}: <span className="text-text font-semibold">Lv{job.level}</span>
               </span>
-            )}
+            ))}
           </div>
         )}
       </div>

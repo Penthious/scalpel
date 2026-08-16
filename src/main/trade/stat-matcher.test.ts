@@ -1784,7 +1784,7 @@ describe('matchItemMods', () => {
         [],
         [],
         undefined,
-        makeItemInfo({ itemClass: 'Contracts', heistJob: { skill: 'Engineering', level: 3 } }),
+        makeItemInfo({ itemClass: 'Contracts', heistJobs: [{ skill: 'Engineering', level: 3 }] }),
       )
       // The id strips to the trade API filter key: "heist.heist_engineering"
       const jobFilter = filters.find((f) => f.id === 'heist.heist_engineering')
@@ -1793,21 +1793,50 @@ describe('matchItemMods', () => {
       expect(jobFilter?.enabled).toBe(true)
     })
 
-    it('does NOT generate heist job filter for blueprints', () => {
+    it('generates one heist job row per blueprint job, off by default and pinned to its level', () => {
       const filters = matchItemMods(
         [],
         [],
         undefined,
-        makeItemInfo({ itemClass: 'Blueprints', heistJob: { skill: 'Engineering', level: 3 } }),
+        makeItemInfo({
+          itemClass: 'Blueprints',
+          wingsRevealed: 1,
+          wingsTotal: 3,
+          heistJobs: [
+            { skill: 'Demolition', level: 2 },
+            { skill: 'Counter-Thaumaturgy', level: 5 },
+            { skill: 'Trap Disarmament', level: 1 },
+          ],
+        }),
       )
-      const jobFilter = filters.find(
+      const jobRows = filters.filter(
         (f) =>
           f.type === 'heist' &&
           f.id.startsWith('heist.heist_') &&
           f.id !== 'heist.heist_wings' &&
           f.id !== 'heist.heist_max_wings',
       )
-      expect(jobFilter).toBeUndefined()
+      // Counter-Thaumaturgy's hyphen would survive a naive slug and yield a key
+      // the trade API doesn't have.
+      expect(jobRows.map((f) => f.id)).toEqual([
+        'heist.heist_demolition',
+        'heist.heist_counter_thaumaturgy',
+        'heist.heist_trap_disarmament',
+      ])
+      expect(jobRows.map((f) => f.min)).toEqual([2, 5, 1])
+      expect(jobRows.map((f) => f.value)).toEqual([2, 5, 1])
+      expect(jobRows.every((f) => f.enabled)).toBe(false)
+      expect(jobRows[1].text).toBe('Requires Counter-Thaumaturgy (Level 5)')
+    })
+
+    it('does NOT generate heist job rows for non-heist item classes', () => {
+      const filters = matchItemMods(
+        [],
+        [],
+        undefined,
+        makeItemInfo({ itemClass: 'Body Armours', heistJobs: [{ skill: 'Engineering', level: 3 }] }),
+      )
+      expect(filters.find((f) => f.id === 'heist.heist_engineering')).toBeUndefined()
     })
 
     it('adds Exclude Enchanted misc chip enabled by default for unenchanted blueprints', () => {
