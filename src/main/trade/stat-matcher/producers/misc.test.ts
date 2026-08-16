@@ -33,6 +33,32 @@ describe('buildMiscFilters synthetic item level', () => {
   })
 })
 
+describe('buildMiscFilters item level cap', () => {
+  const ilvlRow = (overrides: Partial<Parameters<typeof buildMiscFilters>[0]>) =>
+    buildMiscFilters({ ...baseInfo, itemClass: 'Helmets', rarity: 'Rare', ...overrides }, undefined, [])?.find(
+      (f) => f.id === 'misc.ilvl',
+    )
+
+  it('clamps an above-cap ilvl to 86 in the value, the min and the label', () => {
+    expect(ilvlRow({ itemLevel: 100 })).toMatchObject({ text: 'ilvl: 86', value: 86, min: 86, max: null })
+  })
+
+  it('leaves an at-or-below-cap ilvl alone', () => {
+    expect(ilvlRow({ itemLevel: 84 })).toMatchObject({ text: 'ilvl: 84', value: 84, min: 84 })
+    expect(ilvlRow({ itemLevel: 86 })).toMatchObject({ text: 'ilvl: 86', value: 86, min: 86 })
+  })
+
+  it('does not clamp a Forbidden Tome, whose row is a max', () => {
+    // A max pinned to 86 would exclude the tome itself from its own search.
+    expect(ilvlRow({ itemClass: 'Sanctum Research', itemLevel: 100 })).toMatchObject({
+      text: 'ilvl: 100',
+      value: 100,
+      min: null,
+      max: 100,
+    })
+  })
+})
+
 describe('buildMiscFilters level requirement row (#570)', () => {
   const original = getPoeVersion()
   afterEach(() => setPoeVersion(original))

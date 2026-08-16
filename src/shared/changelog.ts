@@ -8,6 +8,7 @@ export const CHANGELOG: { version: string; notes: string[] }[] = [
       "Sanctum relic price checks now search the roll's count, not just its presence.",
       "Allflame-crafted items now price-check with an Intangibility row (off by default) that caps the search at your item's value, so you only see copies with at least as much crafting left in them.",
       'Trade listings now show their Intangibility.',
+      "Price checks on items above item level 86 now search at 86, since nothing above that changes what an item can roll -- searching the item's true level only dropped equivalent listings.",
       'Fixed mods whose plural changes with the roll (like Death Rush\'s "for 2 seconds") matching nothing.',
       'Fixed Sanctum relic mods that spell out their count ("An additional Room") matching nothing.',
       'Fixed items with two abyssal socket grants (like Darkness Enthroned) returning no listings.',

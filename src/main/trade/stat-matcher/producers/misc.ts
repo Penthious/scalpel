@@ -37,6 +37,12 @@ const LEVELING_REQ_CAP: Record<number, number> = { 1: 48, 2: 36 }
  *  added classes stay out until someone opts them in. */
 const REQ_LEVEL_CATEGORIES = /^(weapon|armour|accessory)\./
 
+/** Item level past which the number stops carrying price signal: no affix in either
+ *  game requires higher, so pinning a search to an item's true ilvl only drops
+ *  equivalent listings that happen to have dropped a level or two lower. Value, min
+ *  and label all move together so the chip searches exactly what it says. */
+const ILVL_SIGNAL_CAP = 86
+
 // Non-gem quality, item level, open prefix/suffix, memory strands, corrupted,
 // rarity, mirrored, unidentified, fractured, and influence chips.
 // `filters` is passed explicitly because the fractured chip reads it to determine
@@ -72,12 +78,15 @@ export function buildMiscFilters(
   // Item level chip
   if (itemInfo.itemLevel > 0 && !itemInfo.isSynthetic) {
     const isForbiddenTome = itemInfo.itemClass === 'Sanctum Research'
+    // Forbidden Tomes search downward (max), where clamping would exclude the item
+    // itself, so only the min direction takes the cap.
+    const ilvl = isForbiddenTome ? itemInfo.itemLevel : Math.min(itemInfo.itemLevel, ILVL_SIGNAL_CAP)
     out.push({
       id: 'misc.ilvl',
-      text: `ilvl: ${itemInfo.itemLevel}`,
-      value: itemInfo.itemLevel,
-      min: isForbiddenTome ? null : itemInfo.itemLevel,
-      max: isForbiddenTome ? itemInfo.itemLevel : null,
+      text: `ilvl: ${ilvl}`,
+      value: ilvl,
+      min: isForbiddenTome ? null : ilvl,
+      max: isForbiddenTome ? ilvl : null,
       enabled: isForbiddenTome,
       type: 'misc',
       ...(isForbiddenTome ? { chipState: 'max' as const } : {}),
