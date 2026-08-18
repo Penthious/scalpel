@@ -11,6 +11,9 @@ const capturedRequests: Array<{ url: string; method: string; body?: string }> = 
 // unaffected; response-parsing tests set this to feed a real fetch payload.
 let mockFetchBody: string | null = null
 
+// Same, for `/search/` requests -- error-body tests set this to a GGG rejection.
+let mockSearchBody: string | null = null
+
 interface CapturedTradeFilterGroup {
   filters: Record<string, { min?: number; option?: string }>
 }
@@ -87,9 +90,11 @@ vi.mock('electron', () => ({
               },
             })
             const body =
-              mockFetchBody != null && entry.url.includes('/fetch/')
-                ? mockFetchBody
-                : '{"result":[],"total":0,"id":"q"}'
+              mockSearchBody != null && entry.url.includes('/search/')
+                ? mockSearchBody
+                : mockFetchBody != null && entry.url.includes('/fetch/')
+                  ? mockFetchBody
+                  : '{"result":[],"total":0,"id":"q"}'
             ;(dataCb as ((chunk: unknown) => void) | null)?.(body)
             ;(endCb as (() => void) | null)?.()
           })
@@ -3266,6 +3271,7 @@ describe('searchTrade scrying orb handling (#513)', () => {
 describe('searchTrade mercenary warrant handling', () => {
   beforeEach(() => {
     capturedRequests.length = 0
+    mockSearchBody = null
     _resetRateLimitsForTests()
     setPoeVersion(1)
   })
@@ -3470,6 +3476,43 @@ describe('searchTrade mercenary warrant handling', () => {
     ])
 
     expect(result.loginRequiredMercenaryIds).toBeUndefined()
+  })
+
+  it('searchNeedsLogin: true only when an enabled support would scope a group', () => {
+    // Without the login check the handler defaults to loggedIn: true, which
+    // emits scoped groups anonymously -- two of those 400 on the guest
+    // complexity budget and the search comes back as a silent zero.
+    expect(
+      searchNeedsLogin([
+        buildChip,
+        skillChip(BLADEFALL, 'Bladefall'),
+        supportChip(GR_FASTER_CAST, 'Greater Faster Casting (Tier: 3)', BLADEFALL),
+      ]),
+    ).toBe(true)
+    // Bare skills stay flat in the and group at any login state.
+    expect(searchNeedsLogin([buildChip, skillChip(BLADEFALL, 'Bladefall')])).toBe(false)
+    // Disabled support rows never enter the query.
+    expect(searchNeedsLogin([supportChip(GR_FASTER_CAST, 'Greater Faster Casting (Tier: 3)', BLADEFALL, false)])).toBe(
+      false,
+    )
+  })
+
+  it('gives a complexity rejection the Greg wording instead of reporting zero results', async () => {
+    mockSearchBody = JSON.stringify({
+      error: { code: 2, message: 'Query is too complex.\nLogging in will increase this limit.' },
+    })
+
+    await expect(warrantSearch([buildChip, skillChip(BLADEFALL, 'Bladefall')])).rejects.toThrow(
+      'This trade is too complicated for the API unless you are logged in. Blame Greg. Log in.',
+    )
+  })
+
+  it('passes other trade-API rejections through with their own message', async () => {
+    mockSearchBody = JSON.stringify({ error: { code: 2, message: 'Invalid query' } })
+
+    await expect(warrantSearch([buildChip, skillChip(BLADEFALL, 'Bladefall')])).rejects.toThrow(
+      "GGG's trade API rejected this search: Invalid query",
+    )
   })
 
   it('leaves disabled skill and support rows out of the query', async () => {

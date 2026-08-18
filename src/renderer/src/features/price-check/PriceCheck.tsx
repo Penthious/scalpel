@@ -851,15 +851,15 @@ export function PriceCheck({
                     {loginRequiredMercenaryIds[0] === f.id && (
                       <div className="px-3 pt-2 pb-2" style={{ background: zebraRowBg(rowIdx) }}>
                         <DismissibleTip id="mercenary-support-login" dismissible={false}>
+                          This trade is too complicated for the API unless you are logged in. Blame Greg.{' '}
                           <span
                             className="font-bold underline cursor-pointer"
                             onClick={() => {
                               login().then(() => doSearch())
                             }}
                           >
-                            Log in
-                          </span>{' '}
-                          to match supports on the skill they sit on, not anywhere on the mercenary
+                            Log in.
+                          </span>
                         </DismissibleTip>
                       </div>
                     )}

@@ -185,6 +185,9 @@ interface TradeSearchResult {
   id: string
   result: string[]
   total: number
+  /** Set on rejected queries (HTTP 400 bodies parse into this same shape), e.g.
+   *  code 2 "Query is too complex ... Logging in will increase this limit." */
+  error?: { code?: number; message?: string }
 }
 
 interface TradeListing {
@@ -348,12 +351,16 @@ function isWeightedPseudo(f: StatFilter, dialect: TradeDialect): boolean {
   )
 }
 
-/** Whether a search would include at least one Weighted Sum group. The trade API
- *  rejects weighted searches for anonymous users, so the caller checks login
- *  before searching only when this is true. */
+/** Whether a search would emit stat groups the trade API rejects for anonymous
+ *  users: Weighted Sum groups, or per-skill `mercenary` groups (two of those
+ *  already blow the guest complexity budget and 400). The caller checks login
+ *  before searching only when this is true, so the query builder can degrade
+ *  anonymous searches instead of sending a doomed one. */
 export function searchNeedsLogin(statFilters: StatFilter[]): boolean {
   const dialect = TRADE_DIALECTS[getPoeVersion()]
-  return statFilters.some((f) => f.enabled && isWeightedPseudo(f, dialect))
+  return statFilters.some(
+    (f) => f.enabled && (isWeightedPseudo(f, dialect) || (f.type === 'mercenary' && f.mercenarySkillId != null)),
+  )
 }
 
 const ynToOption = (s: 'yes' | 'no'): 'true' | 'false' => (s === 'yes' ? 'true' : 'false')
@@ -1430,6 +1437,19 @@ export async function searchTrade(
     method: 'POST',
     body,
   })) as TradeSearchResult
+
+  // A rejected query parses fine and would otherwise render as "No listings
+  // found" -- surface it instead. Complexity rejections get the house wording
+  // (matched on message text: code 2 is GGG's generic invalid-query code);
+  // anything else passes GGG's own message through.
+  if (searchResult.error) {
+    if (/too complex/i.test(searchResult.error.message ?? '')) {
+      throw new Error('This trade is too complicated for the API unless you are logged in. Blame Greg. Log in.')
+    }
+    throw new Error(
+      `GGG's trade API rejected this search: ${searchResult.error.message?.replace(/\s+/g, ' ') ?? 'unknown error'}`,
+    )
+  }
 
   if (!searchResult.result || searchResult.result.length === 0) {
     return {

@@ -255,8 +255,9 @@ export function register(store: Store<AppSettings>): void {
         getPoeVersion(),
       )
       const collapse = store.get('tradeCollapseListings') ?? true
-      // Only spend a login check when the search would carry a Weighted Sum group
-      // (the trade API rejects those for anonymous users). Most searches skip it.
+      // Only spend a login check when the search would carry a stat group the
+      // trade API rejects for anonymous users (Weighted Sum, scoped mercenary
+      // groups). Most searches skip it.
       const loggedIn = searchNeedsLogin(statFilters) ? await isLoggedInCached() : true
       return searchTrade(league, item, statFilters, {
         tradeStatus: status,
