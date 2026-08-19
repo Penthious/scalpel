@@ -11,6 +11,7 @@ export const CHANGELOG: { version: string; notes: string[] }[] = [
       "Price checks on items above item level 86 now search at 86, since nothing above that changes what an item can roll -- searching the item's true level only dropped equivalent listings.",
       'Heist blueprints now price-check with a row per job requirement (Demolition, Counter-Thaumaturgy, and the rest), off by default, so you can search by the jobs a blueprint needs. The item header lists every job now instead of just the first.',
       'Added a smart-hide feature to the tier dropdown that will attempt to hide the item different ways depending on what it is, because filters are complicated and who wants to fucking learn how they work? you just want to not see something. I get it. Me too.',
+      'Added a Show/Hide Tier button to the Price Audit header, so hiding a whole tier no longer means digging up an item inside it first.',
       'Filter updates now tell you when one of your edits could not be reapplied.',
       'Moved the poe.ninja link on currency exchange price checks up to the panel header.',
       'Refreshed the item tier data.',

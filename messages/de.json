@@ -254,6 +254,8 @@
   "audit_other_tier": "Andere Stufe prüfen",
   "audit_current_tier": "Aktuelle Stufe",
   "audit_hidden_marker": "[VERSTECKT]",
+  "audit_hide_tier": "Stufe ausblenden",
+  "audit_show_tier": "Stufe einblenden",
   "audit_nothing": "Nichts zu prüfen",
   "audit_no_match": "Dieser Gegenstand passt zu keinem Block in deinem Filter.",
   "audit_no_basetypes": "Der passende Block listet keine Basistypen auf.",

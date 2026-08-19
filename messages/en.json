@@ -254,6 +254,8 @@
   "audit_other_tier": "Audit Other Tier",
   "audit_current_tier": "Current Tier",
   "audit_hidden_marker": "[HIDDEN]",
+  "audit_hide_tier": "Hide Tier",
+  "audit_show_tier": "Show Tier",
   "audit_nothing": "Nothing to audit",
   "audit_no_match": "This item doesn't match any block in your filter.",
   "audit_no_basetypes": "The matched block doesn't list any base types.",

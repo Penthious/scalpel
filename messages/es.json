@@ -254,6 +254,8 @@
   "audit_other_tier": "Auditar otro nivel",
   "audit_current_tier": "Nivel actual",
   "audit_hidden_marker": "[OCULTO]",
+  "audit_hide_tier": "Ocultar nivel",
+  "audit_show_tier": "Mostrar nivel",
   "audit_nothing": "Nada que auditar",
   "audit_no_match": "Este objeto no coincide con ningún bloque de tu filtro.",
   "audit_no_basetypes": "El bloque coincidente no lista ningún tipo base.",

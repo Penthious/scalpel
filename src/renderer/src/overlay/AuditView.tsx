@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { ChartHistogram } from '@icon-park/react'
 import type { OverlayData, FilterBlock, TierGroup } from '@shared/types'
 import { iconMap, IP } from '../shared/constants'
-import { PriceAudit, AuditTierControls, useAuditState } from '../features/price-audit'
+import { PriceAudit, AuditTierControls, TierVisibilityButton, useAuditState } from '../features/price-audit'
 import { getActiveMatch } from '../shared/activeMatch'
 import { Notice } from './Notice'
 import { m } from '@shared/paraglide/messages.js'
@@ -160,33 +160,38 @@ function AuditViewInner({
             <span className="text-text-dim text-xs">{classLabel}</span>
           </div>
 
-          <div className="flex flex-col items-start gap-1 shrink-0">
-            <span className="text-[10px] text-text-dim pl-1">
+          <div className="flex flex-col items-stretch gap-1 shrink-0">
+            {/* Right-aligned so the label reads as the select's, not the button's */}
+            <span className="text-[10px] text-text-dim self-end pr-1">
               {siblingsWithItems.length > 1 ? m.audit_other_tier() : m.audit_current_tier()}
             </span>
-            <select
-              value={blockIndex}
-              disabled={siblingsWithItems.length <= 1}
-              onChange={(e) => {
-                onSetAuditBlockIndex(Number(e.target.value))
-              }}
-              className="text-[11px] rounded w-full"
-              style={{
-                padding: '4px 24px 4px 8px',
-                opacity: siblingsWithItems.length <= 1 ? 0.7 : 1,
-              }}
-            >
-              {siblingsWithItems.length > 0 ? (
-                siblingsWithItems.map((s) => (
-                  <option key={s.blockIndex} value={s.blockIndex}>
-                    {formatTier(s.tier)}
-                    {s.visibility === 'Hide' ? ` ${m.audit_hidden_marker()}` : ''}
-                  </option>
-                ))
-              ) : (
-                <option value={blockIndex}>{tierTag ? formatTier(tierTag.tier) : tierLabel}</option>
-              )}
-            </select>
+            {/* items-stretch keeps the toggle and the select the same height */}
+            <div className="flex items-stretch gap-[6px]">
+              <TierVisibilityButton block={block} blockIndex={blockIndex} item={overlayData.item} />
+              <select
+                value={blockIndex}
+                disabled={siblingsWithItems.length <= 1}
+                onChange={(e) => {
+                  onSetAuditBlockIndex(Number(e.target.value))
+                }}
+                className="text-[11px] rounded flex-1"
+                style={{
+                  padding: '4px 24px 4px 8px',
+                  opacity: siblingsWithItems.length <= 1 ? 0.7 : 1,
+                }}
+              >
+                {siblingsWithItems.length > 0 ? (
+                  siblingsWithItems.map((s) => (
+                    <option key={s.blockIndex} value={s.blockIndex}>
+                      {formatTier(s.tier)}
+                      {s.visibility === 'Hide' ? ` ${m.audit_hidden_marker()}` : ''}
+                    </option>
+                  ))
+                ) : (
+                  <option value={blockIndex}>{tierTag ? formatTier(tierTag.tier) : tierLabel}</option>
+                )}
+              </select>
+            </div>
           </div>
         </div>
 
