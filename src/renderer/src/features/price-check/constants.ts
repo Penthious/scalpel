@@ -29,6 +29,7 @@ export const CHIP_COLORS: Record<string, string> = {
   'pseudo.pseudo_number_of_empty_suffix_mods': '#4caf50',
   'misc.corrupted': '#ef5350',
   'misc.mirrored': '#8787FE',
+  'misc.sanctified': '#e7b356',
   'misc.identified': '#ffb74d',
   'misc.exclude_enchanted': '#81c784',
   'misc.exclude_elder': '#81c784',
@@ -40,6 +41,7 @@ export const TERNARY_CHIP_IDS = new Set([
   'misc.fractured',
   'misc.vestigial',
   'misc.foulborn',
+  'misc.sanctified',
 ])
 export const MINMAX_CHIP_IDS = new Set(['misc.ilvl'])
 

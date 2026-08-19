@@ -526,6 +526,10 @@ export function parseItemText(text: string): PoeItem | null {
   // already trimmed, so anchor on the brace-wrapped annotation.
   const hasVaalUniqueMod = allLines.some((l) => /^\{\s*Vaal\s+Unique\s+Modifier\b[^}]*\}$/.test(l))
   const mirrored = allLines.some((l) => l === 'Mirrored')
+  // PoE2 Well of Souls sanctification: a standalone "Sanctified" section line,
+  // like Corrupted/Mirrored. Exact match -- "Sanctified Staff" is a real PoE2
+  // base type, so a prefix/substring test would flag every such staff (#597).
+  const sanctified = allLines.some((l) => l === 'Sanctified')
   const synthesised =
     allLines.some((l) => l.startsWith('Synthesis') || l.startsWith('Synthesised')) ||
     rawBaseType.startsWith('Synthesised ')
@@ -758,6 +762,7 @@ export function parseItemText(text: string): PoeItem | null {
     identified,
     ...(unidentifiedItemTier != null ? { unidentifiedItemTier } : {}),
     mirrored,
+    sanctified,
     synthesised,
     fractured,
     transfigured,
@@ -939,6 +944,7 @@ function parseModSections(sections: string[], explicits: string[], implicits: st
     'Corrupted',
     'Unidentified',
     'Mirrored',
+    'Sanctified',
     'Synthesised',
     'Right click',
     'Shift click',

@@ -15,6 +15,7 @@ export interface ItemInfo {
   gemLevel: number
   corrupted: boolean
   mirrored: boolean
+  sanctified?: boolean
   identified?: boolean
   influence?: string[]
   mapTier?: number

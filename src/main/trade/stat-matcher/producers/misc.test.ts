@@ -153,3 +153,57 @@ describe('buildMiscFilters intangibility row (#588)', () => {
     expect(intangRow({})).toBeUndefined()
   })
 })
+
+describe('buildMiscFilters sanctified chip (#597)', () => {
+  const original = getPoeVersion()
+  afterEach(() => setPoeVersion(original))
+
+  const sanctifiedChip = (
+    overrides: Partial<Parameters<typeof buildMiscFilters>[0]>,
+  ): ReturnType<typeof buildMiscFilters>[number] | undefined =>
+    buildMiscFilters({ ...baseInfo, itemClass: 'Rings', rarity: 'Rare', ...overrides }, undefined, []).find(
+      (f) => f.id === 'misc.sanctified',
+    )
+
+  it('defaults to "yes" on a sanctified PoE2 rare', () => {
+    setPoeVersion(2)
+    expect(sanctifiedChip({ sanctified: true })).toMatchObject({ chipState: 'yes', enabled: false, type: 'misc' })
+  })
+
+  it('ships at Any (no chipState) on a plain PoE2 rare -- inert until the user flips it', () => {
+    setPoeVersion(2)
+    const chip = sanctifiedChip({})
+    expect(chip).toBeDefined()
+    expect(chip?.chipState).toBeUndefined()
+    expect(chip?.enabled).toBe(false)
+  })
+
+  it('covers the full sanctifiable spread: gear, jewels, waystones and tablets', () => {
+    // Probed 2026-08-19 (Runes of Aldur): sanctified listings exist under weapon,
+    // armour, accessory, jewel and the map family -- not just equippable gear.
+    setPoeVersion(2)
+    for (const itemClass of ['Bows', 'Body Armours', 'Rings', 'Jewels', 'Waystones', 'Tablet']) {
+      expect(sanctifiedChip({ itemClass })).toBeDefined()
+    }
+  })
+
+  it('is absent on PoE2 non-rares -- only rares can be sanctified', () => {
+    setPoeVersion(2)
+    for (const rarity of ['Normal', 'Magic', 'Unique']) {
+      expect(sanctifiedChip({ rarity })).toBeUndefined()
+    }
+  })
+
+  it('is absent on every PoE1 item', () => {
+    setPoeVersion(1)
+    expect(sanctifiedChip({})).toBeUndefined()
+    expect(sanctifiedChip({ rarity: 'Unique' })).toBeUndefined()
+  })
+
+  it('still appears via the marker fallback outside the standard gate', () => {
+    // If the marker line ever shows up on something the gate does not cover, trust
+    // the item over the gate.
+    setPoeVersion(2)
+    expect(sanctifiedChip({ rarity: 'Magic', sanctified: true })).toMatchObject({ chipState: 'yes' })
+  })
+})

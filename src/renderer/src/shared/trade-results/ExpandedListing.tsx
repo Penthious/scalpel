@@ -368,10 +368,11 @@ export function ExpandedListing({ listing: l, itemClass, itemName, itemRarity }:
         )}
 
         {/* Status flags */}
-        {(d.identified === false || d.corrupted || d.mirrored) && (
+        {(d.identified === false || d.corrupted || d.mirrored || d.sanctified) && (
           <div className="mt-1 pt-1 w-full flex flex-col gap-[2px]" style={MOD_SEPARATOR}>
             {d.identified === false && <div className="text-[10px] text-[#ef5350] font-semibold">Unidentified</div>}
             {d.mirrored && <div className="text-[10px] text-[#8787FE] font-semibold">Mirrored</div>}
+            {d.sanctified && <div className="text-[10px] text-[#e7b356] font-semibold">Sanctified</div>}
             {d.corrupted && <div className="text-[10px] text-[#ef5350] font-semibold">Corrupted</div>}
           </div>
         )}

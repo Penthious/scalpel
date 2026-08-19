@@ -27,6 +27,7 @@ export interface Listing {
     heistJob?: { skill: string; level: number }
     corrupted?: boolean
     mirrored?: boolean
+    sanctified?: boolean
     identified?: boolean
     templeOpenRooms?: string[]
     templeObstructedRooms?: string[]

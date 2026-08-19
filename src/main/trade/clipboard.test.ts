@@ -1621,6 +1621,38 @@ describe('parseItemText', () => {
       expect(item.vestigial).toBe(false)
     })
 
+    it('detects the PoE2 Sanctified marker line (#597)', () => {
+      const item = parseItemText(makeRing(['--------', 'Sanctified']))!
+      expect(item.sanctified).toBe(true)
+    })
+
+    it('a plain item is not sanctified, and a Sanctified base-type line does not trip the flag', () => {
+      // "Sanctified Staff" is a real PoE2 base type -- the marker check must be an
+      // exact line match, not a substring/prefix test.
+      const plain = parseItemText(makeRing([]))!
+      expect(plain.sanctified).toBe(false)
+      const text = [
+        'Item Class: Staves',
+        'Rarity: Rare',
+        'Storm Call',
+        'Sanctified Staff',
+        '--------',
+        'Item Level: 80',
+        '--------',
+        '+30 to Strength',
+      ].join('\n')
+      const item = parseItemText(text)!
+      expect(item.sanctified).toBe(false)
+      expect(item.explicits).toContain('+30 to Strength')
+    })
+
+    it('the Sanctified section is not swallowed into explicit mods', () => {
+      const item = parseItemText(makeRing(['--------', '+30 to Strength', '--------', 'Sanctified']))!
+      expect(item.sanctified).toBe(true)
+      expect(item.explicits).toContain('+30 to Strength')
+      expect(item.explicits).not.toContain('Sanctified')
+    })
+
     it('detects a foulborn unique via the name prefix and does NOT strip it (#532)', () => {
       // Unlike vestigial, the Foulborn prefix stays on `name` -- trade.ts strips it
       // at query time instead, since poe.ninja/the clipboard need the full name.

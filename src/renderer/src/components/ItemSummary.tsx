@@ -357,6 +357,11 @@ export function ItemSummary({
               <span className="font-semibold">Mirrored</span>
             </InfoChip>
           )}
+          {item.sanctified && (
+            <InfoChip color="#e7b356">
+              <span className="font-semibold">Sanctified</span>
+            </InfoChip>
+          )}
           {item.fractured && (
             <InfoChip color="#a29162">
               <span className="font-semibold">Fractured</span>

@@ -19,6 +19,7 @@ type MiscItemInfo = {
   unidentifiedTier?: number
   vestigial?: boolean
   foulborn?: boolean
+  sanctified?: boolean
   zanaMemory?: boolean
   requiredLevel?: number
 }
@@ -265,6 +266,29 @@ export function buildMiscFilters(
       max: null,
       enabled: false,
       chipState: 'yes',
+      type: 'misc',
+    })
+  }
+
+  // Sanctified (PoE2 Well of Souls): mod values boosted past their normal caps, so
+  // sanctified copies price on their own market. Ternary like Corrupted (#597).
+  // A sanctified item defaults to 'yes' (its own market); a plain rare ships the
+  // chip at Any rather than 'no' -- sanctified copies list higher, so they don't
+  // pollute the cheap end of an ascending search, and an inert chip keeps the
+  // default query one filter lighter. Only rares can be sanctified, but the spread
+  // is wider than gear: probed 2026-08-19, live listings exist under
+  // weapon/armour/accessory/jewel and the map family (waystones, tablets), so the
+  // whole equipment map is in scope. The marker fallback trusts the item over the
+  // gate if GGG widens it again.
+  if ((getPoeVersion() === 2 && isEquipment && itemInfo.rarity === 'Rare') || itemInfo.sanctified) {
+    out.push({
+      id: 'misc.sanctified',
+      text: 'Sanctified',
+      value: null,
+      min: null,
+      max: null,
+      enabled: false,
+      ...(itemInfo.sanctified ? { chipState: 'yes' as const } : {}),
       type: 'misc',
     })
   }

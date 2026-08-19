@@ -217,6 +217,7 @@ interface TradeListing {
     quality?: number
     corrupted?: boolean
     mirrored?: boolean
+    sanctified?: boolean
     identified?: boolean
     templeOpenRooms?: string[]
     templeObstructedRooms?: string[]
@@ -1026,6 +1027,8 @@ export async function searchTrade(
       miscQuery.vestigial = { option: ynToOption(f.chipState) }
     if (f.id === 'misc.foulborn' && (f.chipState === 'yes' || f.chipState === 'no'))
       miscQuery.mutated = { option: ynToOption(f.chipState) }
+    if (f.id === 'misc.sanctified' && (f.chipState === 'yes' || f.chipState === 'no'))
+      miscQuery.sanctified = { option: ynToOption(f.chipState) }
     if (f.id === 'misc.identified') miscQuery.identified = { option: f.enabled ? 'false' : 'true' }
     if (f.id === 'misc.memory_level' && f.enabled) miscQuery.memory_level = minMaxValue(f)
     if (f.id === 'misc.area_level' && f.enabled) miscQuery.area_level = minMaxValue(f)
@@ -1528,6 +1531,7 @@ export interface FetchEntry {
     additionalProperties?: Array<{ name: string; values: Array<[string, number]>; type?: number }>
     corrupted?: boolean
     duplicated?: boolean
+    sanctified?: boolean
     identified?: boolean
     frameType?: number
     extended?: {
@@ -1669,6 +1673,7 @@ export function parseFetchedListings(fetchedEntries: FetchEntry[]): TradeListing
             })(),
             corrupted: r.item.corrupted,
             mirrored: r.item.duplicated,
+            sanctified: r.item.sanctified,
             identified: r.item.identified,
             ...(() => {
               const ap = r.item?.additionalProperties

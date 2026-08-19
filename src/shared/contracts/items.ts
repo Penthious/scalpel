@@ -97,6 +97,9 @@ export interface PoeItem {
   hasVaalUniqueMod?: boolean
   identified: boolean
   mirrored: boolean
+  /** PoE2 Well of Souls sanctification: mod values boosted past their normal caps.
+   *  Marked by a standalone "Sanctified" clipboard line; only rares can carry it. */
+  sanctified?: boolean
   synthesised: boolean
   isSynthetic?: boolean
   fractured: boolean

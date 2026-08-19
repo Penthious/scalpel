@@ -1110,6 +1110,52 @@ describe('searchTrade filter-group dispatch', () => {
     expect(body.query.filters.misc_filters?.filters.mutated).toEqual({ option: 'true' })
   })
 
+  it.each([
+    ['yes', 'true'],
+    ['no', 'false'],
+  ] as const)('sanctified chipState "%s" sends misc_filters.sanctified:%s on a PoE2 rare (#597)', async (chipState, option) => {
+    setPoeVersion(2)
+    const sanctifiedRare = {
+      name: 'Storm Caller',
+      baseType: 'Sapphire Ring',
+      itemClass: 'Rings',
+      rarity: 'Rare',
+    }
+    const filters: StatFilter[] = [
+      {
+        id: 'misc.sanctified',
+        text: 'Sanctified',
+        type: 'misc',
+        enabled: false,
+        chipState,
+        value: null,
+        min: null,
+        max: null,
+      },
+    ]
+    await searchTrade('Runes of Aldur', sanctifiedRare, filters, {
+      tradeStatus: 'any',
+      tradePriceOption: 'chaos_divine',
+    })
+    const req = capturedRequests.find((r) => r.url.includes('/search/'))
+    expect(req).toBeDefined()
+    const body = parseCapturedBody(req)
+    expect(body.query.filters.misc_filters?.filters.sanctified).toEqual({ option })
+  })
+
+  it('a sanctified chip left on "any" (no chipState) sends no sanctified filter', async () => {
+    setPoeVersion(2)
+    const rare = { name: 'Storm Caller', baseType: 'Sapphire Ring', itemClass: 'Rings', rarity: 'Rare' }
+    const filters: StatFilter[] = [
+      { id: 'misc.sanctified', text: 'Sanctified', type: 'misc', enabled: false, value: null, min: null, max: null },
+    ]
+    await searchTrade('Runes of Aldur', rare, filters, { tradeStatus: 'any', tradePriceOption: 'chaos_divine' })
+    const req = capturedRequests.find((r) => r.url.includes('/search/'))
+    expect(req).toBeDefined()
+    const body = parseCapturedBody(req)
+    expect(body.query.filters.misc_filters?.filters?.sanctified).toBeUndefined()
+  })
+
   describe('unidentified unique map name resolution (#470)', () => {
     // trade.ts didn't import prices.ts before #470, so no other test in this file
     // depends on uniques-by-base content -- safe to seed per-test and restore after.
