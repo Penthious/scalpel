@@ -1,11 +1,16 @@
 import type { OverlayAnchor } from '@shared/types'
 import { forwardLogLinesTo, onZoneChanged, sendCurrentZoneTo } from './client-log'
 import { registerSecondaryOverlay, type OverlaySpec, type SecondaryOverlay } from './windowing'
+import { flushEdges } from './windowing/snap-mounts'
 
 export interface PluginOverlayOptions {
   title: string
   defaultSize?: { width: number; height: number }
   defaultPosition?: { fracX: number; fracY: number }
+  /** Additional drag-snap homes besides defaultPosition, sized like it from
+   *  defaultSize. Nearest to the drag wins. Lets a widget offer more than one
+   *  mount (e.g. flush right by default, flush left as an alternative). */
+  snapPositions?: { fracX: number; fracY: number }[]
   /** The user-moved geometry for this plugin, read lazily so a move made after
    *  registration is picked up on the next show. Undefined = never moved. */
   storedAnchor?: () => OverlayAnchor | undefined
@@ -39,17 +44,21 @@ function clampFrac(value: number | undefined, fallback: number, max: number): nu
  *  floored at 1 CSS px per side for the same reason clampFrac exists below:
  *  the value is never trusted straight through to window bounds, and a zero
  *  or negative width/height would otherwise flow through to setBounds. */
-function defaultAnchorFor(opts: PluginOverlayOptions): OverlayAnchor {
+function anchorFor(opts: PluginOverlayOptions, pos: { fracX?: number; fracY?: number } | undefined): OverlayAnchor {
   const w = Math.max(1, opts.defaultSize?.width ?? 380)
   const h = Math.max(1, opts.defaultSize?.height ?? 520)
   const fracW = Math.min(0.9, w / 1920)
   const fracH = Math.min(0.9, h / 1080)
   return {
-    fracX: clampFrac(opts.defaultPosition?.fracX, (1 - fracW) / 2, 1 - fracW),
-    fracY: clampFrac(opts.defaultPosition?.fracY, (1 - fracH) / 2, 1 - fracH),
+    fracX: clampFrac(pos?.fracX, (1 - fracW) / 2, 1 - fracW),
+    fracY: clampFrac(pos?.fracY, (1 - fracH) / 2, 1 - fracH),
     fracW,
     fracH,
   }
+}
+
+function defaultAnchorFor(opts: PluginOverlayOptions): OverlayAnchor {
+  return anchorFor(opts, opts.defaultPosition)
 }
 
 /** Register exactly one zone-change listener that fans out to every plugin
@@ -95,16 +104,27 @@ function registerPluginOverlayInternal(pluginId: string, spec: OverlaySpec): Sec
 }
 
 export function registerPluginOverlay(pluginId: string, opts: PluginOverlayOptions): SecondaryOverlay {
+  const sendEdgeFlush = (anchor: OverlayAnchor): void => {
+    const win = overlays.get(pluginId)?.getWindow()
+    if (!win || win.isDestroyed()) return
+    win.webContents.send('plugin-overlay:edge-flush', flushEdges(anchor))
+  }
   return registerPluginOverlayInternal(pluginId, {
     id: `plugin-overlay:${pluginId}`,
     htmlEntry: 'plugin-overlay.html',
     defaultAnchor: () => defaultAnchorFor(opts),
+    snapAnchors: () => (opts.snapPositions ?? []).map((pos) => anchorFor(opts, pos)),
     storedAnchor: opts.storedAnchor,
-    onAnchorChanged: opts.onAnchorChanged,
+    onAnchorChanged: (anchor) => {
+      // The chrome squares its corners against whichever edge it now abuts.
+      sendEdgeFlush(anchor)
+      opts.onAnchorChanged?.(anchor)
+    },
     onFirstShow: (win) => {
       // did-finish-load already fired, so the renderer's init subscription is
       // live: tell it which plugin module to import, then push the current zone.
       win.webContents.send('plugin-overlay:init', pluginId)
+      win.webContents.send('plugin-overlay:edge-flush', flushEdges(opts.storedAnchor?.() ?? defaultAnchorFor(opts)))
       sendCurrentZoneTo(win)
     },
   })

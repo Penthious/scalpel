@@ -88,6 +88,21 @@ await ctx.prices.refresh() // force a refetch, bypassing the host cache TTL
 
 `chaosValue` is the baseline-equivalent count (chaos in PoE1, exalt in PoE2). `category === 'currency'` is guaranteed to return currency orbs in both games. See "Reading economy prices" in [PLUGINS.md](../../PLUGINS.md) for the full reference.
 
+`ctx.media` reads what Windows is currently playing (Spotify, a browser tab, any player registered with the system media controls) and sends transport commands via the system media keys - no account or player-specific API involved.
+
+```tsx
+const session = await ctx.media.getSession()
+// { sourceAppId, title, artist, album, thumbnail, playing, position, duration, positionAt } or null
+
+const off = ctx.media.onChange((session) => {
+  // fires with the full new state on track / play-pause / timeline changes
+})
+
+ctx.media.playPause() // also next() / previous()
+```
+
+`thumbnail` is a ready-to-use `data:` URL of the album art (or null). Windows only: on Linux `getSession` resolves null and the commands are no-ops. See "Now playing" in [PLUGINS.md](../../PLUGINS.md).
+
 Plugins running inside Scalpel inherit CSS variables (`--bg`, `--accent`, `--text`, etc.) from the renderer DOM tree, so the forwarded components render with the correct theme without any extra setup.
 
 For dev environments outside Scalpel (Storybook, isolated unit tests, etc.):

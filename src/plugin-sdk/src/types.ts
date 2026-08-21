@@ -73,6 +73,16 @@ export interface RegisterOverlayOptions {
    */
   defaultPosition?: { fracX: number; fracY: number }
   /**
+   * Additional drag-snap homes besides defaultPosition, in the same fractional
+   * coordinates and sized like it from defaultSize. While dragging, the
+   * nearest home (defaultPosition included) shows the snap ghost and wins on
+   * drop. A home flush against the game window's left or right edge (fracX of
+   * 0, or 1 clamped back to flush) mounts the window there: it stays flush at
+   * the window's current size, and the chrome squares its corners on the
+   * mounted side. Ignored in 'annotation' mode.
+   */
+  snapPositions?: { fracX: number; fracY: number }[]
+  /**
    * Overlay surface kind. 'window' (default) is the chrome'd, draggable,
    * snap-anchored window. 'annotation' is a borderless, transparent,
    * click-through surface locked to the full game window: `render`'s container
@@ -150,6 +160,50 @@ export interface PricesApi {
    * subscription. Returns an unsubscribe function.
    */
   onChange(handler: () => void): () => void
+}
+
+export interface MediaSession {
+  /** The source player's app id as Windows reports it, e.g. `'Spotify.exe'`. */
+  sourceAppId: string
+  title: string
+  artist: string
+  album: string
+  /** Album art as a `data:` URL (png/jpeg), or null when the player publishes none. */
+  thumbnail: string | null
+  playing: boolean
+  /** Track position/length in seconds. Both 0 when the player publishes no timeline. */
+  position: number
+  duration: number
+  /**
+   * Epoch-ms when `position` was last reported. While `playing`, the live
+   * position is `position + (Date.now() - positionAt) / 1000`; players push
+   * timeline updates sparsely (Spotify roughly every 5s), so interpolate
+   * between events rather than waiting for the next one.
+   */
+  positionAt: number
+}
+
+export interface MediaApi {
+  /**
+   * The session Windows considers current (the one the hardware media keys
+   * would control). Resolves null when no player is registered with the
+   * system media controls, and always on non-Windows hosts.
+   */
+  getSession(): Promise<MediaSession | null>
+  /**
+   * Fires with the full new state whenever the current session changes:
+   * track/metadata changes, play/pause, timeline updates, the player closing
+   * (null) or another player taking over. Does not fire on initial
+   * subscription - call getSession() for the starting state. Returns an
+   * unsubscribe function.
+   */
+  onChange(handler: (session: MediaSession | null) => void): () => void
+  /** Toggle play/pause via the system media key. Fire-and-forget; the state change arrives through onChange. */
+  playPause(): void
+  /** Skip to the next track via the system media key. */
+  next(): void
+  /** Skip to the previous track via the system media key. */
+  previous(): void
 }
 
 export interface ScalpelPluginContext {
@@ -311,6 +365,14 @@ export interface ScalpelPluginContext {
    * hit ninja directly (a renderer fetch would be CORS-blocked).
    */
   readonly prices: PricesApi
+  /**
+   * What Windows is currently playing (Spotify, a browser tab, any player
+   * registered with the system media transport controls) plus transport
+   * control. Commands are synthesized system media keys, so they reach
+   * whichever player is current without any account or player-specific API.
+   * Windows only: on Linux getSession resolves null and commands are no-ops.
+   */
+  readonly media: MediaApi
   openExternal(url: string): void
   log(...args: unknown[]): void
 }

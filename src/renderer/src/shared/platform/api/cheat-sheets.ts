@@ -71,7 +71,9 @@ export function onCheatSheetPreview(cb: (state: { src: string | null }) => void)
 }
 
 export function onSecondaryOverlaySnapGhost(
-  cb: (rect: { x: number; y: number; width: number; height: number } | null) => void,
+  cb: (
+    rect: { x: number; y: number; width: number; height: number; edges?: { left: boolean; right: boolean } } | null,
+  ) => void,
 ): () => void {
   return window.api.onSecondaryOverlaySnapGhost(cb)
 }

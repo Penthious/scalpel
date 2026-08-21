@@ -43,6 +43,13 @@ const baseDeps = () => ({
     refresh: vi.fn(async () => undefined),
     onChange: vi.fn(() => () => {}),
   },
+  media: {
+    getSession: vi.fn(async () => null),
+    onChange: vi.fn(() => () => {}),
+    playPause: vi.fn(),
+    next: vi.fn(),
+    previous: vi.fn(),
+  },
 })
 
 describe('createPluginContext', () => {
@@ -160,6 +167,23 @@ describe('createPluginContext prices', () => {
     expect(deps.prices.refresh).toHaveBeenCalled()
     ctx.prices.onChange(() => {})
     expect(deps.prices.onChange).toHaveBeenCalled()
+  })
+})
+
+describe('createPluginContext media', () => {
+  it('routes getSession/onChange/transport commands through deps', async () => {
+    const deps = baseDeps()
+    const ctx = createPluginContext(deps)
+    await ctx.media.getSession()
+    expect(deps.media.getSession).toHaveBeenCalled()
+    ctx.media.onChange(() => {})
+    expect(deps.media.onChange).toHaveBeenCalled()
+    ctx.media.playPause()
+    expect(deps.media.playPause).toHaveBeenCalled()
+    ctx.media.next()
+    expect(deps.media.next).toHaveBeenCalled()
+    ctx.media.previous()
+    expect(deps.media.previous).toHaveBeenCalled()
   })
 })
 

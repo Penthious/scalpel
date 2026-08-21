@@ -50,6 +50,13 @@ export type PluginContextFactoryDeps = {
     region?: import('../../../plugin-sdk/src/types').GameRect,
   ) => Promise<import('../../../plugin-sdk/src/types').GameCapture | null>
   getCursorPosition: () => Promise<{ x: number; y: number } | null>
+  media: {
+    getSession: () => Promise<import('../../../plugin-sdk/src/types').MediaSession | null>
+    onChange: (handler: (session: import('../../../plugin-sdk/src/types').MediaSession | null) => void) => () => void
+    playPause: () => void
+    next: () => void
+    previous: () => void
+  }
   registerOverlay: (pluginId: string, opts: import('../../../plugin-sdk/src/types').RegisterOverlayOptions) => void
   openOverlay: (pluginId: string) => void
   closeOverlay: (pluginId: string) => void

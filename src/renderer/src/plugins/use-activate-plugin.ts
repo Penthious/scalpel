@@ -101,6 +101,13 @@ export function useActivatePlugin(pluginId: string): ActivatedPlugin {
           refresh: () => window.api.pricesRefresh(),
           onChange: (handler) => window.api.onPricesChange(handler),
         },
+        media: {
+          getSession: () => window.api.pluginMediaGetSession(),
+          onChange: (handler) => window.api.onMediaChange(handler),
+          playPause: () => window.api.pluginMediaCommand('play-pause'),
+          next: () => window.api.pluginMediaCommand('next'),
+          previous: () => window.api.pluginMediaCommand('previous'),
+        },
         openExternal: (url) => window.api.openExternal(url),
         log: (...args: unknown[]) => {
           if (window.__SCALPEL_DEBUG_LOG) {

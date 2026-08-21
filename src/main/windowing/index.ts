@@ -5,6 +5,7 @@ import { guardNativeListener } from '../diagnostics'
 import { hideAllOnPoeBlur, isAnyScalpelWindowFocused } from './focus'
 import { seedUserPinned } from './pin'
 import { prewarmSnapCanvas, type Rect, setSnapGhost } from './snap-canvas'
+import { type FlushEdges, nearestMountTarget } from './snap-mounts'
 import { fireOnLeaveScalpel, type OverlayState, overlays } from './state'
 import { createOverlayWindow } from './window'
 
@@ -47,6 +48,12 @@ export interface OverlaySpec {
    *  mount point is conceptually elsewhere (center+bottom, etc.) supply this
    *  so the ghost (and snap commit) tracks the user's resize. */
   snapTarget?: (defaultRect: Rect, cur: Rect) => Rect
+  /** Optional extra snap homes besides the default anchor. During drag the
+   *  candidate nearest to the window wins (default anchor included), each
+   *  derived mount-aware (see mountAwareTarget): an anchor flush against an
+   *  edge keeps the window flush there at its current size. Ignored when
+   *  `snapTarget` is supplied. */
+  snapAnchors?: () => OverlayAnchor[]
   /** Fired once after did-finish-load + the very first show (or, when
    *  `gateShow` suppresses the show, once after did-finish-load with no
    *  actual show). The earliest safe point to deliver IPCs whose payload
@@ -183,14 +190,19 @@ function resolveAnchor(spec: OverlaySpec): OverlayAnchor {
 
 /** Snap target = the spec's default anchor's POSITION, with the window's
  *  CURRENT size. Lets the user resize the window then drag-snap back to its
- *  "home" without losing the new size. Returns null when PoE isn't attached
- *  (no anchor frame of reference). */
-function snapTargetFor(state: OverlayState, cur: Rect): Rect | null {
-  if (!state.win || state.win.isDestroyed()) return null
-  const defaultRect = anchorToDipBounds(state.win, state.spec.defaultAnchor())
-  if (!defaultRect) return null
-  if (state.spec.snapTarget) return state.spec.snapTarget(defaultRect, cur)
-  return { x: defaultRect.x, y: defaultRect.y, width: cur.width, height: cur.height }
+ *  "home" without losing the new size. Specs with `snapAnchors` contribute
+ *  those as additional homes and the nearest to the drag wins. Returns null
+ *  when PoE isn't attached (no anchor frame of reference). */
+function snapTargetFor(state: OverlayState, cur: Rect): { rect: Rect; edges: FlushEdges } | null {
+  const win = state.win
+  if (!win || win.isDestroyed()) return null
+  if (state.spec.snapTarget) {
+    const defaultRect = anchorToDipBounds(win, state.spec.defaultAnchor())
+    if (!defaultRect) return null
+    return { rect: state.spec.snapTarget(defaultRect, cur), edges: { left: false, right: false } }
+  }
+  const anchors = [state.spec.defaultAnchor(), ...(state.spec.snapAnchors?.() ?? [])]
+  return nearestMountTarget(anchors, (anchor) => anchorToDipBounds(win, anchor), cur)
 }
 
 /** Mark a programmatic bounds change in flight, run `apply` (the actual
@@ -294,7 +306,7 @@ function commitSnap(state: OverlayState): void {
   if (!state.win || state.win.isDestroyed()) return
   const target = snapTargetFor(state, state.win.getBounds())
   if (!target) return
-  setBoundsProgrammatic(state, target)
+  setBoundsProgrammatic(state, target.rect)
   persistBounds(state)
 }
 
@@ -564,11 +576,11 @@ function maybeUpdateSnap(state: OverlayState): void {
   const cur = state.win.getBounds()
   const target = snapTargetFor(state, cur)
   if (!target) return
-  const dist = Math.hypot(cur.x - target.x, cur.y - target.y)
+  const dist = Math.hypot(cur.x - target.rect.x, cur.y - target.rect.y)
   const wantActive = dist < SNAP_RANGE
   if (wantActive === state.snapGhostActive) return
   state.snapGhostActive = wantActive
-  setSnapGhost(state.snapGhostActive ? target : null)
+  setSnapGhost(state.snapGhostActive ? { ...target.rect, edges: target.edges } : null)
 }
 
 /** The current anchor (fractions of PoE's window) of a registered secondary

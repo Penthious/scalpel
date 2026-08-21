@@ -161,6 +161,16 @@ interface ScalpelPluginContext {
     onChange(handler: () => void): () => void
   }
 
+  // What Windows is currently playing + transport control via the system
+  // media keys. Windows only. See "Now playing" below.
+  media: {
+    getSession(): Promise<MediaSession | null>
+    onChange(handler: (session: MediaSession | null) => void): () => void
+    playPause(): void
+    next(): void
+    previous(): void
+  }
+
   // Screen capture - returns null when PoE is not focused
   captureGameWindow(region?: GameRect): Promise<GameCapture | null>
 
@@ -298,6 +308,51 @@ await ctx.prices.refresh() // force a refetch now, bypassing the host cache TTL
   derived from ninja's own categories and can differ between the two games.
 - `refresh()` forces a refetch; `onChange(handler)` fires after any host refresh
   and returns an unsubscribe function.
+
+### Now playing
+
+`ctx.media` reads the media session Windows considers current - the one the
+hardware media keys would control: Spotify, a YouTube tab, foobar2000, anything
+registered with the system media transport controls (SMTC). No account, no
+player-specific API, and it works the same for every player.
+
+```ts
+interface MediaSession {
+  sourceAppId: string       // e.g. 'Spotify.exe'
+  title: string
+  artist: string
+  album: string
+  thumbnail: string | null  // album art as a data: URL (png/jpeg), or null
+  playing: boolean
+  position: number          // seconds; 0 when the player publishes no timeline
+  duration: number          // seconds; 0 when the player publishes no timeline
+  positionAt: number        // epoch-ms when `position` was last reported
+}
+```
+
+```tsx
+const session = await ctx.media.getSession() // null when nothing is registered
+
+const off = ctx.media.onChange((session) => {
+  // full new state on track change, play/pause, timeline update, player
+  // close (null), or another player taking over
+})
+
+ctx.media.playPause() // also next() / previous()
+```
+
+- **Interpolate the position.** Players push timeline updates sparsely (Spotify
+  roughly every 5s), so a progress bar should tick locally: while `playing`,
+  the live position is `position + (Date.now() - positionAt) / 1000`, clamped
+  to `duration`.
+- The transport commands are synthesized system media keys, so Windows routes
+  them to the current player exactly like the hardware keys - fire-and-forget,
+  with the resulting state change arriving through `onChange`. There is no
+  seek.
+- `onChange` does not fire on subscription; call `getSession()` for the
+  starting state.
+- **Windows only.** On Linux `getSession` resolves `null` unconditionally and
+  the commands are no-ops.
 
 ### Screen capture
 
@@ -593,6 +648,7 @@ These render the standard Scalpel settings-row chrome (label on the left, contro
 - `PoeItem`, `Zone`, `RelatedRef`, `RelatedEntry`, `GameFeatures`, `TrendDirection`
 - `ModTier`, `TierLadder`, `TierStat` - data shape for an affix's tier ladder (tier number, roll range, required level)
 - `GameRect`, `GameCapture` - geometry and pixel-data shapes for `captureGameWindow`
+- `MediaSession`, `MediaApi` - the now-playing shapes for `ctx.media`
 
 ## Project setup
 

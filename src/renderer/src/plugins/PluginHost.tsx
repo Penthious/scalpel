@@ -175,6 +175,7 @@ export function PluginHost(props: PluginHostProps): JSX.Element | null {
             hotkeyLabel: opts.hotkeyLabel,
             defaultSize: opts.defaultSize,
             defaultPosition: opts.defaultPosition,
+            snapPositions: opts.snapPositions,
             mode: opts.mode,
           })
         },
@@ -182,6 +183,17 @@ export function PluginHost(props: PluginHostProps): JSX.Element | null {
         closeOverlay: (pluginId) => void window.api.pluginCloseOverlay(pluginId),
         captureGameWindow: (region) => window.api.pluginCaptureGameWindow(region),
         getCursorPosition: () => window.api.pluginGetCursorPosition(),
+        media: {
+          getSession: () => window.api.pluginMediaGetSession(),
+          onChange: (handler) => {
+            const u = window.api.onMediaChange(handler)
+            disposers.push(u)
+            return u
+          },
+          playPause: () => window.api.pluginMediaCommand('play-pause'),
+          next: () => window.api.pluginMediaCommand('next'),
+          previous: () => window.api.pluginMediaCommand('previous'),
+        },
       })
       pluginDisposersRef.current.set(m.id, disposers)
       // PluginActivate may be async and may return a teardown fn (host runtime

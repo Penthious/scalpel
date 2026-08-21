@@ -26,6 +26,9 @@ interface ChromeProps {
    *  mounted against PoE's stash sidebar). Existing consumers are unaffected
    *  because this prop is optional and defaults to false. */
   flushLeft?: boolean
+  /** Right-edge twin of flushLeft, for cards mounted against the right side
+   *  of the game window. */
+  flushRight?: boolean
 }
 
 /** Active-icon gold - matches ACTIVE_COLOR in the cheat-sheets header. */
@@ -93,6 +96,7 @@ export function Chrome({
   onMinimize,
   minimized,
   flushLeft,
+  flushRight,
 }: ChromeProps): JSX.Element {
   const noDrag = { WebkitAppRegion: 'no-drag' } as React.CSSProperties
   const drag = { WebkitAppRegion: 'drag' } as React.CSSProperties
@@ -100,7 +104,7 @@ export function Chrome({
     <div
       className={`flex flex-col h-screen bg-bg-card-translucent rounded overflow-hidden border border-border${
         flushLeft ? ' rounded-l-none border-l-0' : ''
-      }`}
+      }${flushRight ? ' rounded-r-none border-r-0' : ''}`}
     >
       <div
         className="flex items-center justify-between gap-2 px-2 py-1 border-b border-border bg-bg-solid-translucent shrink-0"

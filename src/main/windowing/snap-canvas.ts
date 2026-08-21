@@ -92,8 +92,10 @@ export function getSnapCanvasWindow(): BrowserWindow | null {
   return canvasWin && !canvasWin.isDestroyed() ? canvasWin : null
 }
 
-/** Show the snap ghost at the given rect. Pass null to clear it. */
-export function setSnapGhost(rect: Rect | null): void {
+/** Show the snap ghost at the given rect. Pass null to clear it. `edges`
+ *  carries the winning mount's flush sides so the ghost squares the same
+ *  corners the docked window will. */
+export function setSnapGhost(rect: (Rect & { edges?: import('./snap-mounts').FlushEdges }) | null): void {
   // Clearing must never create the canvas. There is nothing to clear if it
   // doesn't exist, and the hide/blur/exit paths clear defensively on every
   // call - going through ensureCanvasWindow would spawn a whole renderer

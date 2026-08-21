@@ -248,6 +248,7 @@ export function register(store: Store<AppSettings>, isElevated: () => boolean = 
         hotkeyLabel?: string
         defaultSize?: { width: number; height: number }
         defaultPosition?: { fracX: number; fracY: number }
+        snapPositions?: { fracX: number; fracY: number }[]
         mode?: 'window' | 'annotation'
       },
     ) => {
@@ -259,6 +260,7 @@ export function register(store: Store<AppSettings>, isElevated: () => boolean = 
           title: opts.title,
           defaultSize: opts.defaultSize,
           defaultPosition: opts.defaultPosition,
+          snapPositions: Array.isArray(opts.snapPositions) ? opts.snapPositions : undefined,
           storedAnchor: () => getPluginOverlayAnchor(store, pluginId),
           onAnchorChanged: (anchor) => setPluginOverlayAnchor(store, pluginId, anchor),
         })

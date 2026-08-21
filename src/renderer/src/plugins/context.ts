@@ -50,6 +50,7 @@ export function createPluginContext(deps: PluginContextFactoryDeps): ScalpelPlug
         hotkeyLabel: opts.hotkeyLabel,
         defaultSize: opts.defaultSize,
         defaultPosition: opts.defaultPosition,
+        snapPositions: opts.snapPositions,
         mode: opts.mode,
       })
     },
@@ -73,6 +74,7 @@ export function createPluginContext(deps: PluginContextFactoryDeps): ScalpelPlug
     },
     gameConfig: deps.gameConfig,
     prices: deps.prices,
+    media: deps.media,
     openExternal: deps.openExternal,
     openTab: () => deps.openTab(deps.pluginId),
     copyAndEvaluateItem: (opts) => deps.copyAndEvaluateItem(opts),

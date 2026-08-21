@@ -5,6 +5,9 @@ interface Rect {
   y: number
   width: number
   height: number
+  /** Flush sides of the winning snap mount - those corners render square,
+   *  matching the docked window's chrome. */
+  edges?: { left: boolean; right: boolean }
 }
 
 /** Single transparent click-through canvas window shared by every secondary
@@ -32,7 +35,10 @@ function SnapGhost({ rect }: { rect: Rect }): JSX.Element {
         top: rect.y - window.screenY,
         width: rect.width,
         height: rect.height,
-        borderRadius: 6,
+        borderTopLeftRadius: rect.edges?.left ? 0 : 6,
+        borderBottomLeftRadius: rect.edges?.left ? 0 : 6,
+        borderTopRightRadius: rect.edges?.right ? 0 : 6,
+        borderBottomRightRadius: rect.edges?.right ? 0 : 6,
       }}
     />
   )

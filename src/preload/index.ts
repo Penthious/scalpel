@@ -308,11 +308,13 @@ export const api = {
     return () => ipcRenderer.removeListener('cheat-sheet:focus-category', handler)
   },
   onSecondaryOverlaySnapGhost: (
-    cb: (rect: { x: number; y: number; width: number; height: number } | null) => void,
+    cb: (
+      rect: { x: number; y: number; width: number; height: number; edges?: { left: boolean; right: boolean } } | null,
+    ) => void,
   ): (() => void) => {
     const handler = (
       _: Electron.IpcRendererEvent,
-      rect: { x: number; y: number; width: number; height: number } | null,
+      rect: { x: number; y: number; width: number; height: number; edges?: { left: boolean; right: boolean } } | null,
     ): void => cb(rect)
     ipcRenderer.on('secondary-overlay-canvas:snap-ghost', handler)
     return () => ipcRenderer.removeListener('secondary-overlay-canvas:snap-ghost', handler)
@@ -1004,6 +1006,11 @@ export const api = {
     ipcRenderer.on('plugin-overlay:visibility', handler)
     return () => ipcRenderer.removeListener('plugin-overlay:visibility', handler)
   },
+  onPluginOverlayEdgeFlush: (cb: (edges: { left: boolean; right: boolean }) => void): (() => void) => {
+    const handler = (_: Electron.IpcRendererEvent, edges: { left: boolean; right: boolean }): void => cb(edges)
+    ipcRenderer.on('plugin-overlay:edge-flush', handler)
+    return () => ipcRenderer.removeListener('plugin-overlay:edge-flush', handler)
+  },
   pluginTriggerMainHotkey: (opts?: {
     showOverlay?: boolean
     dispatch?: boolean
@@ -1016,6 +1023,7 @@ export const api = {
       hotkeyLabel?: string
       defaultSize?: { width: number; height: number }
       defaultPosition?: { fracX: number; fracY: number }
+      snapPositions?: { fracX: number; fracY: number }[]
       mode?: 'window' | 'annotation'
     },
   ): Promise<void> => ipcRenderer.invoke('plugins:register-overlay', pluginId, opts),
@@ -1028,6 +1036,23 @@ export const api = {
     ipcRenderer.invoke('plugins:capture-game-window', region),
   pluginGetCursorPosition: (): Promise<{ x: number; y: number } | null> =>
     ipcRenderer.invoke('plugins:get-cursor-position'),
+  pluginMediaGetSession: (): Promise<import('../plugin-sdk/src/types').MediaSession | null> =>
+    ipcRenderer.invoke('plugins:media-get'),
+  pluginMediaCommand: (command: 'play-pause' | 'next' | 'previous'): void => {
+    ipcRenderer.send('plugins:media-command', command)
+  },
+  onMediaChange: (cb: (session: import('../plugin-sdk/src/types').MediaSession | null) => void): (() => void) => {
+    const handler = (
+      _: Electron.IpcRendererEvent,
+      session: import('../plugin-sdk/src/types').MediaSession | null,
+    ): void => cb(session)
+    ipcRenderer.send('plugins:media-watch')
+    ipcRenderer.on('plugins:media-changed', handler)
+    return () => {
+      ipcRenderer.removeListener('plugins:media-changed', handler)
+      ipcRenderer.send('plugins:media-unwatch')
+    }
+  },
 }
 
 contextBridge.exposeInMainWorld('api', api)

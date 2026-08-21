@@ -13,6 +13,7 @@ function installApi(): void {
     getSettings: vi.fn(async () => ({ activeProfile: { league: 'Std' } })),
     onOverlayData: vi.fn(() => () => {}),
     onZoneChanged: vi.fn(() => () => {}),
+    onPluginOverlayEdgeFlush: vi.fn(() => () => {}),
     onLeagueUpdated: vi.fn(() => () => {}),
     onLogLine: vi.fn(() => () => {}),
     getRecentLogLines: vi.fn(async () => []),

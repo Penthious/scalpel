@@ -42,8 +42,10 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@coooookies/windows-smtc-monitor": "^1.0.12",
     "electron-overlay-window": "github:scalpelpoe/electron-overlay-window#db989812d62d6e988e915e25d772fc5c34aebdbb",
     "electron-store": "^8.2.0",
+    "koffi": "^3.1.6",
     "konva": "^9.3.22",
     "react-konva": "^18.2.14",
     "react-sortablejs": "^6.1.4",
@@ -137,7 +139,9 @@
     "asar": true,
     "asarUnpack": [
       "node_modules/uiohook-napi/**/*",
-      "node_modules/electron-overlay-window/**/*"
+      "node_modules/electron-overlay-window/**/*",
+      "node_modules/@coooookies/**/*",
+      "node_modules/koffi/**/*"
     ],
     "files": [
       "out/**/*",

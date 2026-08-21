@@ -20,7 +20,13 @@ const nameOverride = argOf('name')
 const outOverride = argOf('out')
 
 // Native modules -- included in ASAR but .node binaries are unpacked
-const NATIVE_MODULES = ['electron-overlay-window', 'uiohook-napi']
+const NATIVE_MODULES = [
+  'electron-overlay-window',
+  'uiohook-napi',
+  '@coooookies/windows-smtc-monitor',
+  '@coooookies/windows-smtc-monitor-win32-x64-msvc',
+  'koffi',
+]
 
 // Packages to fully exclude from the asar
 const EXCLUDE = new Set([
@@ -198,6 +204,9 @@ asar
       nativeModules: {
         'electron-overlay-window': require('../node_modules/electron-overlay-window/package.json').version,
         'uiohook-napi': require('../node_modules/uiohook-napi/package.json').version,
+        '@coooookies/windows-smtc-monitor': require('../node_modules/@coooookies/windows-smtc-monitor/package.json')
+          .version,
+        koffi: require('../node_modules/koffi/package.json').version,
       },
       brickedReleases,
       brickedMessage,
