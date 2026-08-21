@@ -1862,6 +1862,13 @@ export function isBulkExchangeItem(
     'Expedition Logbook', // Area level, faction, mods
     'Incubators', // ilvl requirements
     'Wombgifts', // ilvl + Hiveblood requirement vary per drop
+    // GGG lists a per-name exchange slug for each PoE1 unique Sanctum relic, so
+    // without this the name lookup routes them to bulk (#600, same shape as Vaal
+    // Aspects #551). The regular search indexes the exchange offers too, so it
+    // loses nothing, while several relic exchange markets are near-empty (The
+    // Gilded Chalice: 1 offer measured mid-league) and price by ratio only.
+    // Relic BASES carry no slug in either game, so this only changes uniques.
+    'Relics',
   ])
   if (regularTradeClasses.has(itemClass)) return false
   // Specific items with variable properties that need regular trade

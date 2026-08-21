@@ -2523,6 +2523,20 @@ describe('isBulkExchangeItem (PoE2 slug-gated routing)', () => {
     expect(isBulkExchangeItem('Map Fragments', 'Divine Vessel', 'Divine Vessel', 'Normal')).toBe(true)
   })
 
+  it('does NOT route a unique Sanctum relic to bulk -- regular search carries the real listings (#600)', () => {
+    setPoeVersion(1)
+    // GGG lists an exchange slug per unique relic NAME, and Unique rarity has no
+    // generated-name skip, so the name lookup finds it -- same shape as Vaal
+    // Aspects (#551). The regular search indexes the exchange offers too, so
+    // routing to it loses nothing, while several relic markets are near-empty
+    // (The Gilded Chalice: 1 offer measured mid-league).
+    expect(isBulkExchangeItem('Relics', 'The Night Lamp', 'Urn Relic', 'Unique')).toBe(false)
+    expect(isBulkExchangeItem('Relics', 'The Gilded Chalice', 'Processional Relic', 'Unique')).toBe(false)
+    // The slugs stay in the map -- they are real GGG exchange ids, it is the
+    // routing that must not use them.
+    expect(getBulkExchangeId('The Night Lamp', 'Urn Relic')).toBe('the-night-lamp')
+  })
+
   it('does NOT route a Vaal Aspect piece to bulk -- the exchange market is dead (#551)', () => {
     setPoeVersion(1)
     for (const name of ['Ambition', 'Beauty', 'Cooperation', 'Curiosity']) {
