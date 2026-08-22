@@ -894,6 +894,73 @@ export async function sendItemFilterCommand(filterName: string, currentFilter?: 
 
 // ─── Ctrl+C sender ───────────────────────────────────────────────────────────
 
+/** True when this accelerator's non-modifier key is C -- the key the copy
+ *  injection taps -- and it goes through globalShortcut (uiohook matchers only
+ *  observe; they can't consume). */
+function acceleratorTapsC(accelerator: string): boolean {
+  return isElectronRegisterable(accelerator) && parseAccelerator(accelerator)?.keycode === UiohookKey.C
+}
+
+/**
+ * Unregister every OS-registered hotkey whose key is C for the duration of a
+ * copy injection. Returns a restore callback, or null when nothing was held.
+ *
+ * The user may bind Ctrl+C -- PoE's own copy key -- as a hotkey; the collision
+ * guard warns but allows it (POE_PROTECTED_HOTKEYS). globalShortcut backs onto
+ * RegisterHotKey, which consumes matching keystrokes system-wide *including
+ * injected ones*, so with such a binding the injected copy fired the user's
+ * hotkey (then dropped by the `injecting` guard) and never reached the game:
+ * every capture failed (#601). 1.0.1 escaped by accident -- it always injected
+ * Ctrl+Alt+C, which a Ctrl+C registration doesn't match. Released combos are
+ * restored through each slot's canonical (re)registration path.
+ */
+function releaseCKeyedRegistrationsForInjection(): (() => void) | null {
+  if (suspendDepth > 0) return null // nothing is OS-registered while suspended
+  const restores: Array<() => void> = []
+
+  // Restores re-read the live slot state rather than the released accelerator,
+  // so a hotkey changed mid-injection isn't clobbered by its old value.
+  if (currentAccelerator && acceleratorTapsC(currentAccelerator)) {
+    try {
+      globalShortcut.unregister(currentAccelerator)
+    } catch {}
+    restores.push(() => {
+      if (currentAccelerator) setHotkey(currentAccelerator)
+    })
+  }
+  if (priceCheckAccelerator && acceleratorTapsC(priceCheckAccelerator)) {
+    try {
+      globalShortcut.unregister(priceCheckAccelerator)
+    } catch {}
+    restores.push(() => {
+      if (priceCheckAccelerator) setPriceCheckHotkey(priceCheckAccelerator)
+    })
+  }
+  const scoped = [...registeredChatAccelerators, ...appMacroAccelerators].filter(acceleratorTapsC)
+  if (scoped.length > 0) {
+    for (const accelerator of scoped) {
+      try {
+        globalShortcut.unregister(accelerator)
+      } catch {}
+    }
+    restores.push(() => refreshScopedHotkeys('copy-injection'))
+  }
+  const overlayScoped = registeredOverlayAccelerators.filter(acceleratorTapsC)
+  if (overlayScoped.length > 0) {
+    for (const accelerator of overlayScoped) {
+      try {
+        globalShortcut.unregister(accelerator)
+      } catch {}
+    }
+    restores.push(() => setSecondaryOverlayHotkeys(secondaryOverlayHotkeys))
+  }
+
+  if (restores.length === 0) return null
+  return () => {
+    for (const restore of restores) restore()
+  }
+}
+
 /**
  * Send Ctrl+C to PoE via uiohook (OS-level SendInput).
  *
@@ -904,53 +971,62 @@ export async function sendItemFilterCommand(filterName: string, currentFilter?: 
  *
  * A user who *holds* Alt as part of their own hotkey is left alone either way:
  * the game seeing Ctrl+Alt+C copies the same advanced text, so there is nothing
- * to fight.
+ * to fight. A user whose hotkey *is* a C combo is handled by releasing that
+ * registration for the injection window -- see
+ * releaseCKeyedRegistrationsForInjection (#601).
  */
 export async function sendCtrlCToPoE(opts?: { withAlt?: boolean }): Promise<void> {
   injecting = true
+  const restoreCKeyedRegistrations = releaseCKeyedRegistrationsForInjection()
 
   // Instead of releasing all user modifiers (racy to restore), piggyback on
   // whatever the user already holds and only add what's missing.
   const needCtrl = !heldModifiers.ctrl
   const needAlt = opts?.withAlt === true && !heldModifiers.alt
 
-  // Temporarily release Shift if held. PoE2 ignores the copy when Shift is still
-  // down at the moment C is tapped -- most visibly on equipped items, which
-  // silently fail and drop through to the slow focus-retry fallback (issue #338).
-  // The release must land *before* the tap, and PoE2 drops modifier events that
-  // fire too close together (same fragility as the post-tap hold below, ee2 issue
-  // #124), so a synchronous Shift-up immediately followed by the tap doesn't take.
-  // Give the Shift-up ~30ms to register first. Only paid when Shift is held.
-  const heldShift = heldModifiers.shift
-  if (heldShift) {
-    uIOhook.keyToggle(UiohookKey.Shift, 'up')
-    uIOhook.keyToggle(UiohookKey.ShiftRight, 'up')
-    await new Promise((r) => setTimeout(r, 30))
+  try {
+    // Temporarily release Shift if held. PoE2 ignores the copy when Shift is still
+    // down at the moment C is tapped -- most visibly on equipped items, which
+    // silently fail and drop through to the slow focus-retry fallback (issue #338).
+    // The release must land *before* the tap, and PoE2 drops modifier events that
+    // fire too close together (same fragility as the post-tap hold below, ee2 issue
+    // #124), so a synchronous Shift-up immediately followed by the tap doesn't take.
+    // Give the Shift-up ~30ms to register first. Only paid when Shift is held.
+    const heldShift = heldModifiers.shift
+    if (heldShift) {
+      uIOhook.keyToggle(UiohookKey.Shift, 'up')
+      uIOhook.keyToggle(UiohookKey.ShiftRight, 'up')
+      await new Promise((r) => setTimeout(r, 30))
+    }
+
+    if (needCtrl) uIOhook.keyToggle(UiohookKey.Ctrl, 'down')
+    if (needAlt) uIOhook.keyToggle(UiohookKey.Alt, 'down')
+    uIOhook.keyTap(UiohookKey.C)
+
+    // PoE2 drops modifier keyup events when they fire too soon after the C tap,
+    // leaving PoE's view of held modifiers out of sync -- on the Alt path that
+    // showed up as the in-game advanced tooltip stuck "Alt-pinned" on the item
+    // (most visible when the overlay closes via click-outside, where no focus
+    // round-trip resyncs it). Hold the modifiers ~10ms before releasing so PoE
+    // registers them in order. Same root cause and fix as Exiled-Exchange-2
+    // issue #124.
+    await new Promise<void>((resolve) => {
+      setTimeout(() => {
+        if (needAlt) uIOhook.keyToggle(UiohookKey.Alt, 'up')
+        if (needCtrl) uIOhook.keyToggle(UiohookKey.Ctrl, 'up')
+        // Re-press Shift immediately if it was held
+        if (heldShift) uIOhook.keyToggle(heldShift, 'down')
+      }, 10)
+      setTimeout(() => {
+        injecting = false
+        resolve()
+      }, 100)
+    })
+  } finally {
+    // Re-register only after the injected tap has cleared the OS input queue --
+    // restoring earlier would let our own registration swallow it (#601).
+    restoreCKeyedRegistrations?.()
   }
-
-  if (needCtrl) uIOhook.keyToggle(UiohookKey.Ctrl, 'down')
-  if (needAlt) uIOhook.keyToggle(UiohookKey.Alt, 'down')
-  uIOhook.keyTap(UiohookKey.C)
-
-  // PoE2 drops modifier keyup events when they fire too soon after the C tap,
-  // leaving PoE's view of held modifiers out of sync -- on the Alt path that
-  // showed up as the in-game advanced tooltip stuck "Alt-pinned" on the item
-  // (most visible when the overlay closes via click-outside, where no focus
-  // round-trip resyncs it). Hold the modifiers ~10ms before releasing so PoE
-  // registers them in order. Same root cause and fix as Exiled-Exchange-2
-  // issue #124.
-  await new Promise<void>((resolve) => {
-    setTimeout(() => {
-      if (needAlt) uIOhook.keyToggle(UiohookKey.Alt, 'up')
-      if (needCtrl) uIOhook.keyToggle(UiohookKey.Ctrl, 'up')
-      // Re-press Shift immediately if it was held
-      if (heldShift) uIOhook.keyToggle(heldShift, 'down')
-    }, 10)
-    setTimeout(() => {
-      injecting = false
-      resolve()
-    }, 100)
-  })
 }
 
 function getHotkeyDiagnostics(): Record<string, unknown> {

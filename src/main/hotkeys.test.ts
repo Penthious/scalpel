@@ -509,4 +509,88 @@ describe('sendCtrlCToPoE', () => {
       .map((c) => c[0] as number)
     expect(ups).toEqual([UiohookKey.Alt, UiohookKey.Ctrl])
   })
+
+  // A user may bind Ctrl+C itself as a hotkey (POE_PROTECTED_HOTKEYS warns but
+  // allows it). globalShortcut backs onto RegisterHotKey, which consumes
+  // matching keystrokes system-wide - injected ones included - so the copy
+  // keystroke would fire the user's hotkey instead of reaching PoE and every
+  // capture would fail (#601). The registration must be released before the C
+  // tap and restored after.
+  describe('C-keyed hotkey registrations (#601)', () => {
+    /** Wraps the globalShortcut and keyTap mocks to log event order. */
+    function trackOrder(): string[] {
+      const order: string[] = []
+      globalShortcutMock.unregister.mockImplementation((acc: string) => {
+        order.push(`unregister:${acc}`)
+        return activeGlobalShortcuts.delete(acc)
+      })
+      globalShortcutMock.register.mockImplementation((acc: string, cb: () => void) => {
+        order.push(`register:${acc}`)
+        return registerGlobalShortcut(acc, cb)
+      })
+      return order
+    }
+
+    it('releases a Ctrl+C trigger binding before the tap and restores it after', async () => {
+      const hotkeys = await loadHotkeys(() => {})
+      const { uIOhook } = await import('uiohook-napi')
+      hotkeys.setHotkey('Ctrl+C')
+      expect(activeGlobalShortcuts.has('Ctrl+C')).toBe(true)
+
+      const order = trackOrder()
+      vi.mocked(uIOhook.keyTap).mockImplementation(() => {
+        order.push('tap:C')
+      })
+      await hotkeys.sendCtrlCToPoE()
+
+      const unregisterAt = order.indexOf('unregister:Ctrl+C')
+      const tapAt = order.indexOf('tap:C')
+      const registerAt = order.indexOf('register:Ctrl+C')
+      expect(unregisterAt).toBeGreaterThanOrEqual(0)
+      expect(tapAt).toBeGreaterThan(unregisterAt)
+      expect(registerAt).toBeGreaterThan(tapAt)
+      expect(activeGlobalShortcuts.has('Ctrl+C')).toBe(true)
+    })
+
+    it('releases a Ctrl+Alt+C price-check binding too - the alt/probe copy path injects it', async () => {
+      const hotkeys = await loadHotkeys(() => {})
+      const { uIOhook } = await import('uiohook-napi')
+      hotkeys.setPriceCheckHotkey('Ctrl+Alt+C')
+
+      const order = trackOrder()
+      vi.mocked(uIOhook.keyTap).mockImplementation(() => {
+        order.push('tap:C')
+      })
+      await hotkeys.sendCtrlCToPoE({ withAlt: true })
+
+      expect(order.indexOf('unregister:Ctrl+Alt+C')).toBeLessThan(order.indexOf('tap:C'))
+      expect(order.indexOf('register:Ctrl+Alt+C')).toBeGreaterThan(order.indexOf('tap:C'))
+      expect(activeGlobalShortcuts.has('Ctrl+Alt+C')).toBe(true)
+    })
+
+    it('releases and restores a C-keyed chat-command binding via the scoped rebuild', async () => {
+      const hotkeys = await loadHotkeys(() => {})
+      const { setPoeVersion } = await import('./game-state')
+      setPoeVersion(1)
+      hotkeys.setChatCommands([{ hotkey: 'Ctrl+C', command: '/hideout' }])
+      expect(activeGlobalShortcuts.has('Ctrl+C')).toBe(true)
+
+      const order = trackOrder()
+      await hotkeys.sendCtrlCToPoE()
+
+      expect(order.indexOf('unregister:Ctrl+C')).toBeGreaterThanOrEqual(0)
+      expect(activeGlobalShortcuts.has('Ctrl+C')).toBe(true)
+    })
+
+    it('leaves non-C bindings registered during injection', async () => {
+      const hotkeys = await loadHotkeys(() => {})
+      hotkeys.setHotkey('Ctrl+D')
+      hotkeys.setPriceCheckHotkey('F5')
+      globalShortcutMock.unregister.mockClear()
+
+      await hotkeys.sendCtrlCToPoE()
+
+      expect(globalShortcutMock.unregister).not.toHaveBeenCalled()
+    })
+  })
 })
