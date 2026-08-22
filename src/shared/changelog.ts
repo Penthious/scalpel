@@ -1,5 +1,12 @@
 export const CHANGELOG: { version: string; notes: string[] }[] = [
   {
+    version: '1.0.4',
+    notes: [
+      'Updated plugin sdk with some new features.',
+      'Fixed unique Sanctum relic price checks going to the bulk exchange instead of trade search.',
+    ],
+  },
+  {
     version: '1.0.3',
     notes: [
       'Updated onboarding with new settings and plugins.',
