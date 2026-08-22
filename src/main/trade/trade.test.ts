@@ -1235,7 +1235,37 @@ describe('searchTrade filter-group dispatch', () => {
       expect(harbingerBody.query.name).toBe('The Beachhead')
     })
 
-    it('unid unique map with unknown base falls back to sending the base as name', async () => {
+    it('unid unique map on the generic "Map (Tier N)" base searches Map type at unique rarity', async () => {
+      // Post-atlas-rework clients print every map base as "Map (Tier N)" -- the
+      // base no longer says WHICH unique map dropped, so there is no name to
+      // resolve and the by-name path cannot work. The search must go out as the
+      // generic Map type at unique rarity with the tier pinned; the unid chip
+      // narrows the comps to unidentified listings (the gamble market).
+      setPoeVersion(1)
+      _setUniquesByBaseForTests({ 'Machinarium Map': ["Doryani's Machinarium"] })
+      const unidUniqueMap = {
+        name: 'Map (Tier 16)',
+        baseType: 'Map (Tier 16)',
+        itemClass: 'Maps',
+        rarity: 'Unique',
+      }
+      const filters: StatFilter[] = [
+        { id: 'misc.identified', text: 'Unidentified', type: 'misc', enabled: true, value: null, min: null, max: null },
+      ]
+      await searchTrade('Mirage', unidUniqueMap, filters, { tradeStatus: 'any' })
+      const req = capturedRequests.find((r) => r.url.includes('/search/'))
+      const body = parseCapturedBody(req)
+      expect(body.query.name).toBeUndefined()
+      expect(body.query.type).toEqual({ option: 'Map', discriminator: 'map' })
+      expect(body.query.filters.type_filters.filters.rarity).toEqual({ option: 'unique' })
+      expect(body.query.filters.map_filters.filters.map_tier).toEqual({ min: 16, max: 16 })
+      expect(body.query.filters.misc_filters.filters.identified).toEqual({ option: 'false' })
+    })
+
+    it('unid unique map with an unknown tierless base still avoids the name GGG rejects', async () => {
+      // Sending a map base as query.name is a guaranteed "Unknown item name"
+      // rejection, so even a base we cannot parse a tier from must go out as
+      // the generic unique-map search, just without the tier pin.
       setPoeVersion(1)
       _setUniquesByBaseForTests({})
       const unidUniqueMap = {
@@ -1250,7 +1280,10 @@ describe('searchTrade filter-group dispatch', () => {
       await searchTrade('Mirage', unidUniqueMap, filters, { tradeStatus: 'any' })
       const req = capturedRequests.find((r) => r.url.includes('/search/'))
       const body = parseCapturedBody(req)
-      expect(body.query.name).toBe('Some Future Map')
+      expect(body.query.name).toBeUndefined()
+      expect(body.query.type).toEqual({ option: 'Map', discriminator: 'map' })
+      expect(body.query.filters.type_filters.filters.rarity).toEqual({ option: 'unique' })
+      expect(body.query.filters.map_filters?.filters?.map_tier).toBeUndefined()
     })
 
     it('identified unique map still searches by its real name', async () => {

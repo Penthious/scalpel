@@ -520,8 +520,44 @@ export function getUniquesByBase(): Record<string, string[]> {
   return getPoeVersion() === 2 ? uniqueBaseMapPoe2 : uniqueBaseMap
 }
 
+// Post-atlas-rework clients print every map base as the generic "Map (Tier N)",
+// so an unid unique map's base cannot say which unique dropped, and listings
+// for a single unique span several tiers (Death and Taxes trades at T13 and
+// T16 at once), so the tier cannot narrow the pool either. Offer every unique
+// map instead (#579's never-hide policy): the names under the legacy " Map"
+// base keys, plus the Distant Memory series whose legacy base was their own
+// name and so never needed a base key.
+const DISTANT_MEMORY_MAPS = [
+  'Altered Distant Memory',
+  'Augmented Distant Memory',
+  'Rewritten Distant Memory',
+  'Twisted Distant Memory',
+]
+const GENERIC_MAP_BASE = /^Map \(Tier \d+\)$/
+let uniqueMapNames: string[] | null = null
+function getUniqueMapNames(): string[] {
+  if (!uniqueMapNames) {
+    const names = new Set<string>(DISTANT_MEMORY_MAPS)
+    for (const [base, list] of Object.entries(uniqueInfoPoe1)) {
+      if (base.endsWith(' Map')) for (const n of list) names.add(n)
+    }
+    uniqueMapNames = [...names]
+  }
+  return uniqueMapNames
+}
+
+/** Names an unidentified unique on `baseType` could be: the uniques-by-base
+ *  entry when the base is a real one, or every unique map when the base is
+ *  the generic "Map (Tier N)" the modern PoE1 client prints. */
+function namesForUnidBase(baseType: string): string[] | undefined {
+  const direct = getUniquesByBase()[baseType]
+  if (direct) return direct
+  if (getPoeVersion() === 1 && GENERIC_MAP_BASE.test(baseType)) return getUniqueMapNames()
+  return undefined
+}
+
 export function lookupBestUniquePrice(baseType: string): PriceInfo | undefined {
-  const names = getUniquesByBase()[baseType]
+  const names = namesForUnidBase(baseType)
   if (!names) return undefined
   let best: PriceInfo | undefined
   for (const name of names) {
@@ -544,7 +580,7 @@ export function lookupBestUniquePrice(baseType: string): PriceInfo | undefined {
  *  the PoE1 base map were hidden the same way. Unpriced candidates land at the
  *  bottom, where the UI renders them without a price chip. */
 export function buildUnidCandidates(baseType: string): Array<{ name: string; chaosValue: number }> {
-  const names = getUniquesByBase()[baseType] ?? []
+  const names = namesForUnidBase(baseType) ?? []
   // lookupUniquePriceForBase disambiguates same-name uniques by base type and
   // falls back to the name-only entry when no variant key matches.
   return names

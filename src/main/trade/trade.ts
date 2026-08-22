@@ -762,18 +762,41 @@ export async function searchTrade(
   // Strip "Foulborn " prefix from the trade search name
   if (item.rarity === 'Unique' && item.itemClass === 'Maps') {
     // Unique maps: search by name only (type "Map" doesn't work with name).
-    // An unid unique map has name == baseType (e.g. "Machinarium Map"), which
-    // the trade API rejects as an unknown name, and map bases are not valid
-    // query.type values either (#470). Resolve the real unique name from the
-    // uniques-by-base data. Replica/Infused variants never drop unidentified
-    // (Heist curios and vendor recipes produce identified items), so prefer
-    // the droppable candidate on shared bases. (lookupBestUniquePrice in
-    // prices.ts picks by highest chaos value instead - different goal: price
-    // estimate there, a name the trade API accepts here.)
+    // An unid unique map has name == baseType, which the trade API rejects as
+    // an unknown name, and map bases are not valid query.type values either
+    // (#470). Legacy clipboards named the base (e.g. "Machinarium Map"), which
+    // the uniques-by-base data resolves to the real unique name --
+    // Replica/Infused variants never drop unidentified (Heist curios and
+    // vendor recipes produce identified items), so prefer the droppable
+    // candidate on shared bases. (lookupBestUniquePrice in prices.ts picks by
+    // highest chaos value instead - different goal: price estimate there, a
+    // name the trade API accepts here.)
     if (unidEnabled && item.name === item.baseType) {
       const candidates = getUniquesByBase()[item.baseType] ?? []
       const droppable = candidates.filter((n) => !/^(?:Replica|Infused)\s/.test(n))
-      query.name = droppable[0] ?? candidates[0] ?? item.name
+      const resolved = droppable[0] ?? candidates[0]
+      if (resolved) {
+        query.name = resolved
+      } else {
+        // Post-atlas-rework clients print every map base as the generic
+        // "Map (Tier N)" -- the base no longer says WHICH unique map dropped,
+        // so there is no name to resolve. Search the generic Map type at
+        // unique rarity with the tier pinned; the unid chip's identified:false
+        // (added with the other misc filters below) narrows the comps to
+        // unidentified listings, the market these actually sell on.
+        const unidTierMatch = item.baseType.match(/\(Tier (\d+)\)/)
+        query.type = { option: 'Map', discriminator: 'map' }
+        query.filters = {
+          type_filters: { filters: { rarity: { option: 'unique' } } },
+          ...(unidTierMatch
+            ? {
+                map_filters: {
+                  filters: { map_tier: { min: parseInt(unidTierMatch[1], 10), max: parseInt(unidTierMatch[1], 10) } },
+                },
+              }
+            : {}),
+        }
+      }
     } else {
       query.name = item.name
     }
