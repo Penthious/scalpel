@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const handlers = new Map<string, (...a: unknown[]) => unknown>()
 const listeners = new Map<string, (...a: unknown[]) => unknown>()
@@ -42,12 +42,27 @@ vi.mock('electron', () => ({
 }))
 
 describe('plugin media handlers', () => {
+  // The suite exercises the Windows proxy path; ensureChild() no-ops on any
+  // other platform, so pin win32 regardless of the host running the tests.
+  const realPlatform = process.platform
   beforeEach(() => {
+    Object.defineProperty(process, 'platform', { value: 'win32' })
     handlers.clear()
     listeners.clear()
     forkedChildren.length = 0
     vi.clearAllMocks()
     vi.resetModules()
+  })
+  afterAll(() => {
+    Object.defineProperty(process, 'platform', { value: realPlatform })
+  })
+
+  it('resolves null without forking on non-Windows hosts', async () => {
+    Object.defineProperty(process, 'platform', { value: 'linux' })
+    const { registerPluginMediaHandlers } = await import('./plugin-media')
+    registerPluginMediaHandlers()
+    await expect(handlers.get('plugins:media-get')!({})).resolves.toBeNull()
+    expect(fork).not.toHaveBeenCalled()
   })
 
   it('registers get / command / watch / unwatch channels', async () => {
