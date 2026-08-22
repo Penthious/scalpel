@@ -4,6 +4,7 @@ export const CHANGELOG: { version: string; notes: string[] }[] = [
     notes: [
       'Updated plugin sdk with some new features.',
       'Fixed unique Sanctum relic price checks going to the bulk exchange instead of trade search.',
+      'Fixed price checks failing when a hotkey is bound to Ctrl+C.',
     ],
   },
   {
