@@ -49,6 +49,8 @@ describe('ITEM_CLASS_TO_CATEGORY', () => {
     expect(ITEM_CLASS_TO_CATEGORY.Flasks).toBe('flask')
     expect(ITEM_CLASS_TO_CATEGORY['Life Flasks']).toBe('flask')
     expect(ITEM_CLASS_TO_CATEGORY['Mana Flasks']).toBe('flask')
+    expect(ITEM_CLASS_TO_CATEGORY['Hybrid Flasks']).toBe('flask')
+    expect(ITEM_CLASS_TO_CATEGORY['Utility Flasks']).toBe('flask')
     expect(ITEM_CLASS_TO_CATEGORY.Charms).toBe('flask.charm')
     expect(ITEM_CLASS_TO_CATEGORY.Tinctures).toBe('tincture')
     expect(ITEM_CLASS_TO_CATEGORY.Trinkets).toBe('accessory.trinket')
@@ -516,6 +518,24 @@ describe('matchItemMods', () => {
       const corruptedChip = filters.find((f) => f.id === 'misc.corrupted')
       expect(corruptedChip).toBeDefined()
       expect(corruptedChip?.chipState).toBe('no')
+    })
+
+    it('generates corrupted chip for uncorrupted PoE1 Utility and Hybrid Flasks', () => {
+      // No PoE1 clipboard ever says "Item Class: Flasks" -- the game splits the
+      // family into Life/Mana/Hybrid/Utility Flasks. Life/Mana were mapped as
+      // PoE2 classes (#575); Utility and Hybrid were left out, so the flasks
+      // people actually price-check had no Corrupted chip when uncorrupted.
+      for (const itemClass of ['Utility Flasks', 'Hybrid Flasks']) {
+        const filters = matchItemMods(
+          [],
+          [],
+          undefined,
+          makeItemInfo({ corrupted: false, itemClass, baseType: 'Granite Flask', rarity: 'Magic' }),
+        )
+        const corruptedChip = filters.find((f) => f.id === 'misc.corrupted')
+        expect(corruptedChip, itemClass).toBeDefined()
+        expect(corruptedChip?.chipState, itemClass).toBe('no')
+      }
     })
 
     it('generates corrupted chip for uncorrupted Tinctures', () => {

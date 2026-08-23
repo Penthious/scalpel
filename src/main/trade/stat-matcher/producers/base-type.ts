@@ -1,5 +1,6 @@
 import { isClusterJewel, SKILL_GEM_CLASSES, splitRuneTier } from '@shared/poe-item'
 import type { StatFilter } from '../../trade'
+import { FLASK_CLASSES } from '../item-classes'
 
 type BaseTypeItemInfo = {
   baseType: string
@@ -43,12 +44,16 @@ export function buildBaseTypeFilter(itemInfo: BaseTypeItemInfo | undefined): Sta
   // Charts", not "all charts". Same reasoning as tablets. When both chips are on
   // the zone wins: trade.ts overwrites query.type with the discriminator form.
   const isChart = itemInfo.itemClass === 'Chart'
+  // Flasks price by base first: suffixes roll across the whole class, so a
+  // category search without the base pin would comp a Granite against every
+  // other flask with the same immunity suffix. Same reasoning as tablets.
+  const isFlask = FLASK_CLASSES.has(itemInfo.itemClass)
   // The basetype chip always shows the BARE base ("Faithful Leggings"); the
   // separate misc.rune_base chip composes the "Runeforged"/"Runemastered" prefix
   // back on at query time. Rune bases default off like any other rare (category
   // search) -- the user pins the base + rune chips explicitly when narrowing.
   const baseTypeText = splitRuneTier(baseTypeCleaned).bare
-  const baseTypeEnabled = isSpecialMap || isCluster || isTablet || isChart || (isBaseItem && isOverqualitied)
+  const baseTypeEnabled = isSpecialMap || isCluster || isTablet || isChart || isFlask || (isBaseItem && isOverqualitied)
 
   return [
     {

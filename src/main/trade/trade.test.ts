@@ -1604,6 +1604,34 @@ describe('searchTrade filter-group dispatch', () => {
     expect(body.query.filters.type_filters.filters.category).toEqual({ option: 'flask' })
   })
 
+  it('Utility Flasks route to flask category with the base pinned', async () => {
+    // PoE1 splits the flask family on the "Item Class:" line; Utility/Hybrid were
+    // missing from the category map. The basetype chip defaults on for flasks, so
+    // the category search stays pinned to the base -- flask bases are separate
+    // markets and an unpinned mod search would mix them.
+    setPoeVersion(1)
+    const flask = {
+      name: '',
+      baseType: 'Granite Flask',
+      itemClass: 'Utility Flasks',
+      rarity: 'Magic',
+    }
+    const baseChip: StatFilter = {
+      id: 'misc.basetype',
+      text: 'Granite Flask',
+      type: 'misc',
+      enabled: true,
+      value: null,
+      min: null,
+      max: null,
+    }
+    await searchTrade('Mirage', flask, [baseChip], { tradeStatus: 'any', tradePriceOption: 'chaos_divine' })
+    const req = capturedRequests.find((r) => r.url.includes('/search/'))
+    const body = parseCapturedBody(req)
+    expect(body.query.filters.type_filters.filters.category).toEqual({ option: 'flask' })
+    expect(body.query.type).toBe('Granite Flask')
+  })
+
   it('Tinctures route to tincture category', async () => {
     setPoeVersion(1)
     const tincture = {

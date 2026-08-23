@@ -31,10 +31,16 @@ export const ITEM_CLASS_TO_CATEGORY: Record<string, string> = {
   // from regular Jewels. Without this entry they aren't treated as equipment, so
   // misc chips like Corrupted never appear on uncorrupted eyes.
   'Abyss Jewels': 'jewel.abyss',
+  // No modern clipboard says bare "Flasks" -- BOTH games split the family on the
+  // "Item Class:" line: PoE1 into Life/Mana/Hybrid/Utility, PoE2 into Life/Mana.
+  // The bare key stays for older fixtures and synthetic callers. #575 mapped
+  // Life/Mana believing the split was PoE2-only, which left PoE1 utility flasks
+  // without the equipment misc chips (Corrupted defaulting to its own state).
   Flasks: 'flask',
-  // PoE2 splits flasks by recover type; same trade category as PoE1 Flasks.
   'Life Flasks': 'flask',
   'Mana Flasks': 'flask',
+  'Hybrid Flasks': 'flask',
+  'Utility Flasks': 'flask',
   // PoE2 files charms under the flask family; there is no azmeri.* category in
   // either game's published filter list, and an unpublished category is worse
   // than none -- trade.ts drops the query.type fallback as soon as it has one.
@@ -84,6 +90,13 @@ export const ITEM_CLASS_TO_CATEGORY: Record<string, string> = {
   Chart: 'chart',
 }
 
+/** Every "Item Class:" spelling the flask family shows up under (bare "Flasks"
+ *  included for legacy callers). Flask bases are price-defining -- a Granite and
+ *  a Quicksilver with the same suffix are different markets -- so the basetype
+ *  chip defaults on for these classes (see buildBaseTypeFilter), keeping the
+ *  category search base-pinned. */
+export const FLASK_CLASSES = new Set(['Flasks', 'Life Flasks', 'Mana Flasks', 'Hybrid Flasks', 'Utility Flasks'])
+
 // ─── Item Class to Trade-Stat Qualifier ───────────────────────────────────────
 
 // Item class -> the trailing trade-stat qualifier its mods should prefer. The trade
@@ -92,11 +105,15 @@ export const ITEM_CLASS_TO_CATEGORY: Record<string, string> = {
 // text, so we tell the matcher which qualified variant to pick (issue #397).
 export const QUALIFIER_BY_ITEM_CLASS: Record<string, string> = {
   Charms: 'Charm',
-  // PoE1 flask copies say "Flasks"; PoE2 splits the class into "Life Flasks" /
-  // "Mana Flasks", so all three must point at the "(Flask)" qualifier (issue #466).
+  // Both games split the flask family on the "Item Class:" line (PoE1 into
+  // Life/Mana/Hybrid/Utility, PoE2 into Life/Mana; bare "Flasks" never appears
+  // in a modern copy), so every spelling must point at the "(Flask)" qualifier
+  // (issue #466).
   Flasks: 'Flask',
   'Life Flasks': 'Flask',
   'Mana Flasks': 'Flask',
+  'Hybrid Flasks': 'Flask',
+  'Utility Flasks': 'Flask',
   Jewels: 'Jewel',
   'Abyss Jewels': 'Jewel',
   // PoE1 staff-block twin is tagged "(Staves)" on the trade API; prefer it for

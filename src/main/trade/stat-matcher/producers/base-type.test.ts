@@ -24,6 +24,21 @@ describe('buildBaseTypeFilter', () => {
     expect(chip).toMatchObject({ id: 'misc.basetype', enabled: false })
   })
 
+  it('defaults the chip on for every flask class', () => {
+    // Flask bases are the market segment (a Granite and a Quicksilver with the
+    // same suffix price differently), so the category search stays base-pinned.
+    for (const itemClass of ['Flasks', 'Life Flasks', 'Mana Flasks', 'Hybrid Flasks', 'Utility Flasks']) {
+      const chip = buildBaseTypeFilter({
+        baseType: 'Granite Flask',
+        rarity: 'Magic',
+        itemClass,
+        quality: 20,
+      })[0]
+
+      expect(chip, itemClass).toMatchObject({ id: 'misc.basetype', enabled: true })
+    }
+  })
+
   it('still defaults the chip on for tablets', () => {
     const chip = buildBaseTypeFilter({
       baseType: 'Breach Precursor Tablet',

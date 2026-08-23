@@ -1077,7 +1077,9 @@ describe('parseItemText', () => {
 
     it('parses a Flask', () => {
       const text = [
-        'Item Class: Flasks',
+        // Real PoE1 clipboards split the flask family: Life/Mana/Hybrid/Utility
+        // Flasks. Bare "Flasks" never appears in a modern copy.
+        'Item Class: Life Flasks',
         'Rarity: Magic',
         "Chemist's Divine Life Flask of Staunching",
         '--------',
@@ -1095,7 +1097,7 @@ describe('parseItemText', () => {
       ].join('\n')
 
       const item = parseItemText(text)!
-      expect(item.itemClass).toBe('Flasks')
+      expect(item.itemClass).toBe('Life Flasks')
       expect(item.quality).toBe(10)
     })
 
