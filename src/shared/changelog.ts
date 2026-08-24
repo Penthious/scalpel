@@ -3,8 +3,11 @@ export const CHANGELOG: { version: string; notes: string[] }[] = [
     version: '1.0.4',
     notes: [
       'Updated plugin sdk with some new features.',
+      'Plugins that need a newer Scalpel version no longer show in the plugin browser.',
       'Fixed unique Sanctum relic price checks going to the bulk exchange instead of trade search.',
       'Fixed price checks failing when a hotkey is bound to Ctrl+C.',
+      'Fixed price checks on unidentified unique maps.',
+      'Fixed the Corrupted chip missing on PoE1 utility and hybrid flasks.',
     ],
   },
   {
