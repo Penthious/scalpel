@@ -1,8 +1,9 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { net } from 'electron'
+import { app, net } from 'electron'
 import { PLUGIN_REGISTRY_URL } from '@shared/endpoints'
 import type { RegistryEntry, RegistrySnapshot } from '@shared/plugin-registry-types'
+import { versionMatches } from '@shared/version-match'
 import { PLUGIN_ID_PATTERN } from './manifest-validator'
 import { pluginsDir } from './paths'
 
@@ -79,7 +80,25 @@ function validateSnapshot(raw: unknown): RegistrySnapshot | null {
   return { schemaVersion: 1, plugins }
 }
 
+/** Drop entries whose scalpelMinVersion this build does not satisfy (same gate
+ *  installFromRegistry enforces) - a plugin published against an unreleased
+ *  Scalpel would otherwise show an Install/Update button that can only fail.
+ *  Applied on the way out, never to the disk cache: the cache keeps the full
+ *  list so upgrading the app reveals newly-runnable plugins even on a 304. */
+function withoutUnrunnable(snapshot: RegistrySnapshot): RegistrySnapshot {
+  return {
+    ...snapshot,
+    plugins: snapshot.plugins.filter((e) => versionMatches(e.scalpelMinVersion, app.getVersion())),
+  }
+}
+
 export async function fetchRegistry(overrideUrl?: string): Promise<FetchResult> {
+  const result = await fetchRegistryRaw(overrideUrl)
+  if (!result.ok) return result
+  return { ok: true, snapshot: withoutUnrunnable(result.snapshot) }
+}
+
+async function fetchRegistryRaw(overrideUrl?: string): Promise<FetchResult> {
   const url = overrideUrl ?? PLUGIN_REGISTRY_URL
   const cached = readCache()
   const headers: Record<string, string> = { accept: 'application/json' }

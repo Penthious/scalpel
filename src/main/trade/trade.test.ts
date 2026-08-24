@@ -1258,8 +1258,8 @@ describe('searchTrade filter-group dispatch', () => {
       expect(body.query.name).toBeUndefined()
       expect(body.query.type).toEqual({ option: 'Map', discriminator: 'map' })
       expect(body.query.filters.type_filters.filters.rarity).toEqual({ option: 'unique' })
-      expect(body.query.filters.map_filters.filters.map_tier).toEqual({ min: 16, max: 16 })
-      expect(body.query.filters.misc_filters.filters.identified).toEqual({ option: 'false' })
+      expect(body.query.filters.map_filters?.filters.map_tier).toEqual({ min: 16, max: 16 })
+      expect(body.query.filters.misc_filters?.filters.identified).toEqual({ option: 'false' })
     })
 
     it('unid unique map with an unknown tierless base still avoids the name GGG rejects', async () => {

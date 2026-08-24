@@ -8,7 +8,7 @@ const { mockNetFetchFn } = vi.hoisted(() => ({
 }))
 
 vi.mock('electron', () => ({
-  app: { getPath: vi.fn(() => TEST_USER_DATA) },
+  app: { getPath: vi.fn(() => TEST_USER_DATA), getVersion: vi.fn(() => '1.0.0') },
   net: { fetch: mockNetFetchFn },
 }))
 
@@ -168,6 +168,46 @@ describe('fetchRegistry', () => {
     const result = await fetchRegistry()
     expect(result.ok).toBe(true)
     if (result.ok) expect(result.snapshot.plugins).toHaveLength(0)
+  })
+})
+
+describe('scalpelMinVersion gate', () => {
+  const futureEntry = {
+    ...validRegistry.plugins[0],
+    id: 'future-plugin',
+    scalpelMinVersion: '>=999.0.0',
+  }
+  const mixedRegistry = { schemaVersion: 1, plugins: [validRegistry.plugins[0], futureEntry] }
+
+  it('hides entries this build cannot run', async () => {
+    mockNetFetch(async () => new Response(JSON.stringify(mixedRegistry), { status: 200 }))
+    const { fetchRegistry } = await import('./registry')
+    const result = await fetchRegistry()
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.snapshot.plugins.map((p) => p.id)).toEqual(['hello-world'])
+    }
+  })
+
+  it('caches the unfiltered list so an app upgrade can reveal hidden entries', async () => {
+    mockNetFetch(async () => new Response(JSON.stringify(mixedRegistry), { status: 200 }))
+    const { fetchRegistry } = await import('./registry')
+    await fetchRegistry()
+    const cachePath = join(TEST_USER_DATA, 'plugins', 'registry-cache.json')
+    const cached = JSON.parse(mockFs.files.get(cachePath)!)
+    expect(cached.snapshot.plugins.map((p: { id: string }) => p.id)).toEqual(['hello-world', 'future-plugin'])
+  })
+
+  it('filters the cached snapshot on a 304 too', async () => {
+    const cachePath = join(TEST_USER_DATA, 'plugins', 'registry-cache.json')
+    mockFs.files.set(cachePath, JSON.stringify({ etag: '"abc123"', snapshot: mixedRegistry }))
+    mockNetFetch(async () => new Response(null, { status: 304 }))
+    const { fetchRegistry } = await import('./registry')
+    const result = await fetchRegistry()
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.snapshot.plugins.map((p) => p.id)).toEqual(['hello-world'])
+    }
   })
 })
 
