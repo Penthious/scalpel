@@ -25,7 +25,7 @@ export function App({ pluginId }: { pluginId: string }): JSX.Element {
 
   return (
     <Chrome
-      headerContent={<span className="text-text text-sm font-medium">{captured?.opts.title ?? ''}</span>}
+      title={captured?.opts.title}
       flushLeft={edgeFlush.left}
       flushRight={edgeFlush.right}
       onClose={() => {

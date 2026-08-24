@@ -41,6 +41,15 @@ export const Bare: Story = {
   },
 }
 
+/** Static title rendered inside the drag region (plugin overlays, regex
+ *  remote): the whole title bar is a grab handle and none of it selects. */
+export const WithTitle: Story = {
+  args: {
+    title: 'Now Playing',
+    children: <PlaceholderBody text="Plugin-card-style chrome: the title is draggable, not selectable." />,
+  },
+}
+
 export const WithCategoryTabs: Story = {
   args: {
     headerContent: (

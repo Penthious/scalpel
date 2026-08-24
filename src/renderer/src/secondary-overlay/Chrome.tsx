@@ -3,9 +3,14 @@ import { useEffect, useState } from 'react'
 import appIcon from '../../../../resources/icon.png'
 
 interface ChromeProps {
+  /** Static window title rendered next to the logo, inside the drag region.
+   *  Use this (not `headerContent`) for plain text: headerContent sits in a
+   *  no-drag wrapper, so a title there is a dead strip in the middle of the
+   *  title bar - it neither drags the window nor resists text selection. */
+  title?: string
   /** Optional content rendered to the right of the logo in the header (e.g.
-   *  category tabs). Lives inside the drag region but inherits no-drag from
-   *  individual interactive children. */
+   *  category tabs). Wrapped in no-drag so interactive children stay
+   *  clickable - static text belongs in `title` instead. */
   headerContent?: React.ReactNode
   /** Optional content rendered between `headerContent` and the close button --
    *  intended for view-control affordances (size pickers, filters, etc.) that
@@ -89,6 +94,7 @@ function PinToggle(): JSX.Element | null {
  *  swallow their clicks. The close button + header buttons handle this
  *  automatically. */
 export function Chrome({
+  title,
   headerContent,
   headerEnd,
   children,
@@ -107,11 +113,12 @@ export function Chrome({
       }${flushRight ? ' rounded-r-none border-r-0' : ''}`}
     >
       <div
-        className="flex items-center justify-between gap-2 px-2 py-1 border-b border-border bg-bg-solid-translucent shrink-0"
+        className="flex items-center justify-between gap-2 px-2 py-1 border-b border-border bg-bg-solid-translucent shrink-0 select-none"
         style={drag}
       >
         <div className="flex items-center gap-2 min-w-0">
           <img src={appIcon} alt="Scalpel" className="w-4 h-4 shrink-0" />
+          {title && <span className="text-text text-xs font-semibold truncate">{title}</span>}
           {headerContent && (
             <div className="flex gap-[6px] flex-wrap" style={noDrag}>
               {headerContent}

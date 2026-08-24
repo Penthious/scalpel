@@ -82,11 +82,7 @@ export function RegexRemote(): JSX.Element {
     macros.find((m) => m.action === 'useSavedRegex' && m.presetId === id)?.hotkey
 
   return (
-    <Chrome
-      headerContent={<span className="text-text text-xs font-semibold">Regex Remote</span>}
-      onClose={() => closeRegexRemote()}
-      flushLeft={mounted}
-    >
+    <Chrome title="Regex Remote" onClose={() => closeRegexRemote()} flushLeft={mounted}>
       {groups.length === 0 ? (
         <div className="p-3 text-text-dim text-[11px] leading-snug">
           Save regex presets in the Regex tab to use them here.
