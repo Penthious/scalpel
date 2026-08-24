@@ -417,11 +417,8 @@ export function createOverlayWindow(version: 1 | 2 = 1, options?: CreateOverlayO
         clearTimeout(retargetWatchdog)
         retargetWatchdog = null
       }
-      console.log('[debug] attach', overlayWindow)
       if (overlayWindow && !overlayWindow.isDestroyed()) {
-        console.log('[debug] send poe version')
         overlayWindow.webContents.send('poe-version', getPoeVersion())
-        console.log('[debug] start client log watcher')
         startClientLogWatcher(overlayWindow)
       }
       sendGameBounds(ev.width, ev.height)
