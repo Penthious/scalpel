@@ -4,10 +4,14 @@ export const CHANGELOG: { version: string; notes: string[] }[] = [
     notes: [
       'Updated plugin sdk with some new features.',
       'Plugins that need a newer Scalpel version no longer show in the plugin browser.',
+      'Plugin overlay windows now start pinned, so Esc no longer closes them.',
+      'Overlay window title bars now drag the window instead of selecting text.',
       'Fixed unique Sanctum relic price checks going to the bulk exchange instead of trade search.',
       'Fixed price checks failing when a hotkey is bound to Ctrl+C.',
       'Fixed price checks on unidentified unique maps.',
       'Fixed the Corrupted chip missing on PoE1 utility and hybrid flasks.',
+      'Fixed the Now Playing overlay not coming back after alt-tabbing the game.',
+      'Fixed Trarthan Scarabs and other new 3.27 items not showing Faustus pricing.',
     ],
   },
   {
