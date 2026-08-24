@@ -95,15 +95,15 @@ describe('resolveClientLogPath', () => {
   })
 
   it('uses PowerShell on Windows', () => {
-    const log = '/PoE/logs/Client.txt'
+    const log = 'C:\\PoE\\logs\\Client.txt'
     const fs = fakeFs({ [log]: '' })
     expect(
       resolveClientLogPath({
         platform: 'win32',
         env: {},
-        homedir: '/Users/t',
+        homedir: 'C:\\Users\\t',
         fs,
-        execUtf8: () => '/PoE/PathOfExileSteam.exe\n',
+        execUtf8: () => 'C:\\PoE\\PathOfExileSteam.exe\n',
         poeVersion: 2,
       }),
     ).toBe(log)
