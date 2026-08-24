@@ -2608,6 +2608,33 @@ describe('isBulkExchangeItem (PoE2 slug-gated routing)', () => {
     expect(getBulkExchangeId('Ambition', 'Vaal Aspect')).toBe('ambition')
   })
 
+  it('routes the 3.27 Trarthan scarabs to bulk with live exchange ids', () => {
+    setPoeVersion(1)
+    const scarabs: Array<[string, string]> = [
+      ['Trarthan Scarab', 'trarthan-scarab'],
+      ['Trarthan Scarab of Infamy', 'trarthan-scarab-of-infamy'],
+      ['Trarthan Scarab of Renown', 'trarthan-scarab-of-renown'],
+      ['Trarthan Scarab of Surprising Alliances', 'trarthan-scarab-of-surprising-alliances'],
+    ]
+    for (const [name, id] of scarabs) {
+      expect(getBulkExchangeId(name, name)).toBe(id)
+      expect(isBulkExchangeItem('Scarabs', name, name, 'Currency')).toBe(true)
+    }
+  })
+
+  it('tracks the 3.27 scarab rework renames and removals', () => {
+    setPoeVersion(1)
+    // Emptiness was renamed Descending and got a fresh id -- the old id is
+    // delisted, and a delisted id silently blanks the exchange query (#471).
+    expect(getBulkExchangeId('Abyss Scarab of Descending', 'Abyss Scarab of Descending')).toBe(
+      'abyss-scarab-of-descending',
+    )
+    // Harbinger scarabs left the game (and the exchange list) in 3.27, so they
+    // must fall back to regular search where legacy listings still exist.
+    expect(getBulkExchangeId('Harbinger Scarab', 'Harbinger Scarab')).toBeNull()
+    expect(isBulkExchangeItem('Scarabs', 'Harbinger Scarab', 'Harbinger Scarab', 'Currency')).toBe(false)
+  })
+
   it('does NOT route a Rare item whose generated title collides with a currency name (#501)', () => {
     setPoeVersion(1)
     // A Rare Hypnotic Eye Jewel whose randomly generated title happens to be
