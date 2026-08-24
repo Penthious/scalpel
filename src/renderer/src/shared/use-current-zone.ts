@@ -9,7 +9,15 @@ import { usePoeVersion } from './poe-version-context'
 export function useCurrentZone(): Zone | null {
   const [zone, setZone] = useState<Zone | null>(null)
   useEffect(() => {
-    return window.api.onZoneChanged(setZone)
+    let cancelled = false
+    void window.api.getCurrentZone().then((z) => {
+      if (!cancelled && z) setZone(z)
+    })
+    const off = window.api.onZoneChanged(setZone)
+    return () => {
+      cancelled = true
+      off()
+    }
   }, [])
   return zone
 }

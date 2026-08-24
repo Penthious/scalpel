@@ -1,22 +1,37 @@
 import type { BrowserWindow } from 'electron'
+import { getPoeVersion } from '../game-state'
 import { parseClientLogLine } from './parse-client-log'
 import { resolveClientLogPath } from './path-resolver'
+import { readLastZoneFromLog } from './seed-last-zone'
 import { hasLogLineSubscribers, pushLogLine } from './tail-buffer'
 import { startWatcher } from './watcher'
 import { getCurrentZone, ingestZoneEvent, onZoneChanged } from './zone-state'
+import { log } from 'node:console'
 
 let started = false
 const logLineWinGetters: Array<() => BrowserWindow | null> = []
+console.log('[debug] client log', resolveClientLogPath({ poeVersion: getPoeVersion() }))
+console.log('[debug] getPoeVersion', getPoeVersion())
+console.log(
+  '[debug] current zone',
+  readLastZoneFromLog('/mnt/games/SteamLibrary/steamapps/common/Path of Exile 2/logs/Client.txt'),
+)
 
 /** Boot the Client.txt watcher and pipe zone changes to the overlay
  *  webContents. Idempotent (re-attach events shouldn't restart the
  *  watcher). Silent on resolve failure - the watcher just doesn't start
  *  and the toggle never renders. */
 export function startClientLogWatcher(overlayWindow: BrowserWindow): void {
+  console.log('[debug] startClientLogWatcher')
   if (started) return
-  const path = resolveClientLogPath()
+  const path = resolveClientLogPath({ poeVersion: getPoeVersion() })
+  console.log('[debug] path', path)
   if (!path) return
   started = true
+  const last = readLastZoneFromLog(path)
+  console.log('last', last)
+  console.log('path', path)
+  if (last) ingestZoneEvent(last)
   startWatcher(path, (line) => {
     emitLogLine(line)
     const parsed = parseClientLogLine(line)
@@ -45,6 +60,7 @@ export function forwardZoneChangesTo(getWin: () => BrowserWindow | null): void {
  *  renderer reflects state immediately rather than waiting for the next
  *  Client.txt event. */
 export function sendCurrentZoneTo(win: BrowserWindow): void {
+  console.log('[debug] sendCurrentZoneTo', getCurrentZone())
   if (!win.isDestroyed()) win.webContents.send('zone-changed', getCurrentZone())
 }
 

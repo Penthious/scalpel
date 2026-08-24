@@ -8,6 +8,8 @@ vi.mock('./watcher', () => ({
   },
 }))
 vi.mock('./path-resolver', () => ({ resolveClientLogPath: () => 'C:/fake/Client.txt' }))
+vi.mock('./seed-last-zone', () => ({ readLastZoneFromLog: () => null }))
+vi.mock('../game-state', () => ({ getPoeVersion: () => 2 }))
 vi.mock('./zone-state', () => ({
   getCurrentZone: () => null,
   ingestZoneEvent: vi.fn(),
