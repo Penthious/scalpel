@@ -66,6 +66,13 @@ export interface OverlaySpec {
    *  must re-evaluate each time the window is shown. Default (false) keeps the
    *  position the window last had. */
   repositionOnShow?: boolean
+  /** Seed for the user pin (the Chrome header toggle) when the pin store has
+   *  no explicit entry for this overlay. The pin exempts the overlay from the
+   *  Esc hide sweep. Plugin overlays default it on: they are user-summoned
+   *  persistent surfaces, and a game-Esc (menus, stash, inventory) dismissing
+   *  them also clears the alt-tab restore memory - the card silently never
+   *  comes back. An explicit user unpin persists and beats this default. */
+  defaultUserPinned?: boolean
   /** Optional predicate consulted before showing an already-created window
    *  (regular show, the first show after did-finish-load, and the PoE-refocus
    *  restore). Return false to suppress the show. Window creation itself is

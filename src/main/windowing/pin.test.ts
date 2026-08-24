@@ -2,10 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const pinMap = new Map<string, boolean>()
 vi.mock('./pin-store', () => ({
-  readOverlayPinned: (id: string) => pinMap.get(id) === true,
+  readOverlayPinned: (id: string) => pinMap.get(id),
   writeOverlayPinned: vi.fn((id: string, pinned: boolean) => {
-    if (pinned) pinMap.set(id, true)
-    else pinMap.delete(id)
+    pinMap.set(id, pinned)
   }),
 }))
 
@@ -13,9 +12,9 @@ import { writeOverlayPinned } from './pin-store'
 import { getOverlayPinnedForWebContents, seedUserPinned, setOverlayPinnedForWebContents } from './pin'
 import { type OverlayState, overlays } from './state'
 
-function fakeState(id: string, wcId: number): OverlayState {
+function fakeState(id: string, wcId: number, defaultUserPinned?: boolean): OverlayState {
   return {
-    spec: { id } as unknown as OverlayState['spec'],
+    spec: { id, defaultUserPinned } as unknown as OverlayState['spec'],
     win: {
       isDestroyed: () => false,
       webContents: { id: wcId },
@@ -46,6 +45,19 @@ describe('overlay pin accessors', () => {
     const other = fakeState('regex-remote', 6)
     seedUserPinned(other)
     expect(other.userPinned).toBe(false)
+  })
+
+  it('seedUserPinned falls back to the spec default when the store has no entry', () => {
+    const state = fakeState('plugin-overlay:now-playing', 5, true)
+    seedUserPinned(state)
+    expect(state.userPinned).toBe(true)
+  })
+
+  it('an explicit unpin beats a pinned-by-default spec', () => {
+    pinMap.set('plugin-overlay:now-playing', false)
+    const state = fakeState('plugin-overlay:now-playing', 5, true)
+    seedUserPinned(state)
+    expect(state.userPinned).toBe(false)
   })
 
   it('get resolves the overlay by webContents id', () => {

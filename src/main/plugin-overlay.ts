@@ -112,6 +112,10 @@ export function registerPluginOverlay(pluginId: string, opts: PluginOverlayOptio
   return registerPluginOverlayInternal(pluginId, {
     id: `plugin-overlay:${pluginId}`,
     htmlEntry: 'plugin-overlay.html',
+    // Pinned by default: game-Esc must not dismiss a plugin card the user
+    // placed (the Esc sweep also clears the alt-tab restore memory, so the
+    // card would silently never come back). The chrome pin toggle opts out.
+    defaultUserPinned: true,
     defaultAnchor: () => defaultAnchorFor(opts),
     snapAnchors: () => (opts.snapPositions ?? []).map((pos) => anchorFor(opts, pos)),
     storedAnchor: opts.storedAnchor,

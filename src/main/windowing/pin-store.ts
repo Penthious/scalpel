@@ -16,16 +16,14 @@ function getStore(): Store<PinStoreSchema> {
   return store
 }
 
-export function readOverlayPinned(id: string): boolean {
-  return getStore().get('pins')[id] === true
+/** The user's stored pin choice, or undefined when they never toggled this
+ *  overlay. Undefined is meaningful: overlays with a pinned-by-default spec
+ *  (plugin overlays) fall back to their default only when no explicit choice
+ *  exists, so false must persist as false rather than being deleted. */
+export function readOverlayPinned(id: string): boolean | undefined {
+  return getStore().get('pins')[id]
 }
 
 export function writeOverlayPinned(id: string, pinned: boolean): void {
-  const pins = { ...getStore().get('pins') }
-  if (pinned) {
-    pins[id] = true
-  } else {
-    delete pins[id]
-  }
-  getStore().set('pins', pins)
+  getStore().set('pins', { ...getStore().get('pins'), [id]: pinned })
 }

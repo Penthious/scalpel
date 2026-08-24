@@ -10,6 +10,7 @@ type CapturedSpec = {
   onAnchorChanged?: (anchor: unknown) => void
   onVisibilityChange?: (visible: boolean) => void
   onFirstShow?: (win: unknown) => void
+  defaultUserPinned?: boolean
 }
 const registeredSpecs: CapturedSpec[] = []
 const fakeOverlay = {
@@ -58,6 +59,11 @@ describe('plugin-overlay registry', () => {
   it('registers a secondary overlay keyed by plugin id with the shared html entry', () => {
     registerPluginOverlay('demo', { title: 'Demo' })
     expect(registered).toEqual([{ id: 'plugin-overlay:demo', htmlEntry: 'plugin-overlay.html' }])
+  })
+
+  it('windowed overlays default the user pin on so game-Esc does not dismiss them', () => {
+    registerPluginOverlay('demo-pin', { title: 'Demo' })
+    expect(registeredSpecs[0]?.defaultUserPinned).toBe(true)
   })
 
   it('is idempotent per plugin id', () => {

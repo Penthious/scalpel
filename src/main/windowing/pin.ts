@@ -1,10 +1,11 @@
 import { readOverlayPinned, writeOverlayPinned } from './pin-store'
 import { type OverlayState, overlays } from './state'
 
-/** Seed userPinned from the persisted pin map. Called once per overlay at
- *  registration so a pin survives restarts without any owner-side wiring. */
+/** Seed userPinned from the persisted pin map, falling back to the spec's
+ *  default when the user never toggled this overlay. Called once per overlay
+ *  at registration so a pin survives restarts without any owner-side wiring. */
 export function seedUserPinned(state: OverlayState): void {
-  state.userPinned = readOverlayPinned(state.spec.id)
+  state.userPinned = readOverlayPinned(state.spec.id) ?? state.spec.defaultUserPinned ?? false
 }
 
 function findByWebContents(wcId: number): OverlayState | null {
