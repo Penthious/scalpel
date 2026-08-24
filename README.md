@@ -1,4 +1,4 @@
-# Scalpel
+# Scalpel test update
 
 Path of Exile's first ever fourth-party tool. An overlay to edit your filter, price check items, generate regex and tons more.
 
