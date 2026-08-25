@@ -31,6 +31,8 @@ export function useActivatePlugin(pluginId: string): ActivatedPlugin {
       const poeVersion: 1 | 2 = (state?.poeVersion as 1 | 2) ?? 1
       const settings = await window.api.getSettings().catch(() => null)
       let league = settings?.activeProfile?.league ?? ''
+      const seededZone = await window.api.getCurrentZone().catch(() => null)
+      if (seededZone) latestZone = seededZone
       const mod = (await importPluginModule(entry.entryUrl)) as { default?: PluginActivate }
       if (cancelled || typeof mod.default !== 'function') return
       const capHolder: { value: ActivatedPlugin['captured'] } = { value: null }

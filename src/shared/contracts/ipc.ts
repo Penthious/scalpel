@@ -209,6 +209,7 @@ export const IPC_CHANNELS = {
     SUBSCRIBE: 'client-log:subscribe',
     UNSUBSCRIBE: 'client-log:unsubscribe',
     RECENT_LINES: 'client-log:recent-lines',
+    CURRENT_ZONE: 'client-log:current-zone',
     LINE_EVENT: 'client-log:line',
   },
 

@@ -42,6 +42,7 @@ describe('cheat-sheets-grid App thumbnail homing (#465)', () => {
         zoneHandler = cb
         return () => {}
       }),
+      getCurrentZone: vi.fn(async () => null),
       closeCheatSheets: vi.fn(),
       minimizeCheatSheets: vi.fn(),
       restoreCheatSheets: vi.fn(),

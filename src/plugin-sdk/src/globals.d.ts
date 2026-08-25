@@ -25,6 +25,8 @@ declare global {
       resumeHotkeys(): void
       /** Subscribe to zone-change events. Returns an unsubscribe function. */
       onZoneChanged(cb: (zone: ScalpelHostZone | null) => void): () => void
+      /** Latest zone known to the host. Null until Client.txt has produced one. */
+      getCurrentZone(): Promise<ScalpelHostZone | null>
     }
   }
 }

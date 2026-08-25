@@ -1,6 +1,8 @@
 import type { BrowserWindow } from 'electron'
+import { getPoeVersion } from '../game-state'
 import { parseClientLogLine } from './parse-client-log'
 import { resolveClientLogPath } from './path-resolver'
+import { readLastZoneFromLog } from './seed-last-zone'
 import { hasLogLineSubscribers, pushLogLine } from './tail-buffer'
 import { startWatcher } from './watcher'
 import { getCurrentZone, ingestZoneEvent, onZoneChanged } from './zone-state'
@@ -14,9 +16,11 @@ const logLineWinGetters: Array<() => BrowserWindow | null> = []
  *  and the toggle never renders. */
 export function startClientLogWatcher(overlayWindow: BrowserWindow): void {
   if (started) return
-  const path = resolveClientLogPath()
+  const path = resolveClientLogPath({ poeVersion: getPoeVersion() })
   if (!path) return
   started = true
+  const last = readLastZoneFromLog(path)
+  if (last) ingestZoneEvent(last)
   startWatcher(path, (line) => {
     emitLogLine(line)
     const parsed = parseClientLogLine(line)

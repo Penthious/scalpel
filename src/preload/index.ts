@@ -409,6 +409,7 @@ export const api = {
     }
   },
   getRecentLogLines: (count?: number): Promise<string[]> => ipcRenderer.invoke('client-log:recent-lines', count),
+  getCurrentZone: (): Promise<Zone | null> => ipcRenderer.invoke('client-log:current-zone'),
   gameConfigRead: (): Promise<{ content: string; path: string }> => ipcRenderer.invoke('plugins:game-config-read'),
   gameConfigWrite: (content: string): Promise<{ backupPath: string | null }> =>
     ipcRenderer.invoke('plugins:game-config-write', content),
